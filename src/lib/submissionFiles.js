@@ -1,5 +1,5 @@
 export const SUBMISSION_FILE_ACCEPT =
-  ".pdf,.ppt,.pptx,.doc,.docx,.hwp,.hwpx,.zip,.mp4,.mov,.avi,.png,.jpg,.jpeg";
+  ".pdf,.ppt,.pptx,.doc,.docx,.hwp,.hwpx,.xls,.xlsx,.txt,.zip,.mp4,.mov,.avi,.png,.jpg,.jpeg";
 
 export function createSubmissionFileMeta(file, index = 0) {
   const extension = getFileExtension(file.name);

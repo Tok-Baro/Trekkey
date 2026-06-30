@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Layers3, LogOut, PanelsTopLeft, Search, Sparkles, UserRound } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Layers3, LogOut, PanelsTopLeft, Search, UserRound } from "lucide-react";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
 import { findParticipantApplication, getContestTitle, getContestWithPublicFields, isContestApplyOpen } from "../../lib/contest.js";
@@ -9,6 +9,11 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("접수중");
   const allContests = useMemo(() => contests.map(getContestWithPublicFields), [contests]);
+  const featuredContests = useMemo(() => {
+    const open = allContests.filter(isContestApplyOpen);
+    return (open.length ? open : allContests).slice(0, 6);
+  }, [allContests]);
+  const [activeSlide, setActiveSlide] = useState(0);
   const myApplications = useMemo(
     () =>
       teams.filter(
@@ -30,22 +35,32 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     });
   }, [allContests, query, statusFilter]);
-  const openCount = allContests.filter(isContestApplyOpen).length;
-  const approvedCount = myApplications.filter((application) => application.status === "승인").length;
-  const openContests = useMemo(() => allContests.filter(isContestApplyOpen), [allContests]);
-  const urgentContest = useMemo(
-    () =>
-      [...openContests]
-        .map((contest) => ({ contest, daysLeft: getDaysUntilDeadline(contest.submissionDue) }))
-        .filter((item) => item.daysLeft !== null && item.daysLeft >= 0)
-        .sort((a, b) => a.daysLeft - b.daysLeft)[0],
-    [openContests]
-  );
-  const recommendedContest = useMemo(
-    () => openContests.find((contest) => !findParticipantApplication(teams, contest.id, session)) ?? openContests[0],
-    [openContests, session, teams]
-  );
-  const latestApplication = myApplications[0];
+
+  useEffect(() => {
+    if (activeSlide >= featuredContests.length) {
+      setActiveSlide(0);
+    }
+  }, [activeSlide, featuredContests.length]);
+
+  useEffect(() => {
+    if (featuredContests.length < 2) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setActiveSlide((current) => (current + 1) % featuredContests.length);
+    }, 6000);
+
+    return () => window.clearInterval(timer);
+  }, [featuredContests.length]);
+
+  const moveSlide = (direction) => {
+    if (featuredContests.length < 2) {
+      return;
+    }
+
+    setActiveSlide((current) => (current + direction + featuredContests.length) % featuredContests.length);
+  };
 
   return (
     <div className={styles.shell}>
@@ -69,36 +84,106 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
       </header>
 
       <main className={styles.mainShell}>
-        <section className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <h1>참가 가능한 대회</h1>
-            <div className={styles.heroPills} aria-label="참가 현황 요약">
-              <span>접수중 {openCount}개</span>
-              <span>내 신청 {myApplications.length}건</span>
-              <span>승인 {approvedCount}건</span>
+        {featuredContests.length > 0 && (
+          <section className={styles.posterCarousel} aria-label="주요 대회 포스터">
+            <div className={styles.carouselViewport}>
+              <div
+                className={styles.carouselTrack}
+                style={{ transform: `translateX(-${activeSlide * 100}%)` }}
+              >
+                {featuredContests.map((contest) => {
+                  const deadlineLabel = getDeadlineLabel(contest.submissionDue);
+                  const tags = String(contest.tags || "")
+                    .split(",")
+                    .map((tag) => tag.trim())
+                    .filter(Boolean)
+                    .slice(0, 3);
+
+                  return (
+                    <button
+                      className={styles.carouselSlide}
+                      key={contest.id}
+                      type="button"
+                      onClick={() => onOpenPublicPage(contest.id)}
+                    >
+                      <div className={styles.carouselMedia}>
+                        {contest.posterUrl ? (
+                          <>
+                            <img
+                              className={styles.carouselBackdrop}
+                              src={contest.posterUrl}
+                              alt=""
+                              aria-hidden="true"
+                            />
+                            <img
+                              className={styles.carouselPosterImage}
+                              src={contest.posterUrl}
+                              alt={`${contest.title} 포스터`}
+                            />
+                          </>
+                        ) : (
+                          <div className={styles.carouselFallback}>
+                            <span>{contest.department}</span>
+                            <strong>{contest.title}</strong>
+                            <small>{contest.applicationPeriod}</small>
+                          </div>
+                        )}
+                      </div>
+                      <div className={styles.carouselShade} />
+                      <div className={styles.carouselContent}>
+                        <div className={styles.carouselBadges}>
+                          <StatusBadge status={contest.status} />
+                          <span>{deadlineLabel}</span>
+                        </div>
+                        <h1>{contest.title}</h1>
+                        <p>{contest.summary}</p>
+                        <div className={styles.carouselMeta}>
+                          <span>{contest.department}</span>
+                          <span>제출 {contest.submissionDue}</span>
+                          {tags.map((tag) => (
+                            <span key={tag}>#{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {featuredContests.length > 1 && (
+                <>
+                  <button
+                    className={`${styles.carouselNav} ${styles.carouselPrev}`}
+                    type="button"
+                    aria-label="이전 대회"
+                    onClick={() => moveSlide(-1)}
+                  >
+                    <ChevronLeft size={20} aria-hidden="true" />
+                  </button>
+                  <button
+                    className={`${styles.carouselNav} ${styles.carouselNext}`}
+                    type="button"
+                    aria-label="다음 대회"
+                    onClick={() => moveSlide(1)}
+                  >
+                    <ChevronRight size={20} aria-hidden="true" />
+                  </button>
+                  <div className={styles.carouselDots} aria-label="대회 포스터 선택">
+                    {featuredContests.map((contest, index) => (
+                      <button
+                        className={index === activeSlide ? styles.carouselDotActive : ""}
+                        key={contest.id}
+                        type="button"
+                        aria-label={`${index + 1}번 포스터 보기`}
+                        aria-current={index === activeSlide}
+                        onClick={() => setActiveSlide(index)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-          <div className={styles.heroInsights} aria-label="참가자 요약">
-            <HeroInsight
-              icon={Clock3}
-              label="마감 임박"
-              title={urgentContest ? urgentContest.contest.title : "접수 일정 없음"}
-              meta={urgentContest ? `${getDeadlineLabel(urgentContest.contest.submissionDue)} · 제출 ${urgentContest.contest.submissionDue}` : "열린 대회가 생기면 표시됩니다"}
-            />
-            <HeroInsight
-              icon={CheckCircle2}
-              label="내 신청"
-              title={latestApplication ? getContestTitle(latestApplication.contestId, contests) : "아직 신청 전"}
-              meta={latestApplication ? `${latestApplication.status} · ${latestApplication.name}` : "관심 있는 대회를 신청해 보세요"}
-            />
-            <HeroInsight
-              icon={Sparkles}
-              label="추천 공고"
-              title={recommendedContest ? recommendedContest.title : "공개 예정"}
-              meta={recommendedContest ? recommendedContest.department : "새 공고가 올라오면 표시됩니다"}
-            />
-          </div>
-        </section>
+          </section>
+        )}
 
         <div className={styles.layout}>
           <section className={styles.contestPanel}>
@@ -213,21 +298,6 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
         </div>
       </main>
     </div>
-  );
-}
-
-function HeroInsight({ icon: Icon, label, title, meta }) {
-  return (
-    <article className={styles.heroInsight}>
-      <div className={styles.heroInsightIcon}>
-        <Icon size={16} aria-hidden="true" />
-      </div>
-      <div>
-        <span>{label}</span>
-        <strong>{title}</strong>
-        <small>{meta}</small>
-      </div>
-    </article>
   );
 }
 

@@ -300,6 +300,9 @@
     min-height: 460px;
     overflow: hidden;
     border-left: 1px solid var(--line);
+    background:
+      linear-gradient(145deg, rgba(15, 139, 141, 0.08), rgba(111, 91, 215, 0.08)),
+      var(--surface-tint);
   }
   
   .contest-public-poster img {
@@ -307,6 +310,7 @@
     height: 100%;
     display: block;
     object-fit: cover;
+    object-position: top center;
   }
   
   .contest-public-poster > div {

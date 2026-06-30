@@ -22,36 +22,6 @@
   composes: participant-main-shell from global;
 }
 
-.hero {
-  composes: participant-hero from global;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
-  gap: 18px;
-  align-items: stretch;
-  padding: 20px;
-}
-
-.heroCopy {
-  composes: participant-hero-copy from global;
-  align-content: start;
-  gap: 10px;
-}
-
-.heroCopy h1 {
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.18;
-}
-
-.stats {
-  composes: participant-stats from global;
-}
-
-.heroPills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.heroPills span,
 .deadlineBadge {
   min-height: 28px;
   display: inline-flex;
@@ -65,69 +35,272 @@
   white-space: nowrap;
 }
 
-.heroPills span {
-  border: 1px solid var(--line);
-  background: var(--surface-tint);
-  color: var(--ink-650);
-}
-
-.heroInsights {
-  min-width: 0;
+.posterCarousel {
   display: grid;
-  gap: 8px;
+  margin-bottom: 18px;
 }
 
-.heroInsight {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(15, 139, 141, 0.14);
-  border-radius: 8px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.62);
+.carouselViewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(49, 87, 255, 0.08), rgba(15, 139, 141, 0.08)),
+    var(--surface-tint);
 }
 
-.heroInsightIcon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--teal-strong);
+.carouselTrack {
+  display: flex;
+  transition: transform 560ms var(--ease-out);
+  will-change: transform;
 }
 
-.heroInsight span,
-.heroInsight strong,
-.heroInsight small {
+.carouselSlide {
+  position: relative;
+  min-width: 100%;
+  height: clamp(250px, 26vw, 320px);
+  overflow: hidden;
+  border: 0;
+  padding: 0;
+  background: #101828;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+}
+
+.carouselSlide:focus-visible {
+  outline: 3px solid rgba(49, 87, 255, 0.24);
+  outline-offset: -5px;
+}
+
+.carouselMedia,
+.carouselShade {
+  position: absolute;
+  inset: 0;
+}
+
+.carouselBackdrop,
+.carouselPosterImage {
   display: block;
 }
 
-.heroInsight span {
-  color: var(--ink-500);
-  font-size: 11px;
+.carouselBackdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.56;
+  filter: blur(18px) saturate(0.9);
+  transform: scale(1.08);
+  transition: transform 680ms var(--ease-out);
+}
+
+.carouselPosterImage {
+  position: absolute;
+  top: 16px;
+  right: clamp(48px, 5vw, 88px);
+  bottom: 16px;
+  z-index: 1;
+  width: min(380px, 34vw);
+  height: calc(100% - 32px);
+  border-radius: 14px;
+  box-shadow: 0 26px 70px rgba(8, 14, 32, 0.34);
+  object-fit: cover;
+  object-position: top center;
+  transform: scale(1);
+  transition:
+    box-shadow 680ms var(--ease-out),
+    transform 680ms var(--ease-out);
+}
+
+.carouselSlide:hover .carouselBackdrop {
+  transform: scale(1.12);
+}
+
+.carouselSlide:hover .carouselPosterImage {
+  box-shadow: 0 30px 82px rgba(8, 14, 32, 0.44);
+  transform: scale(1.025);
+}
+
+.carouselFallback {
+  height: 100%;
+  display: grid;
+  align-content: center;
+  justify-items: end;
+  gap: 12px;
+  padding: 36px 42px 36px 46%;
+  background:
+    linear-gradient(135deg, rgba(49, 87, 255, 0.2), rgba(15, 139, 141, 0.16)),
+    linear-gradient(90deg, #eef4ff, #edf8f6);
+  color: rgba(15, 23, 42, 0.32);
+  text-align: right;
+  transition: transform 680ms var(--ease-out);
+}
+
+.carouselSlide:hover .carouselFallback {
+  transform: scale(1.015);
+}
+
+.carouselFallback span,
+.carouselFallback strong,
+.carouselFallback small {
+  display: block;
+  max-width: 520px;
+}
+
+.carouselFallback span {
+  color: rgba(15, 23, 42, 0.48);
+  font-size: 14px;
   font-weight: 900;
 }
 
-.heroInsight strong {
-  overflow: hidden;
-  margin-top: 2px;
-  color: var(--ink-950);
+.carouselFallback strong {
+  color: rgba(15, 23, 42, 0.18);
+  font-size: clamp(36px, 5.2vw, 72px);
+  font-weight: 900;
+  line-height: 1.06;
+}
+
+.carouselFallback small {
+  color: rgba(15, 23, 42, 0.38);
   font-size: 13px;
-  text-overflow: ellipsis;
+  font-weight: 900;
+}
+
+.carouselShade {
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 14, 32, 0.9), rgba(15, 23, 42, 0.58) 48%, rgba(15, 23, 42, 0.18)),
+    linear-gradient(0deg, rgba(8, 14, 32, 0.38), rgba(8, 14, 32, 0));
+}
+
+.carouselContent {
+  position: absolute;
+  inset: auto auto 24px 78px;
+  z-index: 2;
+  width: min(620px, calc(100% - 440px));
+  display: grid;
+  gap: 10px;
+}
+
+.carouselBadges,
+.carouselMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.carouselBadges > span:not(:global(.status-badge)) {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 10px 0;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.heroInsight small {
+.carouselBadges > span:not(:global(.status-badge)) {
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+}
+
+.carouselContent h1 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(26px, 3.2vw, 42px);
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.carouselContent p {
+  display: -webkit-box;
   overflow: hidden;
-  margin-top: 2px;
-  color: var(--ink-500);
-  font-size: 12px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 14px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.carouselMeta {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.carouselMeta span + span::before {
+  margin-right: 7px;
+  color: rgba(255, 255, 255, 0.42);
+  content: "/";
+}
+
+.carouselNav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  transform: translateY(-50%);
+  backdrop-filter: blur(14px);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.carouselNav:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-50%) scale(1.04);
+}
+
+.carouselPrev {
+  left: 16px;
+}
+
+.carouselNext {
+  right: 16px;
+}
+
+.carouselDots {
+  position: absolute;
+  right: 22px;
+  bottom: 20px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.carouselDots button {
+  width: 8px;
+  height: 8px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.42);
+  cursor: pointer;
+  transition:
+    width var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.carouselDots .carouselDotActive {
+  width: 24px;
+  background: #fff;
 }
 
 .layout {
@@ -178,34 +351,19 @@
 .contestCard {
   width: 100%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border: 0;
+  border-radius: 0;
   padding: 0;
-  background: var(--surface);
+  background: transparent;
   color: var(--ink-950);
   text-align: left;
   cursor: pointer;
   appearance: none;
   font: inherit;
-  box-shadow: 0 12px 28px rgba(20, 31, 54, 0.04);
-  transition:
-    border-color var(--motion) var(--ease-standard),
-    box-shadow var(--motion) var(--ease-standard),
-    transform var(--motion) var(--ease-out),
-    background var(--motion) var(--ease-standard);
-}
-
-.contestCard:hover {
-  border-color: rgba(49, 87, 255, 0.22);
-  background:
-    linear-gradient(180deg, rgba(49, 87, 255, 0.08), rgba(255, 255, 255, 0) 46%),
-    var(--surface);
-  box-shadow: 0 16px 34px rgba(31, 46, 85, 0.08);
-  transform: translateY(-1px);
 }
 
 .contestCard:focus-visible {
@@ -219,7 +377,7 @@
   aspect-ratio: 1 / 1;
   min-height: 0;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
+  border-radius: 14px;
   background:
     linear-gradient(145deg, rgba(15, 139, 141, 0.08), rgba(111, 91, 215, 0.08)),
     var(--surface-tint);
@@ -230,6 +388,13 @@
   height: 100%;
   display: block;
   object-fit: cover;
+  object-position: top center;
+  transform: scale(1);
+  transition: transform 420ms var(--ease-out);
+}
+
+.contestCard:hover .poster img {
+  transform: scale(1.045);
 }
 
 .poster > div {
@@ -241,6 +406,11 @@
   padding: 18px;
   color: var(--ink-500);
   text-align: center;
+  transition: transform 420ms var(--ease-out);
+}
+
+.contestCard:hover .poster > div {
+  transform: scale(1.025);
 }
 
 .cardBody {
@@ -411,12 +581,35 @@
 }
 
 @media (max-width: 840px) {
-  .hero {
-    grid-template-columns: 1fr;
+  .carouselSlide {
+    height: 260px;
   }
 
-  .heroInsights {
-    grid-template-columns: 1fr;
+  .carouselContent {
+    inset: auto 18px 20px 56px;
+    width: auto;
+  }
+
+  .carouselPosterImage {
+    display: none;
+  }
+
+  .carouselContent h1 {
+    font-size: 24px;
+  }
+
+  .carouselContent p {
+    font-size: 13px;
+    -webkit-line-clamp: 1;
+  }
+
+  .carouselNav {
+    display: none;
+  }
+
+  .carouselDots {
+    right: 18px;
+    bottom: 16px;
   }
 
   .contestGrid {

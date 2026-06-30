@@ -15,21 +15,93 @@ import {
 import { readStoredAppData, readStoredSession, storeAppData, storeSession } from "../lib/storage.js";
 import { getSubmissionFileCount } from "../lib/submissionFiles.js";
 
+export const DEMO_DATA_VERSION = "hsportal-poster-2026-06-30";
+
+const LEGACY_DEMO_CONTEST_IDS = new Set(["CT-2026-014", "CT-2026-011", "CT-2026-008", "CT-2026-017"]);
+
+function getSeedCompetitionState() {
+  return {
+    contestRecords: contests,
+    teamRecords: teams,
+    submissionRecords: submissions,
+    judgeRecords: judgingAssignments,
+    reviewRecords: reviewScores,
+    awardRecords: awardCandidates
+  };
+}
+
+function mergeRecordsById(seedRecords, storedRecords = [], shouldKeepStored = () => true) {
+  const seedIds = new Set(seedRecords.map((record) => record.id));
+  const customRecords = storedRecords.filter((record) => record?.id && !seedIds.has(record.id) && shouldKeepStored(record));
+
+  return [...seedRecords, ...customRecords];
+}
+
+function mergeReviewRecords(seedRecords, storedRecords = [], validContestIds) {
+  const getKey = (record) => `${record.contestId}:${record.judgeName}:${record.submissionId}`;
+  const seedKeys = new Set(seedRecords.map(getKey));
+  const customRecords = storedRecords.filter(
+    (record) => validContestIds.has(record.contestId) && !seedKeys.has(getKey(record))
+  );
+
+  return [...seedRecords, ...customRecords];
+}
+
+function mergeAwardRecords(seedRecords, storedRecords = [], validContestIds) {
+  const getKey = (record) => `${record.contestId}:${record.team}:${record.prize}`;
+  const seedKeys = new Set(seedRecords.map(getKey));
+  const customRecords = storedRecords.filter(
+    (record) => validContestIds.has(record.contestId) && !seedKeys.has(getKey(record))
+  );
+
+  return [...seedRecords, ...customRecords];
+}
+
+function createMigratedCompetitionState(storedAppData) {
+  const seedState = getSeedCompetitionState();
+
+  if (!storedAppData) {
+    return seedState;
+  }
+
+  if (storedAppData.demoDataVersion === DEMO_DATA_VERSION) {
+    return {
+      contestRecords: storedAppData.contestRecords ?? contests,
+      teamRecords: storedAppData.teamRecords ?? teams,
+      submissionRecords: storedAppData.submissionRecords ?? submissions,
+      judgeRecords: storedAppData.judgeRecords ?? judgingAssignments,
+      reviewRecords: storedAppData.reviewRecords ?? reviewScores,
+      awardRecords: storedAppData.awardRecords ?? awardCandidates
+    };
+  }
+
+  const contestRecords = mergeRecordsById(
+    seedState.contestRecords,
+    storedAppData.contestRecords,
+    (contest) => !LEGACY_DEMO_CONTEST_IDS.has(contest.id)
+  );
+  const validContestIds = new Set(contestRecords.map((contest) => contest.id));
+  const scopedToValidContest = (record) => validContestIds.has(record.contestId);
+
+  return {
+    contestRecords,
+    teamRecords: mergeRecordsById(seedState.teamRecords, storedAppData.teamRecords, scopedToValidContest),
+    submissionRecords: mergeRecordsById(seedState.submissionRecords, storedAppData.submissionRecords, scopedToValidContest),
+    judgeRecords: mergeRecordsById(seedState.judgeRecords, storedAppData.judgeRecords, scopedToValidContest),
+    reviewRecords: mergeReviewRecords(seedState.reviewRecords, storedAppData.reviewRecords ?? [], validContestIds),
+    awardRecords: mergeAwardRecords(seedState.awardRecords, storedAppData.awardRecords ?? [], validContestIds)
+  };
+}
+
 export function createInitialCompetitionState() {
   const storedAppData = readStoredAppData();
 
-  return {
-    contestRecords: storedAppData?.contestRecords ?? contests,
-    teamRecords: storedAppData?.teamRecords ?? teams,
-    submissionRecords: storedAppData?.submissionRecords ?? submissions,
-    judgeRecords: storedAppData?.judgeRecords ?? judgingAssignments,
-    reviewRecords: storedAppData?.reviewRecords ?? reviewScores,
-    awardRecords: storedAppData?.awardRecords ?? awardCandidates
-  };
+  return createMigratedCompetitionState(storedAppData);
 }
 
 export function persistCompetitionState(state) {
   storeAppData({
+    demoDataVersion: DEMO_DATA_VERSION,
     contestRecords: state.contestRecords,
     teamRecords: state.teamRecords,
     submissionRecords: state.submissionRecords,
