@@ -1,0 +1,335 @@
+:global {
+  @keyframes :global(pageEnter) {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes :global(surfaceEnter) {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.99);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  @keyframes :global(scrimIn) {
+    from {
+      opacity: 0;
+    }
+  
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes :global(modalEnter) {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  @keyframes :global(toastIn) {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes :global(progressIn) {
+    from {
+      transform: scaleX(0);
+    }
+  
+    to {
+      transform: scaleX(1);
+    }
+  }
+  
+  @keyframes :global(ringIn) {
+    from {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+  
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes :global(checkPop) {
+    0% {
+      transform: scale(0.84);
+    }
+  
+    70% {
+      transform: scale(1.08);
+    }
+  
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  @media (max-width: 1180px) {
+    .metric-row,
+    .priority-strip {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  
+    .dashboard-grid,
+    .split-grid,
+    .admin-hero,
+    .dashboard-focus,
+    .contest-context,
+    .contest-public-hero,
+    .contest-public-body,
+    .login-shell,
+    .participant-hero,
+    .participant-layout {
+      grid-template-columns: 1fr;
+    }
+  
+    .split-grid .workflow-main {
+      grid-row: auto;
+    }
+  
+    .focus-queue {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  
+    .operation-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  
+    .team-board {
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+    }
+  }
+  
+  @media (max-width: 840px) {
+    .topbar {
+      position: static;
+      flex-direction: column;
+      align-items: stretch;
+      padding: 16px;
+    }
+  
+    .topbar-actions {
+      justify-content: stretch;
+    }
+  
+    .topbar-user-button {
+      width: 100%;
+    }
+  
+    .search-box {
+      width: 100%;
+    }
+  
+    .content-area {
+      padding: 16px;
+    }
+  
+    .page-grid,
+    .metric-row,
+    .priority-strip,
+    .admin-hero,
+    .review-link-modal,
+    .reviewer-hero,
+    .reviewer-login,
+    .review-workspace,
+    .poster-upload-field,
+    .operation-stats,
+    .contest-management-grid,
+    .dashboard-focus,
+    .focus-queue,
+    .focus-stats,
+    .contest-context,
+    .contest-context-meta,
+    .task-list,
+    .team-board,
+    .judge-grid {
+      grid-template-columns: 1fr;
+    }
+  
+    .login-shell {
+      align-items: stretch;
+      padding: 16px;
+    }
+  
+    .login-role-grid,
+    .login-actions,
+    .participant-topbar,
+    .participant-toolbar,
+    .participant-contest-card {
+      grid-template-columns: 1fr;
+    }
+  
+    .login-actions,
+    .participant-topbar,
+    .participant-toolbar,
+    .participant-card-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .participant-main-shell {
+      width: min(100% - 24px, 1360px);
+      padding: 16px 0 36px;
+    }
+  
+    .participant-side {
+      position: static;
+    }
+  
+    .participant-poster {
+      min-height: 280px;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  
+    .participant-card-meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  
+    .pipeline {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  
+    .management-metrics,
+    .management-actions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  
+    .panel-header,
+    .action-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .segmented-control {
+      width: 100%;
+      overflow-x: auto;
+    }
+  
+    .segmented-control button {
+      flex: 1 0 auto;
+    }
+  
+    .field-row {
+      grid-template-columns: 1fr;
+    }
+  
+    .detail-panel {
+      position: static;
+    }
+  
+    .public-info-panel {
+      position: static;
+    }
+  
+    .contest-public-copy,
+    .public-detail-article {
+      padding: 22px;
+    }
+  
+    .contest-public-poster {
+      min-height: 360px;
+    }
+  
+    .review-sidebar {
+      position: static;
+    }
+  
+    .review-main-head,
+    .review-submission-head,
+    .report-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .score-input-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  
+    .modal-backdrop {
+      align-items: end;
+      padding: 16px;
+    }
+  
+    .modal-panel {
+      max-height: calc(100vh - 32px);
+    }
+  
+    .modal-detail-list {
+      grid-template-columns: 1fr;
+    }
+  
+    .toast {
+      right: 16px;
+      bottom: 16px;
+      left: 16px;
+    }
+  }
+  
+  @media (max-width: 520px) {
+    .pipeline,
+    .operation-stats,
+    .management-metrics,
+    .management-actions,
+    .reviewer-meta,
+    .score-input-grid,
+    .definition-grid,
+    .compact-list,
+    .participant-stats,
+    .participant-card-meta {
+      grid-template-columns: 1fr;
+    }
+  
+    .topbar-actions .icon-button {
+      display: none;
+    }
+  
+    .page-title h1 {
+      font-size: 19px;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

@@ -1,0 +1,167 @@
+:global {
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(17, 24, 39, 0.42);
+    backdrop-filter: blur(10px);
+    animation: scrimIn var(--motion-fast) var(--ease-standard);
+  }
+  
+  .modal-panel {
+    width: min(620px, 100%);
+    max-height: min(780px, calc(100vh - 48px));
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+    background: var(--surface);
+    box-shadow: 0 28px 80px rgba(17, 24, 39, 0.24);
+    animation: modalEnter var(--motion) var(--ease-out);
+  }
+  
+  .modal-panel.wide-modal {
+    width: min(1080px, 100%);
+  }
+  
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  
+  .modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.25;
+  }
+  
+  .modal-header p,
+  .modal-copy {
+    margin: 6px 0 0;
+    color: var(--ink-500);
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  
+  .modal-info-stack {
+    display: grid;
+    gap: 16px;
+  }
+  
+  .review-report-modal {
+    display: grid;
+    gap: 16px;
+  }
+  
+  .report-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .report-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .report-section {
+    display: grid;
+    gap: 10px;
+  }
+  
+  .report-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  
+  .report-section-head strong,
+  .report-section-head span {
+    display: block;
+  }
+  
+  .report-section-head span {
+    color: var(--ink-500);
+    font-size: 12px;
+    font-weight: 700;
+  }
+  
+  .report-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  
+  .report-table-wrap table {
+    min-width: 760px;
+  }
+  
+  .report-table-wrap th {
+    background: var(--surface-tint);
+  }
+  
+  .report-table-wrap th,
+  .report-table-wrap td {
+    white-space: nowrap;
+  }
+  
+  .modal-detail-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+  }
+  
+  .modal-detail-list div {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--surface-tint);
+  }
+  
+  .modal-detail-list dt {
+    margin: 0 0 5px;
+    color: var(--ink-500);
+    font-size: 12px;
+  }
+  
+  .modal-detail-list dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-weight: 800;
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  
+  .toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 70;
+    max-width: min(420px, calc(100vw - 32px));
+    border: 1px solid rgba(98, 181, 229, 0.22);
+    border-radius: 8px;
+    padding: 13px 15px;
+    background: #00205B;
+    color: #fff;
+    box-shadow: 0 18px 46px rgba(17, 24, 39, 0.22);
+    font-weight: 700;
+    animation: toastIn var(--motion) var(--ease-out);
+  }
+}

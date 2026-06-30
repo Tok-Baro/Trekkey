@@ -1,0 +1,86 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css");
+
+:global {
+  :root {
+    color-scheme: light;
+    --font-sans:
+      "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR",
+      "Segoe UI", sans-serif;
+    --ink-950: #111827;
+    --ink-800: #1f2937;
+    --ink-650: #4b5563;
+    --ink-500: #707372;
+    --line: #d9ddea;
+    --line-strong: #c4cbe0;
+    --surface: #ffffff;
+    --surface-soft: #f5f7fb;
+    --surface-muted: #eef1f8;
+    --surface-tint: #f8f9ff;
+    --teal: #62B5E5;
+    --teal-strong: #0032A0;
+    --teal-soft: #E8F4FB;
+    --blue: #0032A0;
+    --blue-soft: #E0EAF5;
+    --purple: #00205B;
+    --purple-soft: #E6EAF3;
+    --amber: #a16207;
+    --amber-soft: #fff5d6;
+    --green: #247a52;
+    --green-soft: #def5e8;
+    --red: #be3a4a;
+    --red-soft: #fde6ea;
+    --shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 16px 36px rgba(54, 73, 130, 0.08);
+    --shadow-hover: 0 1px 2px rgba(17, 24, 39, 0.04), 0 18px 44px rgba(54, 73, 130, 0.14);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --motion-fast: 160ms;
+    --motion: 240ms;
+    --motion-slow: 420ms;
+    font-family: var(--font-sans);
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  * {
+    box-sizing: border-box;
+  }
+  
+  ::selection {
+    background: rgba(98, 181, 229, 0.18);
+  }
+  
+  body {
+    margin: 0;
+    background: var(--surface-soft);
+    color: var(--ink-950);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.45;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    font-family: inherit;
+  }
+  
+  button {
+    cursor: pointer;
+  }
+  
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+}

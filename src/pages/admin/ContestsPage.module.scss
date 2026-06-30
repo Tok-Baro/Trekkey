@@ -1,0 +1,384 @@
+.layout {
+  composes: page-grid split-grid from global;
+}
+
+.panel {
+  composes: panel from global;
+}
+
+.actionGroup {
+  composes: action-group from global;
+}
+
+.tableWrap {
+  composes: table-wrap from global;
+}
+
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.tableToolbar > span {
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.searchBox {
+  composes: search-box from global;
+  width: min(520px, 100%);
+}
+
+.sortButton {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+  white-space: nowrap;
+}
+
+.sortButton span {
+  max-width: 1px;
+  max-height: 1px;
+  overflow: hidden;
+  position: absolute;
+}
+
+.sortButtonActive {
+  color: var(--teal-strong);
+}
+
+.primaryButton {
+  composes: primary-button from global;
+}
+
+.secondaryButton {
+  composes: secondary-button from global;
+}
+
+.textAction {
+  composes: text-action from global;
+}
+
+.detailPanel {
+  composes: panel detail-panel from global;
+  display: grid;
+  gap: 16px;
+}
+
+.detailHeader {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailTitleLine {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.detailTitleLine h2 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.detailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detailActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.progressSummary {
+  display: grid;
+  gap: 8px;
+}
+
+.progressSummary > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tabList {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--surface-muted);
+}
+
+.tabButton {
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--ink-650);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-out);
+}
+
+.tabButton:hover {
+  color: var(--teal-strong);
+}
+
+.tabButtonActive {
+  background: var(--surface);
+  color: var(--teal-strong);
+  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+}
+
+.tabPanel {
+  display: grid;
+  gap: 14px;
+  animation: surfaceEnter 260ms var(--ease-out) both;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricTile,
+.listItem,
+.publicItem {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-tint);
+}
+
+.metricTile {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.metricTile span,
+.listItem span,
+.publicItem span {
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.metricTile strong {
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sectionTitle strong,
+.sectionTitle span {
+  display: block;
+}
+
+.sectionTitle span {
+  margin-top: 3px;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+}
+
+.listItem {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.listItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.listItemTop strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.workflowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ctaStrip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.publicGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.publicItem {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.publicItem strong {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .tabList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .detailTitleLine,
+  .detailActions,
+  .sectionTitle {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tabList,
+  .metricGrid,
+  .workflowGrid,
+  .ctaStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .tableToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tableToolbar > span {
+    white-space: normal;
+  }
+
+  .tableWrap {
+    overflow: visible;
+  }
+
+  .tableWrap table,
+  .tableWrap thead,
+  .tableWrap tbody,
+  .tableWrap tr,
+  .tableWrap th,
+  .tableWrap td {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tableWrap thead {
+    display: none;
+  }
+
+  .tableWrap table {
+    min-width: 0;
+  }
+
+  .tableWrap tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .tableWrap tr {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--surface);
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+  }
+
+  .tableWrap td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 0;
+    padding: 8px 0;
+    text-align: right;
+  }
+
+  .tableWrap td::before {
+    content: attr(data-label);
+    color: var(--ink-500);
+    font-size: 12px;
+    font-weight: 900;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .tableWrap td:first-child {
+    display: grid;
+    justify-items: start;
+    text-align: left;
+  }
+
+  .tableWrap td:first-child::before {
+    content: none;
+  }
+}

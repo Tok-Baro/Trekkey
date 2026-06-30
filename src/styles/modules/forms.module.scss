@@ -1,0 +1,321 @@
+:global {
+  .form-stack {
+    display: grid;
+    gap: 13px;
+  }
+
+  .contest-wizard-form {
+    gap: 16px;
+  }
+
+  .wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 5px;
+    background: var(--surface-muted);
+  }
+
+  .wizard-steps button {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 8px;
+    background: transparent;
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 900;
+    white-space: nowrap;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .wizard-steps button.active {
+    background: var(--surface);
+    color: var(--teal-strong);
+    box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+  }
+
+  .wizard-steps button span {
+    width: 20px;
+    height: 20px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-650);
+    font-size: 11px;
+  }
+
+  .wizard-steps button.active span {
+    background: var(--teal);
+    color: #fff;
+  }
+
+  .wizard-body {
+    display: grid;
+    gap: 13px;
+    animation: surfaceEnter 260ms var(--ease-out) both;
+  }
+
+  .wizard-confirm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .wizard-confirm-grid div {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--surface-tint);
+  }
+
+  .wizard-confirm-grid span,
+  .wizard-confirm-grid strong {
+    display: block;
+  }
+
+  .wizard-confirm-grid span {
+    color: var(--ink-500);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .wizard-confirm-grid strong {
+    margin-top: 5px;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+  }
+  
+  .form-divider {
+    display: grid;
+    gap: 4px;
+    margin-top: 4px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  
+  .form-divider strong,
+  .form-divider span {
+    display: block;
+  }
+  
+  .form-divider span {
+    color: var(--ink-500);
+    font-size: 13px;
+  }
+  
+  .field-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  
+  .form-stack label {
+    display: grid;
+    gap: 6px;
+  }
+  
+  .form-stack label span {
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .poster-upload-field {
+    display: grid;
+    grid-template-columns: 142px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+  }
+  
+  .poster-upload-preview {
+    width: 142px;
+    aspect-ratio: 4 / 5;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-tint);
+    color: var(--ink-500);
+  }
+  
+  .poster-upload-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .poster-upload-preview div {
+    display: grid;
+    place-items: center;
+    gap: 6px;
+    text-align: center;
+    font-size: 12px;
+  }
+  
+  .editor-field {
+    display: grid;
+    gap: 6px;
+  }
+  
+  .editor-field > span {
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .rich-editor-shell {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcff;
+  }
+  
+  .rich-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    padding: 7px;
+    background: var(--surface-tint);
+  }
+  
+  .rich-editor-toolbar button {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 0 9px;
+    background: transparent;
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 800;
+  }
+  
+  .rich-editor-toolbar button:hover,
+  .rich-editor-toolbar button.active {
+    border-color: rgba(98, 181, 229, 0.22);
+    background: var(--teal-soft);
+    color: var(--teal-strong);
+  }
+  
+  .rich-editor-content {
+    min-height: 220px;
+    padding: 14px;
+    outline: 0;
+  }
+  
+  .rich-editor-content h2,
+  .rich-editor-content h3,
+  .public-editor-content h2,
+  .public-editor-content h3 {
+    margin: 18px 0 8px;
+    line-height: 1.25;
+  }
+  
+  .rich-editor-content p,
+  .rich-editor-content li,
+  .public-editor-content p,
+  .public-editor-content li {
+    line-height: 1.65;
+  }
+  
+  .rich-editor-content ul,
+  .public-editor-content ul {
+    padding-left: 20px;
+  }
+  
+  input,
+  select,
+  textarea {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: #fbfcff;
+    color: var(--ink-950);
+    outline: 0;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+  
+  textarea {
+    min-height: 92px;
+    resize: vertical;
+  }
+  
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px var(--teal-soft);
+  }
+
+  @media (max-width: 700px) {
+    .wizard-steps {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wizard-confirm-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .segmented-control {
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 3px;
+    background: var(--surface-muted);
+  }
+  
+  .segmented-control button {
+    min-height: 30px;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 10px;
+    background: transparent;
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard),
+      transform var(--motion-fast) var(--ease-out);
+  }
+  
+  .segmented-control button.active {
+    background: var(--surface);
+    color: var(--teal-strong);
+    box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+  }
+  
+  .segmented-control button:hover {
+    color: var(--teal-strong);
+  }
+  
+  .segmented-control button:active {
+    transform: scale(0.97);
+  }
+}

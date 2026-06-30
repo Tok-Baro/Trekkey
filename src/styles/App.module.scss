@@ -1,0 +1,102 @@
+@use "./modules/base.module";
+@use "./modules/shell-foundation.module";
+@use "./modules/overlays.module";
+@use "./modules/shell.module";
+@use "./modules/auth-participant.module";
+@use "./modules/admin.module";
+@use "./modules/forms.module";
+@use "./modules/workflow.module";
+@use "./modules/public-review.module";
+@use "./modules/motion-responsive.module";
+
+.appRoot {
+  min-height: 100vh;
+}
+
+.appShell {
+  composes: app-shell from global;
+}
+
+.sidebarScrim {
+  composes: sidebar-scrim from global;
+}
+
+.sidebar {
+  composes: sidebar from global;
+}
+
+.sidebarOpen {
+  composes: open from global;
+}
+
+.brand {
+  composes: brand from global;
+}
+
+.brandMark {
+  composes: brand-mark from global;
+}
+
+.sidebarClose {
+  composes: sidebar-close from global;
+}
+
+.navList {
+  composes: nav-list from global;
+}
+
+.navItem {
+  composes: nav-item from global;
+}
+
+.navItemActive {
+  composes: active from global;
+}
+
+.sidebarFooter {
+  composes: sidebar-footer from global;
+}
+
+.mainShell {
+  composes: main-shell from global;
+}
+
+.topbar {
+  composes: topbar from global;
+}
+
+.topbarLeft {
+  composes: topbar-left from global;
+}
+
+.sidebarToggle {
+  composes: sidebar-toggle from global;
+}
+
+.pageTitle {
+  composes: page-title from global;
+}
+
+.pageIcon {
+  composes: page-icon from global;
+}
+
+.topbarActions {
+  composes: topbar-actions from global;
+}
+
+.searchBox {
+  composes: search-box from global;
+}
+
+.topbarUserButton {
+  composes: topbar-user-button from global;
+}
+
+.contentArea {
+  composes: content-area from global;
+}
+
+.toast {
+  composes: toast from global;
+}

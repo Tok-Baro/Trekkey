@@ -1,0 +1,209 @@
+.shell {
+  composes: participant-shell from global;
+}
+
+.topbar {
+  composes: participant-topbar from global;
+}
+
+.brand {
+  composes: login-brand from global;
+}
+
+.brandMark {
+  composes: brand-mark from global;
+}
+
+.account {
+  composes: participant-account from global;
+}
+
+.mainShell {
+  composes: participant-main-shell from global;
+}
+
+.hero {
+  composes: participant-hero from global;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.heroCopy {
+  composes: participant-hero-copy from global;
+  align-content: start;
+  gap: 10px;
+}
+
+.heroCopy h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.18;
+}
+
+.stats {
+  composes: participant-stats from global;
+}
+
+.heroPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroPills span,
+.deadlineBadge {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.heroPills span {
+  border: 1px solid var(--line);
+  background: var(--surface-tint);
+  color: var(--ink-650);
+}
+
+.layout {
+  composes: participant-layout from global;
+}
+
+.contestPanel {
+  composes: participant-contest-panel from global;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sectionHead strong,
+.sectionHead span {
+  display: block;
+}
+
+.sectionHead strong {
+  font-size: 17px;
+}
+
+.sectionHead span {
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.toolbar {
+  composes: participant-toolbar from global;
+}
+
+.searchBox {
+  composes: search-box from global;
+}
+
+.contestGrid {
+  composes: participant-contest-grid from global;
+}
+
+.contestCard {
+  composes: participant-contest-card from global;
+  grid-template-columns: 132px minmax(0, 1fr);
+}
+
+.poster {
+  composes: participant-poster from global;
+  min-height: 166px;
+}
+
+.cardBody {
+  composes: participant-card-body from global;
+  gap: 10px;
+  padding: 14px;
+}
+
+.cardHead {
+  composes: participant-card-head from global;
+}
+
+.deadlineBadge {
+  background: var(--purple-soft);
+  color: var(--purple);
+}
+
+.cardBody h2 {
+  font-size: 18px;
+  line-height: 1.28;
+}
+
+.inlineOk {
+  composes: inline-state ok from global;
+  justify-self: start;
+}
+
+.cardMeta {
+  composes: participant-card-meta from global;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.publicTags {
+  composes: public-tags from global;
+}
+
+.cardActions {
+  composes: participant-card-actions from global;
+  padding-top: 0;
+}
+
+.side {
+  composes: participant-side from global;
+}
+
+.profile {
+  composes: participant-profile from global;
+}
+
+.avatar {
+  composes: participant-avatar from global;
+}
+
+.applications {
+  composes: participant-applications from global;
+}
+
+.sideHead {
+  composes: participant-side-head from global;
+}
+
+.applicationList {
+  composes: participant-application-list from global;
+}
+
+.application {
+  composes: participant-application from global;
+}
+
+.formStack {
+  composes: form-stack from global;
+}
+
+.fieldRow {
+  composes: field-row from global;
+}
+
+.modalActions {
+  composes: modal-actions from global;
+}
+
+.primaryButton {
+  composes: primary-button from global;
+}
+
+.secondaryButton {
+  composes: secondary-button from global;
+}

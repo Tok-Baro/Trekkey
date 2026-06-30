@@ -1,0 +1,55 @@
+.shell {
+  composes: login-shell from global;
+}
+
+.panel {
+  composes: login-panel from global;
+}
+
+.brand {
+  composes: login-brand from global;
+}
+
+.brandMark {
+  composes: brand-mark from global;
+}
+
+.copy {
+  composes: login-copy from global;
+}
+
+.roleGrid {
+  composes: login-role-grid from global;
+}
+
+.roleCard {
+  composes: login-role-card from global;
+}
+
+.selected {
+  composes: selected from global;
+}
+
+.form {
+  composes: form-stack login-form from global;
+}
+
+.fieldRow {
+  composes: field-row from global;
+}
+
+.actions {
+  composes: login-actions from global;
+}
+
+.sidePanel {
+  composes: login-side-panel from global;
+}
+
+.primaryButton {
+  composes: primary-button from global;
+}
+
+.secondaryButton {
+  composes: secondary-button from global;
+}
