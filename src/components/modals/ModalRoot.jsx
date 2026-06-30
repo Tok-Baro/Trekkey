@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { Award, Copy, Download, Link2, QrCode } from "lucide-react";
+import { Award, Copy, Download, Link2, Pencil, QrCode, Trash2 } from "lucide-react";
 import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
 import { getAverage, getReviewTotal } from "../../lib/review.js";
+import { formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import { ModalFrame } from "./ModalFrame.jsx";
 
 export function ModalRoot({
@@ -16,10 +17,13 @@ export function ModalRoot({
   reviewScores,
   selectedContest,
   selectedContestId,
+  openModal,
   onClose,
   onSaveContest,
   onAddSubmission,
   onAddJudge,
+  onUpdateJudge,
+  onDeleteJudge,
   onConfirmAwards,
   onNotify
 }) {
@@ -128,26 +132,44 @@ export function ModalRoot({
 
   if (type === "submissionDetail") {
     const { submission } = payload;
+    const attachments = Array.isArray(submission.attachments) ? submission.attachments : [];
     return (
       <ModalFrame title={submission.title} description="제출물 상세" onClose={onClose}>
-        <DetailList
-          items={[
-            ["제출번호", submission.id],
-            ["팀", submission.team],
-            ["파일 수", `${submission.files}개`],
-            ["접수시각", submission.submittedAt],
-            ["무결성", submission.hashReady ? "해시 생성" : "대기"],
-            ["심사", submission.review]
-          ]}
-        />
+        <div className="modal-info-stack">
+          <DetailList
+            items={[
+              ["제출번호", submission.id],
+              ["팀", submission.team],
+              ["파일 수", `${getSubmissionFileCount(submission)}개`],
+              ["접수시각", submission.submittedAt],
+              ["무결성", submission.hashReady ? "해시 생성" : "대기"],
+              ["심사", submission.review]
+            ]}
+          />
+          {attachments.length > 0 ? (
+            <div className="file-detail-list">
+              {attachments.map((file) => (
+                <div className="file-detail-item" key={file.id}>
+                  <strong>{file.name}</strong>
+                  <span>
+                    {formatFileSize(file.size)} · {file.type} · {file.uploadStatus}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="modal-copy">기존 데모 제출물은 파일 개수만 보유하고 있습니다.</p>
+          )}
+        </div>
       </ModalFrame>
     );
   }
 
   if (type === "judge") {
+    const { judge } = payload;
     return (
-      <ModalFrame title="심사위원 추가" description={selectedContest.title} onClose={onClose}>
-        <JudgeForm onSubmit={onAddJudge} onClose={onClose} />
+      <ModalFrame title={judge ? "심사위원 수정" : "심사위원 추가"} description={selectedContest.title} onClose={onClose}>
+        <JudgeForm judge={judge} onSubmit={judge ? onUpdateJudge : onAddJudge} onClose={onClose} />
       </ModalFrame>
     );
   }
@@ -164,6 +186,46 @@ export function ModalRoot({
             ["평균 점수", judge.avgScore ? `${judge.avgScore}점` : "산출 전"]
           ]}
         />
+        <div className="modal-actions">
+          <button className="secondary-button" type="button" onClick={() => onClose()}>
+            닫기
+          </button>
+          <button className="secondary-button" type="button" onClick={() => openModal("judge", { judge })}>
+            <Pencil size={17} />
+            수정
+          </button>
+          <button className="danger-button" type="button" onClick={() => openModal("deleteJudge", { judge })}>
+            <Trash2 size={17} />
+            삭제
+          </button>
+        </div>
+      </ModalFrame>
+    );
+  }
+
+  if (type === "deleteJudge") {
+    const { judge } = payload;
+    return (
+      <ModalFrame title="심사위원 삭제" description={selectedContest.title} onClose={onClose}>
+        <div className="modal-info-stack">
+          <DetailList
+            items={[
+              ["이름", judge.name],
+              ["역할", judge.role],
+              ["배정/완료", `${judge.assigned}건 / ${judge.completed}건`]
+            ]}
+          />
+          <p className="modal-copy">삭제하면 해당 심사위원의 평가 기록도 평가 현황에서 제외됩니다.</p>
+          <div className="modal-actions">
+            <button className="secondary-button" type="button" onClick={onClose}>
+              취소
+            </button>
+            <button className="danger-button" type="button" onClick={() => onDeleteJudge(judge.id)}>
+              <Trash2 size={17} />
+              삭제
+            </button>
+          </div>
+        </div>
       </ModalFrame>
     );
   }

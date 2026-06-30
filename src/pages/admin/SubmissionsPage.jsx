@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Download, LockKeyhole, Search, Upload } from "lucide-react";
 import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
 
 export function SubmissionsPage({
   contests,
@@ -16,7 +17,8 @@ export function SubmissionsPage({
   const [query, setQuery] = useState("");
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
   const visibleSubmissions = contestSubmissions.filter((submission) => {
-    const searchable = `${submission.title} ${submission.team} ${submission.review}`.toLowerCase();
+    const attachmentNames = (submission.attachments ?? []).map((file) => file.name).join(" ");
+    const searchable = `${submission.title} ${submission.team} ${submission.review} ${attachmentNames}`.toLowerCase();
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
   });
   const hashReadyCount = contestSubmissions.filter((submission) => submission.hashReady).length;
@@ -79,7 +81,10 @@ export function SubmissionsPage({
                     <span>{submission.id}</span>
                   </td>
                   <td data-label="팀">{submission.team}</td>
-                  <td data-label="파일">{submission.files}개</td>
+                  <td data-label="파일">
+                    <strong>{getSubmissionFileCount(submission)}개</strong>
+                    <span>{getSubmissionFileSummary(submission)}</span>
+                  </td>
                   <td data-label="접수시각">{submission.submittedAt}</td>
                   <td data-label="무결성">
                     <span className={submission.hashReady ? "inline-state ok" : "inline-state muted"}>

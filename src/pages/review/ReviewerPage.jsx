@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Check, Gavel, Send, ShieldCheck } from "lucide-react";
 import { EmptyState, ScoreItem } from "../../components/common/CommonUi.jsx";
 import { reviewCriteria } from "../../lib/review.js";
+import { getSubmissionFileCount } from "../../lib/submissionFiles.js";
 
 export function ReviewerPage({ contestId, contests, judgingAssignments, submissions, onSubmitReview }) {
   const contest = contests.find((item) => item.id === contestId);
@@ -213,7 +214,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
                     <div>
                       <strong>{submission.title}</strong>
                       <span>
-                        {submission.team} · {submission.id} · 파일 {submission.files}개
+                        {submission.team} · {submission.id} · 파일 {getSubmissionFileCount(submission)}개
                       </span>
                     </div>
                     <b>{getSubmissionTotal(submission.id)}점</b>

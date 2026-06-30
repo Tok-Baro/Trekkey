@@ -1,6 +1,13 @@
 import React from "react";
 import { Bell, ClipboardCheck, FileCheck2, ListChecks, Plus, QrCode } from "lucide-react";
-import { ContestScopeBar, EmptyState, PanelHeader, ProgressBar, ProgressRing, ScoreItem } from "../../components/common/CommonUi.jsx";
+import { ContestScopeBar, EmptyState, PanelHeader, ProgressBar, ProgressRing } from "../../components/common/CommonUi.jsx";
+
+const scoreCriteria = [
+  { label: "창의성", value: 30, color: "var(--blue)" },
+  { label: "구현 완성도", value: 30, color: "var(--teal)" },
+  { label: "문제 해결성", value: 25, color: "var(--purple)" },
+  { label: "발표 전달력", value: 15, color: "var(--amber)" }
+];
 
 export function JudgingPage({
   contests,
@@ -61,7 +68,7 @@ export function JudgingPage({
                 <span>{judge.role}</span>
               </div>
               <div className="judge-stats">
-                <ProgressRing value={Math.round((judge.completed / judge.assigned) * 100)} />
+                <ProgressRing value={judge.assigned ? Math.round((judge.completed / judge.assigned) * 100) : 0} />
                 <div>
                   <b>
                     {judge.completed}/{judge.assigned}
@@ -79,12 +86,7 @@ export function JudgingPage({
 
       <section className="panel">
         <PanelHeader eyebrow="평가 기준" title="점수 기준" />
-        <div className="score-list">
-          <ScoreItem label="창의성" value={30} />
-          <ScoreItem label="구현 완성도" value={30} />
-          <ScoreItem label="문제 해결성" value={25} />
-          <ScoreItem label="발표 전달력" value={15} />
-        </div>
+        <ScoreRubricChart items={scoreCriteria} />
       </section>
 
       <section className="panel">
@@ -107,6 +109,39 @@ export function JudgingPage({
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ScoreRubricChart({ items }) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  let cursor = 0;
+  const gradient = items
+    .map((item) => {
+      const start = cursor;
+      const end = cursor + (item.value / total) * 360;
+      cursor = end;
+      return `${item.color} ${start}deg ${end}deg`;
+    })
+    .join(", ");
+
+  return (
+    <div className="score-rubric">
+      <div className="score-donut" style={{ background: `conic-gradient(${gradient})` }} aria-label={`총 ${total}점 배점 기준`}>
+        <div>
+          <strong>{total}</strong>
+          <span>점 기준</span>
+        </div>
+      </div>
+      <div className="score-legend">
+        {items.map((item) => (
+          <div className="score-legend-item" key={item.label}>
+            <span className="score-swatch" style={{ background: item.color }} />
+            <strong>{item.label}</strong>
+            <b>{item.value}점</b>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

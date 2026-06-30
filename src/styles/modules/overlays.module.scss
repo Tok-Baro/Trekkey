@@ -6,7 +6,7 @@
     display: grid;
     place-items: center;
     padding: 24px;
-    background: rgba(17, 24, 39, 0.42);
+    background: rgba(17, 19, 24, 0.44);
     backdrop-filter: blur(10px);
     animation: scrimIn var(--motion-fast) var(--ease-standard);
   }
@@ -19,7 +19,7 @@
     border-radius: 8px;
     padding: 18px;
     background: var(--surface);
-    box-shadow: 0 28px 80px rgba(17, 24, 39, 0.24);
+    box-shadow: 0 28px 80px rgba(17, 19, 24, 0.24);
     animation: modalEnter var(--motion) var(--ease-out);
   }
   
@@ -107,7 +107,7 @@
   }
   
   .report-table-wrap th {
-    background: var(--surface-tint);
+    background: #f5f7fa;
   }
   
   .report-table-wrap th,
@@ -127,7 +127,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px;
-    background: var(--surface-tint);
+    background: var(--surface);
   }
   
   .modal-detail-list dt {
@@ -148,6 +148,35 @@
     gap: 8px;
     margin-top: 4px;
   }
+
+  .file-detail-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .file-detail-item {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 11px 12px;
+    background: var(--surface);
+  }
+
+  .file-detail-item strong,
+  .file-detail-item span {
+    display: block;
+  }
+
+  .file-detail-item strong {
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
+  .file-detail-item span {
+    margin-top: 4px;
+    color: var(--ink-500);
+    font-size: 12px;
+  }
   
   .toast {
     position: fixed;
@@ -155,12 +184,12 @@
     bottom: 24px;
     z-index: 70;
     max-width: min(420px, calc(100vw - 32px));
-    border: 1px solid rgba(98, 181, 229, 0.22);
+    border: 1px solid rgba(15, 139, 141, 0.26);
     border-radius: 8px;
     padding: 13px 15px;
-    background: #00205B;
+    background: #1a2433;
     color: #fff;
-    box-shadow: 0 18px 46px rgba(17, 24, 39, 0.22);
+    box-shadow: 0 18px 46px rgba(17, 19, 24, 0.22);
     font-weight: 700;
     animation: toastIn var(--motion) var(--ease-out);
   }

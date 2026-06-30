@@ -76,6 +76,8 @@
   composes: panel detail-panel from global;
   display: grid;
   gap: 16px;
+  border-color: var(--line-strong);
+  background: linear-gradient(180deg, #fff, #fbfcfd);
 }
 
 .detailHeader {
@@ -138,7 +140,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 4px;
-  background: var(--surface-muted);
+  background: #eef2f4;
 }
 
 .tabButton {
@@ -160,12 +162,13 @@
 
 .tabButton:hover {
   color: var(--teal-strong);
+  background: rgba(255, 255, 255, 0.54);
 }
 
 .tabButtonActive {
   background: var(--surface);
   color: var(--teal-strong);
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+  box-shadow: 0 1px 4px rgba(17, 19, 24, 0.08);
 }
 
 .tabPanel {
@@ -185,7 +188,7 @@
 .publicItem {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--surface-tint);
+  background: var(--surface);
 }
 
 .metricTile {
@@ -235,6 +238,15 @@
   display: grid;
   gap: 6px;
   padding: 12px;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+.listItem:hover,
+.publicItem:hover {
+  border-color: rgba(15, 139, 141, 0.22);
+  background: #fbfcf8;
 }
 
 .listItemTop {

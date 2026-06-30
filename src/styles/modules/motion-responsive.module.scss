@@ -164,6 +164,7 @@
     .poster-upload-field,
     .operation-stats,
     .contest-management-grid,
+    .management-card,
     .dashboard-focus,
     .focus-queue,
     .focus-stats,
@@ -223,7 +224,15 @@
     .management-actions {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-  
+
+    .management-card-head,
+    .management-metrics,
+    .management-actions,
+    .management-stage-list {
+      grid-column: auto;
+      grid-row: auto;
+    }
+
     .panel-header,
     .action-group {
       flex-direction: column;
@@ -307,6 +316,15 @@
     .participant-stats,
     .participant-card-meta {
       grid-template-columns: 1fr;
+    }
+
+    .score-rubric {
+      grid-template-columns: 1fr;
+      justify-items: center;
+    }
+
+    .score-legend {
+      max-width: 280px;
     }
   
     .topbar-actions .icon-button {

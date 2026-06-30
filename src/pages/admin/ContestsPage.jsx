@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { EmptyState, IconButton, PanelHeader, ProgressBar, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getAverage, getReviewTotal } from "../../lib/review.js";
+import { getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import styles from "./ContestsPage.module.scss";
 
 const detailTabs = [
@@ -385,7 +386,7 @@ function ContestDetailTab({
                 </div>
                 <div className={styles.inlineMeta}>
                   <span>{submission.team}</span>
-                  <span>{submission.files}개 파일</span>
+                  <span>{getSubmissionFileCount(submission)}개 파일</span>
                   <span>{submission.submittedAt}</span>
                   <span>{submission.hashReady ? "해시 준비" : "해시 대기"}</span>
                 </div>

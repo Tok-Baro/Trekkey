@@ -13,7 +13,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px;
-    background: var(--surface-tint);
+    background: var(--surface);
   }
   
   .qr-preview img {
@@ -43,7 +43,7 @@
     display: flex;
     gap: 10px;
     align-items: flex-start;
-    border: 1px solid rgba(98, 181, 229, 0.18);
+    border: 1px solid rgba(15, 139, 141, 0.18);
     border-radius: 8px;
     padding: 12px;
     background: var(--teal-soft);
@@ -91,17 +91,17 @@
     gap: 18px;
     padding: 28px;
     background:
-      linear-gradient(135deg, rgba(232, 244, 251, 0.9), rgba(248, 250, 255, 0.96) 44%, rgba(224, 234, 245, 0.72)),
+      linear-gradient(135deg, rgba(230, 246, 245, 0.9), rgba(248, 249, 251, 0.96) 44%, rgba(240, 237, 255, 0.72)),
       var(--surface-soft);
   }
   
   .reviewer-hero,
   .reviewer-card,
   .review-submission {
-    border: 1px solid #C8D6E5;
+    border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface);
-    box-shadow: var(--shadow);
+    box-shadow: none;
   }
   
   .reviewer-hero {
@@ -112,6 +112,9 @@
     align-items: center;
     margin: 0 auto;
     padding: 20px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(230, 246, 245, 0.76)),
+      var(--surface);
   }
   
   .reviewer-brand {
@@ -199,7 +202,9 @@
   
   .contest-public-page {
     min-height: 100vh;
-    background: #f3f5fb;
+    background:
+      linear-gradient(180deg, #f8f9fb 0, #f1f4f7 360px),
+      var(--surface-soft);
     color: var(--ink-950);
   }
   
@@ -213,7 +218,7 @@
     gap: 14px;
     border-bottom: 1px solid var(--line);
     padding: 14px max(24px, calc((100vw - 1180px) / 2));
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(250, 251, 253, 0.92);
     backdrop-filter: blur(12px);
   }
   
@@ -230,20 +235,20 @@
     gap: 0;
     align-items: stretch;
     margin: 28px auto;
-    border: 1px solid #C8D6E5;
+    border: 1px solid var(--line);
     border-radius: 8px;
     overflow: hidden;
     background: var(--surface);
-    box-shadow: var(--shadow);
+    box-shadow: var(--shadow-hover);
   }
   
   .public-info-panel,
   .public-detail-article,
   .public-empty {
-    border: 1px solid #C8D6E5;
+    border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface);
-    box-shadow: var(--shadow);
+    box-shadow: none;
   }
   
   .contest-public-copy {
@@ -264,13 +269,15 @@
   .public-tags span {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     min-height: 26px;
     border-radius: 999px;
-    padding: 0 10px;
-    background: var(--surface-muted);
+    padding: 1px 10px 0;
+    background: #eef2f4;
     color: var(--ink-650);
     font-size: 12px;
     font-weight: 800;
+    line-height: 1;
   }
   
   .contest-public-copy h1 {
@@ -292,7 +299,7 @@
   .contest-public-poster {
     min-height: 460px;
     overflow: hidden;
-    border-left: 1px solid #C8D6E5;
+    border-left: 1px solid var(--line);
   }
   
   .contest-public-poster img {
@@ -310,7 +317,7 @@
     gap: 8px;
     padding: 24px;
     background:
-      linear-gradient(145deg, rgba(98, 181, 229, 0.08), rgba(0, 32, 91, 0.12)),
+      linear-gradient(145deg, rgba(15, 139, 141, 0.1), rgba(111, 91, 215, 0.1)),
       var(--surface);
     color: var(--ink-500);
     text-align: center;
@@ -357,7 +364,7 @@
     color: var(--ink-650);
     font-size: 12px;
     font-weight: 800;
-    background: var(--surface-muted);
+    background: #eef2f4;
     padding: 4px 10px;
     border-radius: 6px;
     white-space: nowrap;
@@ -480,7 +487,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 10px;
-    background: var(--surface-tint);
+    background: var(--surface);
   }
   
   .reviewer-meta dt {
@@ -505,10 +512,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    border: 1px solid #C8D6E5;
+    border: 1px solid var(--line);
     border-radius: 8px;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 255, 255, 0.82);
   }
   
   .review-submission-list {
@@ -520,6 +527,15 @@
     display: grid;
     gap: 14px;
     padding: 16px;
+    transition:
+      border-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .review-submission:focus-within,
+  .review-submission:hover {
+    border-color: rgba(111, 91, 215, 0.28);
+    box-shadow: var(--shadow-hover);
   }
   
   .review-submission-head {

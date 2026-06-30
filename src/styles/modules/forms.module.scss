@@ -15,7 +15,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 5px;
-    background: var(--surface-muted);
+    background: #eef2f4;
   }
 
   .wizard-steps button {
@@ -41,7 +41,7 @@
   .wizard-steps button.active {
     background: var(--surface);
     color: var(--teal-strong);
-    box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+    box-shadow: 0 1px 4px rgba(17, 19, 24, 0.08);
   }
 
   .wizard-steps button span {
@@ -77,7 +77,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 12px;
-    background: var(--surface-tint);
+    background: var(--surface);
   }
 
   .wizard-confirm-grid span,
@@ -169,6 +169,116 @@
     display: grid;
     gap: 6px;
   }
+
+  .file-upload-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .file-upload-drop {
+    position: relative;
+    min-height: 136px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 7px;
+    overflow: hidden;
+    border: 1px dashed var(--line-strong);
+    border-radius: 8px;
+    padding: 18px;
+    background: var(--surface);
+    color: var(--ink-650);
+    text-align: center;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .file-upload-drop:hover,
+  .file-upload-drop:focus-within {
+    border-color: rgba(15, 139, 141, 0.48);
+    background: var(--teal-soft);
+    box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.09);
+  }
+
+  .file-upload-drop svg {
+    color: var(--teal-strong);
+  }
+
+  .file-upload-drop strong,
+  .file-upload-drop small {
+    display: block;
+  }
+
+  .file-upload-drop small {
+    color: var(--ink-500);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .file-upload-drop input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file-preview-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .file-preview-item {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px;
+    background: var(--surface);
+  }
+
+  .file-preview-item svg {
+    color: var(--purple);
+  }
+
+  .file-preview-item strong,
+  .file-preview-item span {
+    display: block;
+  }
+
+  .file-preview-item strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .file-preview-item span {
+    margin-top: 3px;
+    color: var(--ink-500);
+    font-size: 12px;
+  }
+
+  .file-preview-item button {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcff;
+    color: var(--ink-650);
+  }
+
+  .file-preview-item button:hover {
+    border-color: rgba(211, 47, 47, 0.28);
+    background: var(--red-soft);
+    color: var(--red);
+  }
   
   .editor-field > span {
     color: var(--ink-650);
@@ -180,7 +290,7 @@
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fbfcff;
+    background: var(--surface);
   }
   
   .rich-editor-toolbar {
@@ -189,7 +299,7 @@
     gap: 4px;
     border-bottom: 1px solid var(--line);
     padding: 7px;
-    background: var(--surface-tint);
+    background: #f5f7fa;
   }
   
   .rich-editor-toolbar button {
@@ -208,7 +318,7 @@
   
   .rich-editor-toolbar button:hover,
   .rich-editor-toolbar button.active {
-    border-color: rgba(98, 181, 229, 0.22);
+    border-color: rgba(15, 139, 141, 0.22);
     background: var(--teal-soft);
     color: var(--teal-strong);
   }
@@ -247,7 +357,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 9px 11px;
-    background: #fbfcff;
+    background: var(--surface);
     color: var(--ink-950);
     outline: 0;
     transition:
@@ -265,7 +375,7 @@
   select:focus,
   textarea:focus {
     border-color: var(--teal);
-    box-shadow: 0 0 0 3px var(--teal-soft);
+    box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.1);
   }
 
   @media (max-width: 700px) {
@@ -285,18 +395,19 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 3px;
-    background: var(--surface-muted);
+    background: #eef2f4;
   }
   
   .segmented-control button {
     min-height: 30px;
     border: 0;
     border-radius: 6px;
-    padding: 0 10px;
+    padding: 1px 10px 0;
     background: transparent;
     color: var(--ink-650);
     font-size: 13px;
     font-weight: 700;
+    line-height: 1;
     white-space: nowrap;
     transition:
       background var(--motion-fast) var(--ease-standard),
@@ -308,7 +419,7 @@
   .segmented-control button.active {
     background: var(--surface);
     color: var(--teal-strong);
-    box-shadow: 0 1px 4px rgba(17, 24, 39, 0.08);
+    box-shadow: 0 1px 4px rgba(17, 19, 24, 0.08);
   }
   
   .segmented-control button:hover {
@@ -316,6 +427,7 @@
   }
   
   .segmented-control button:active {
-    transform: scale(0.97);
+    box-shadow: inset 0 1px 4px rgba(17, 19, 24, 0.1);
+    transform: none;
   }
 }

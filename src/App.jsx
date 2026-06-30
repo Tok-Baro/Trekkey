@@ -181,6 +181,18 @@ function App() {
     closeModal();
   };
 
+  const handleUpdateJudge = (form) => {
+    const result = competition.updateJudge(form);
+    notify(result.message);
+    closeModal();
+  };
+
+  const handleDeleteJudge = (judgeId) => {
+    const result = competition.deleteJudge(judgeId);
+    notify(result.message);
+    closeModal();
+  };
+
   const handleBatchAssignJudges = () => {
     const result = competition.batchAssignJudges(selectedContestId);
     notify(result.message);
@@ -481,10 +493,13 @@ function App() {
         reviewScores={reviewRecords}
         selectedContest={selectedContest}
         selectedContestId={selectedContestId}
+        openModal={openModal}
         onClose={closeModal}
         onSaveContest={handleSaveContest}
         onAddSubmission={handleAddSubmission}
         onAddJudge={handleAddJudge}
+        onUpdateJudge={handleUpdateJudge}
+        onDeleteJudge={handleDeleteJudge}
         onConfirmAwards={handleConfirmAwards}
         onNotify={notify}
       />

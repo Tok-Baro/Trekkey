@@ -55,10 +55,12 @@
   min-height: 28px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  padding: 0 10px;
+  padding: 1px 10px 0;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -113,12 +115,12 @@
 
 .contestCard {
   composes: participant-contest-card from global;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 168px minmax(0, 1fr);
 }
 
 .poster {
   composes: participant-poster from global;
-  min-height: 166px;
+  min-height: 210px;
 }
 
 .cardBody {

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Check, ChevronLeft, ChevronRight, ImagePlus, Plus, Type, Upload } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Plus, Type, Upload, X } from "lucide-react";
 import { getDefaultContestPublicFields, getTestContestFormDefaults } from "../../lib/contest.js";
+import { createSubmissionFileMeta, formatFileSize, SUBMISSION_FILE_ACCEPT } from "../../lib/submissionFiles.js";
 
 const contestFormSteps = [
   { id: "basic", label: "기본 정보" },
@@ -302,17 +303,29 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
   const [form, setForm] = useState({
     team: teams[0]?.name ?? "미등록 팀",
     title: "",
-    files: 1,
     submittedAt: "방금 전"
   });
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const fileMetas = useMemo(
+    () => selectedFiles.map((file, index) => createSubmissionFileMeta(file, index)),
+    [selectedFiles]
+  );
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const removeFile = (targetIndex) => {
+    setSelectedFiles((current) => current.filter((_, index) => index !== targetIndex));
+  };
 
   return (
     <form
       className="form-stack"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(form);
+        onSubmit({
+          ...form,
+          files: fileMetas.length,
+          attachments: fileMetas,
+          uploadFiles: selectedFiles
+        });
       }}
     >
       <label>
@@ -329,11 +342,40 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
         <span>제출물명</span>
         <input value={form.title} onChange={(event) => update("title", event.target.value)} required />
       </label>
+      <label className="file-upload-field">
+        <span>제출 파일</span>
+        <div className="file-upload-drop">
+          <FileArchive size={24} aria-hidden="true" />
+          <strong>{fileMetas.length ? `${fileMetas.length}개 파일 선택됨` : "파일 선택"}</strong>
+          <small>PDF, PPTX, ZIP, 영상 파일 등을 여러 개 선택할 수 있습니다.</small>
+          <input
+            type="file"
+            accept={SUBMISSION_FILE_ACCEPT}
+            multiple
+            required={selectedFiles.length === 0}
+            onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
+          />
+        </div>
+      </label>
+      {fileMetas.length > 0 && (
+        <div className="file-preview-list" aria-label="선택한 파일">
+          {fileMetas.map((file, index) => (
+            <div className="file-preview-item" key={file.id}>
+              <FileArchive size={16} aria-hidden="true" />
+              <div>
+                <strong>{file.name}</strong>
+                <span>
+                  {formatFileSize(file.size)} · {file.type}
+                </span>
+              </div>
+              <button type="button" aria-label={`${file.name} 제거`} onClick={() => removeFile(index)}>
+                <X size={15} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="field-row">
-        <label>
-          <span>파일 수</span>
-          <input type="number" min="1" value={form.files} onChange={(event) => update("files", event.target.value)} />
-        </label>
         <label>
           <span>접수시각</span>
           <input value={form.submittedAt} onChange={(event) => update("submittedAt", event.target.value)} />
@@ -343,7 +385,7 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
         <button className="secondary-button" type="button" onClick={onClose}>
           취소
         </button>
-        <button className="primary-button" type="submit">
+        <button className="primary-button" type="submit" disabled={selectedFiles.length === 0}>
           <Upload size={17} />
           접수
         </button>
@@ -352,11 +394,13 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
   );
 }
 
-export function JudgeForm({ onSubmit, onClose }) {
+export function JudgeForm({ judge, onSubmit, onClose }) {
+  const isEdit = Boolean(judge);
   const [form, setForm] = useState({
-    name: "",
-    role: "외부 심사위원",
-    assigned: 5
+    id: judge?.id,
+    name: judge?.name ?? "",
+    role: judge?.role ?? "외부 심사위원",
+    assigned: judge?.assigned ?? 5
   });
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
@@ -388,6 +432,7 @@ export function JudgeForm({ onSubmit, onClose }) {
             min="1"
             value={form.assigned}
             onChange={(event) => update("assigned", event.target.value)}
+            required
           />
         </label>
       </div>
@@ -397,7 +442,7 @@ export function JudgeForm({ onSubmit, onClose }) {
         </button>
         <button className="primary-button" type="submit">
           <Plus size={17} />
-          추가
+          {isEdit ? "저장" : "추가"}
         </button>
       </div>
     </form>

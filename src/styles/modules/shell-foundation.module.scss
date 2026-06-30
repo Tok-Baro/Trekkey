@@ -19,8 +19,8 @@
     gap: 24px;
     padding: 20px 18px;
     border-right: 1px solid var(--line);
-    background: #fbfcff;
-    box-shadow: 16px 0 44px rgba(17, 24, 39, 0.16);
+    background: #fbfcfd;
+    box-shadow: 16px 0 44px rgba(17, 19, 24, 0.14);
     transform: translateX(calc(-100% - 16px));
     transition: transform var(--motion) var(--ease-out);
     will-change: transform;
@@ -35,7 +35,7 @@
     inset: 0;
     z-index: 25;
     border: 0;
-    background: rgba(17, 24, 39, 0.32);
+    background: rgba(17, 19, 24, 0.34);
     cursor: default;
     animation: scrimIn var(--motion-fast) var(--ease-standard);
   }

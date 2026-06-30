@@ -113,9 +113,9 @@ export function EmptyState({ title, description }) {
 export function StatusBadge({ status }) {
   const Icon = statusIcon[status] ?? CircleDot;
   return (
-    <span className={`status-badge ${statusTone[status] ?? "neutral"}`}>
+    <span className={`status-badge ${statusTone[status] ?? "neutral"}`} data-status={status}>
       <Icon size={12} aria-hidden="true" />
-      {status}
+      <span>{status}</span>
     </span>
   );
 }

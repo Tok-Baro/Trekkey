@@ -7,10 +7,12 @@ import {
   calculateResults,
   confirmAwards,
   createInitialCompetitionState,
+  deleteJudge,
   generateSubmissionHashes,
   persistCompetitionState,
   saveContest,
   submitJudgeReview,
+  updateJudge,
   updateTeamStatus
 } from "../api/competitionApi.js";
 import { contests } from "../data/competitionData.js";
@@ -54,6 +56,8 @@ export function useCompetitionStore() {
     generateSubmissionHashes: (contestId, options) =>
       runMutation((current) => generateSubmissionHashes(current, contestId), options),
     addJudge: (form, options) => runMutation((current) => addJudge(current, selectedContest, form), options),
+    updateJudge: (form, options) => runMutation((current) => updateJudge(current, form), options),
+    deleteJudge: (judgeId, options) => runMutation((current) => deleteJudge(current, judgeId), options),
     batchAssignJudges: (contestId, options) => runMutation((current) => batchAssignJudges(current, contestId), options),
     submitJudgeReview: (payload, options) => runMutation((current) => submitJudgeReview(current, payload), options),
     calculateResults: (contestId, options) => runMutation((current) => calculateResults(current, contestId), options),

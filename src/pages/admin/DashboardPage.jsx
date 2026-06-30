@@ -1,7 +1,9 @@
 import React from "react";
 import { Award, ChevronRight, CircleAlert, ClipboardCheck, FileArchive, Gavel, Plus, UsersRound } from "lucide-react";
-import { ChecklistItem, PanelHeader, ProgressBar, StatusBadge, TaskItem } from "../../components/common/CommonUi.jsx";
+import { PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
 import styles from "./DashboardPage.module.scss";
+
+const operationStages = ["공고 등록", "접수중", "제출 접수", "심사중", "수상 확정"];
 
 export function DashboardPage({
   contests,
@@ -135,16 +137,10 @@ export function DashboardPage({
         <PanelHeader
           title="진행 중인 대회"
           action={
-            <div className={styles.actionGroup}>
-              <button className={styles.secondaryButton} type="button" onClick={() => openModal("contest")}>
-                <Plus size={17} />
-                신규 등록
-              </button>
-              <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
-                전체 대회
-                <ChevronRight size={16} />
-              </button>
-            </div>
+            <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
+              전체 대회
+              <ChevronRight size={16} />
+            </button>
           }
         />
         <div className="contest-management-grid">
@@ -158,37 +154,6 @@ export function DashboardPage({
               onOpenPage={openContestPage}
             />
           ))}
-        </div>
-      </section>
-
-      <section className={styles.panel}>
-        <PanelHeader title="신규 대회 등록 준비" />
-        <div className="setup-checklist">
-          <ChecklistItem done label="대회 기본 정보" meta="대회명, 주관부서, 담당자" />
-          <ChecklistItem done label="운영 일정" meta="접수 기간과 제출 마감" />
-          <ChecklistItem label="제출 조건" meta="파일 형식과 필수 서류" />
-          <ChecklistItem label="심사 기준" meta="배점과 심사위원 배정" />
-        </div>
-        <div className="button-row">
-          <button className={styles.primaryButton} type="button" onClick={() => openModal("contest")}>
-            <Plus size={17} />
-            대회 생성
-          </button>
-        </div>
-      </section>
-
-      <section className={styles.panel}>
-        <PanelHeader title="처리 대기 요약" />
-        <div className="dashboard-checkpoints">
-          <TaskItem icon={CircleAlert} tone="danger" title={`보완요청 신청 ${supplementCount}건`} meta="팀 증빙 서류와 구성원 정보 확인" />
-          <TaskItem icon={FileArchive} tone="warning" title={`심사 배정 대기 ${unassignedCount}건`} meta="제출물 접수 후 심사위원 배정 필요" />
-          <TaskItem icon={ClipboardCheck} tone="warning" title={`심사 미완료 ${delayedReviewCount}건`} meta="심사 독촉 또는 재배정 검토" />
-          <TaskItem
-            icon={Award}
-            tone="success"
-            title={`수상 확정 대기 ${pendingAwardCount}건`}
-            meta="결과 산출 후 상장번호 확인"
-          />
         </div>
       </section>
     </div>
@@ -225,6 +190,7 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
   const assigned = contestJudges.reduce((sum, judge) => sum + judge.assigned, 0);
   const completed = contestJudges.reduce((sum, judge) => sum + judge.completed, 0);
   const reviewRate = assigned ? Math.round((completed / assigned) * 100) : 0;
+  const currentStageIndex = getContestStageIndex({ contest, contestSubmissions, completed });
   const needsAttention =
     contestTeams.filter((team) => team.status === "보완요청").length +
     contestSubmissions.filter((submission) => ["미배정", "대기"].includes(submission.review)).length +
@@ -243,15 +209,21 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
         onClick={() => onOpenPage(contest.id, "contests")}
       />
       <div className="management-card-head">
-        <div>
-          <strong>{contest.title}</strong>
+        <div className="management-card-title">
+          <div className="management-title-row">
+            <strong>{contest.title}</strong>
+            <span className="management-card-link">
+              상세 보기
+              <ChevronRight size={15} aria-hidden="true" />
+            </span>
+          </div>
           <span>
             {contest.department} · 제출 마감 {contest.submissionDue}
           </span>
         </div>
         <StatusBadge status={contest.status} />
       </div>
-      <ProgressBar value={contest.progress} />
+      <ContestStageTracker currentStageIndex={currentStageIndex} />
       <dl className="management-metrics">
         <div>
           <dt>참가</dt>
@@ -283,15 +255,43 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
           <Gavel size={16} />
           심사
         </button>
-        <button className="text-action" type="button" onClick={(event) => stopAndOpen(event, "contests")}>
-          설정
-          <ChevronRight size={15} />
-        </button>
       </div>
-      <span className="management-card-link">
-        상세 보기
-        <ChevronRight size={15} aria-hidden="true" />
-      </span>
     </article>
   );
+}
+
+function ContestStageTracker({ currentStageIndex }) {
+  return (
+    <ol className="management-stage-list" aria-label={`현재 운영 단계: ${operationStages[currentStageIndex]}`}>
+      {operationStages.map((stage, index) => {
+        const state = index < currentStageIndex ? "done" : index === currentStageIndex ? "current" : "upcoming";
+        return (
+          <li className={`management-stage-item ${state}`} key={stage}>
+            <span className="management-stage-dot" aria-hidden="true" />
+            <span>{stage}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function getContestStageIndex({ contest, contestSubmissions, completed }) {
+  if (contest.status === "수상확정") {
+    return 4;
+  }
+
+  if (contest.status === "심사중") {
+    return 3;
+  }
+
+  if (contestSubmissions.length > 0 || (contest.submissions ?? 0) > 0) {
+    return 2;
+  }
+
+  if (contest.status === "접수중" || (contest.teams ?? 0) > 0) {
+    return 1;
+  }
+
+  return completed > 0 ? 3 : 0;
 }

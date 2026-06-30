@@ -13,6 +13,7 @@ import {
   isContestApplyOpen
 } from "../lib/contest.js";
 import { readStoredAppData, readStoredSession, storeAppData, storeSession } from "../lib/storage.js";
+import { getSubmissionFileCount } from "../lib/submissionFiles.js";
 
 export function createInitialCompetitionState() {
   const storedAppData = readStoredAppData();
@@ -160,12 +161,16 @@ export function updateTeamStatus(state, teamId, status) {
 }
 
 export function addSubmission(state, selectedContest, form) {
+  const attachments = Array.isArray(form.attachments) ? form.attachments : [];
   const nextSubmission = {
     id: `SB-${8800 + state.submissionRecords.length + 1}`,
     contestId: selectedContest.id,
     team: form.team,
     title: form.title,
-    files: Number(form.files),
+    files: attachments.length || Number(form.files || 0),
+    attachments,
+    uploadStatus: attachments.length ? "metadata-ready" : "metadata-missing",
+    uploadBatchId: attachments.length ? `UP-${Date.now()}` : null,
     submittedAt: form.submittedAt || "방금 전",
     hashReady: false,
     review: "접수완료"
@@ -179,11 +184,11 @@ export function addSubmission(state, selectedContest, form) {
         team.contestId === selectedContest.id && team.name === form.team ? { ...team, submitted: true } : team
       ),
       contestRecords: patchContest(state.contestRecords, selectedContest.id, {
-        submissions: selectedContest.submissions + 1,
-        progress: Math.min(selectedContest.progress + 4, 92)
+        submissions: (selectedContest.submissions ?? 0) + 1,
+        progress: Math.min((selectedContest.progress ?? 0) + 4, 92)
       })
     },
-    message: "제출물을 수동 접수했습니다."
+    message: `${getSubmissionFileCount(nextSubmission)}개 파일을 포함해 제출물을 접수했습니다.`
   };
 }
 
@@ -204,12 +209,13 @@ export function generateSubmissionHashes(state, contestId) {
 }
 
 export function addJudge(state, selectedContest, form) {
+  const assigned = Math.max(Number(form.assigned) || 1, 1);
   const nextJudge = {
     id: `JG-${state.judgeRecords.length + 31}`,
     contestId: selectedContest.id,
     name: form.name,
     role: form.role,
-    assigned: Number(form.assigned),
+    assigned,
     completed: 0,
     avgScore: 0
   };
@@ -223,6 +229,62 @@ export function addJudge(state, selectedContest, form) {
       })
     },
     message: "심사위원을 추가했습니다."
+  };
+}
+
+export function updateJudge(state, form) {
+  const previousJudge = state.judgeRecords.find((judge) => judge.id === form.id);
+
+  if (!previousJudge) {
+    return { state, message: "수정할 심사위원을 찾을 수 없습니다." };
+  }
+
+  const assigned = Math.max(Number(form.assigned) || 1, 1);
+  const nextName = form.name.trim();
+
+  return {
+    state: {
+      ...state,
+      judgeRecords: state.judgeRecords.map((judge) =>
+        judge.id === form.id
+          ? {
+              ...judge,
+              name: nextName,
+              role: form.role,
+              assigned,
+              completed: Math.min(judge.completed, assigned)
+            }
+          : judge
+      ),
+      reviewRecords: state.reviewRecords.map((record) =>
+        record.contestId === previousJudge.contestId && record.judgeName === previousJudge.name
+          ? { ...record, judgeName: nextName }
+          : record
+      )
+    },
+    message: "심사위원 정보를 수정했습니다."
+  };
+}
+
+export function deleteJudge(state, judgeId) {
+  const targetJudge = state.judgeRecords.find((judge) => judge.id === judgeId);
+
+  if (!targetJudge) {
+    return { state, message: "삭제할 심사위원을 찾을 수 없습니다." };
+  }
+
+  return {
+    state: {
+      ...state,
+      judgeRecords: state.judgeRecords.filter((judge) => judge.id !== judgeId),
+      reviewRecords: state.reviewRecords.filter(
+        (record) => !(record.contestId === targetJudge.contestId && record.judgeName === targetJudge.name)
+      ),
+      contestRecords: patchContest(state.contestRecords, targetJudge.contestId, {
+        judges: Math.max((state.contestRecords.find((contest) => contest.id === targetJudge.contestId)?.judges ?? 1) - 1, 0)
+      })
+    },
+    message: "심사위원을 삭제했습니다."
   };
 }
 
