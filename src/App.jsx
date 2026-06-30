@@ -260,6 +260,9 @@ function App() {
     return (
       <ContestPublicDetailPage
         contest={publicContest ? getContestWithPublicFields(publicContest) : null}
+        session={session}
+        teams={teamRecords}
+        onApplyContest={handleApplyContest}
         onBack={() =>
           navigate(session?.role === "participant" ? getParticipantPath() : getAdminPath("contests", routeContestParam))
         }
@@ -283,7 +286,6 @@ function App() {
           session={session}
           contests={contestRecords}
           teams={teamRecords}
-          onApplyContest={handleApplyContest}
           onOpenPublicPage={openContestDetailPage}
           onLogout={handleLogout}
         />

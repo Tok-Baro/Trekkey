@@ -2,7 +2,7 @@ import React from "react";
 import { ImagePlus, UsersRound } from "lucide-react";
 import { StatusBadge } from "../common/CommonUi.jsx";
 
-export function ContestPublicView({ contest }) {
+export function ContestPublicView({ contest, showApplyButton = true, applyLabel = "참가 신청", applyDisabled = false, onApply }) {
   const tags = String(contest.tags || "")
     .split(",")
     .map((tag) => tag.trim())
@@ -45,10 +45,12 @@ export function ContestPublicView({ contest }) {
               <dd>{contest.awards}개</dd>
             </div>
           </dl>
-          <button className="primary-button hero-apply-button" type="button">
-            <UsersRound size={17} />
-            참가 신청
-          </button>
+          {showApplyButton && (
+            <button className="primary-button hero-apply-button" type="button" disabled={applyDisabled} onClick={onApply}>
+              <UsersRound size={17} />
+              {applyLabel}
+            </button>
+          )}
         </div>
         <div className="contest-public-poster">
           {contest.posterUrl ? (

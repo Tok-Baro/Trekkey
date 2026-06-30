@@ -1,15 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, Clock3, Layers3, LogOut, PanelsTopLeft, Plus, Search, Send, Sparkles, UserRound } from "lucide-react";
+import { CheckCircle2, Clock3, Layers3, LogOut, PanelsTopLeft, Search, Sparkles, UserRound } from "lucide-react";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
-import { ModalFrame } from "../../components/modals/ModalFrame.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
 import { findParticipantApplication, getContestTitle, getContestWithPublicFields, isContestApplyOpen } from "../../lib/contest.js";
 import styles from "./ParticipantPortal.module.scss";
 
-export function ParticipantPortal({ session, contests, teams, onApplyContest, onOpenPublicPage, onLogout }) {
+export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, onLogout }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("접수중");
-  const [applyingContest, setApplyingContest] = useState(null);
   const allContests = useMemo(() => contests.map(getContestWithPublicFields), [contests]);
   const myApplications = useMemo(
     () =>
@@ -128,12 +126,15 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
             <div className={styles.contestGrid}>
               {visibleContests.map((contest) => {
                 const application = findParticipantApplication(teams, contest.id, session);
-                const canApply = isContestApplyOpen(contest) && !application;
                 const deadlineLabel = getDeadlineLabel(contest.submissionDue);
-                const applyLabel = application ? "완료" : isContestApplyOpen(contest) ? "신청" : "불가";
+                const tags = String(contest.tags || "")
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean)
+                  .slice(0, 3);
 
                 return (
-                  <article className={styles.contestCard} key={contest.id}>
+                  <button className={styles.contestCard} key={contest.id} type="button" onClick={() => onOpenPublicPage(contest.id)}>
                     <div className={styles.poster}>
                       {contest.posterUrl ? (
                         <img src={contest.posterUrl} alt={`${contest.title} 포스터`} />
@@ -143,45 +144,32 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
                           <span>{contest.department}</span>
                         </div>
                       )}
+                      <span className={styles.posterStatus}>
+                        <StatusBadge status={contest.status} />
+                      </span>
                     </div>
                     <div className={styles.cardBody}>
                       <div className={styles.cardHead}>
-                        <StatusBadge status={contest.status} />
                         <span className={styles.deadlineBadge}>{deadlineLabel}</span>
+                        <div className={styles.cardHeadRight}>
+                          {tags.length > 0 && (
+                            <div className={styles.cardTags}>
+                              {tags.map((tag) => (
+                                <span key={tag}>#{tag}</span>
+                              ))}
+                            </div>
+                          )}
+                          {application && <span className={styles.inlineOk}>내 신청 {application.status}</span>}
+                        </div>
                       </div>
                       <h2>{contest.title}</h2>
-                      {application && <span className={styles.inlineOk}>내 신청 {application.status}</span>}
-                      <dl className={styles.cardMeta}>
-                        <div>
-                          <dt>주관</dt>
-                          <dd>{contest.department}</dd>
-                        </div>
-                        <div>
-                          <dt>제출</dt>
-                          <dd>{contest.submissionDue}</dd>
-                        </div>
-                        <div>
-                          <dt>방식</dt>
-                          <dd>{contest.type}</dd>
-                        </div>
-                      </dl>
-                      <div className={styles.cardActions}>
-                        <button className={styles.secondaryButton} type="button" onClick={() => onOpenPublicPage(contest.id)}>
-                          <PanelsTopLeft size={17} aria-hidden="true" />
-                          공고
-                        </button>
-                        <button
-                          className={styles.primaryButton}
-                          type="button"
-                          disabled={!canApply}
-                          onClick={() => setApplyingContest(contest)}
-                        >
-                          <Plus size={17} aria-hidden="true" />
-                          {applyLabel}
-                        </button>
+                      <p>{contest.summary}</p>
+                      <div className={styles.cardMeta} aria-label="대회 정보">
+                        <span>{contest.department}</span>
+                        <span>{contest.submissionDue}</span>
                       </div>
                     </div>
-                  </article>
+                  </button>
                 );
               })}
               {visibleContests.length === 0 && (
@@ -224,26 +212,6 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
           </aside>
         </div>
       </main>
-
-      {applyingContest && (
-        <ModalFrame
-          title="참가 신청"
-          description={applyingContest.title}
-          onClose={() => setApplyingContest(null)}
-          size="wide"
-        >
-          <ContestApplicationForm
-            contest={applyingContest}
-            session={session}
-            onClose={() => setApplyingContest(null)}
-            onSubmit={(form) => {
-              if (onApplyContest(form)) {
-                setApplyingContest(null);
-              }
-            }}
-          />
-        </ModalFrame>
-      )}
     </div>
   );
 }
@@ -293,81 +261,4 @@ function getDaysUntilDeadline(submissionDue) {
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const deadline = new Date(today.getFullYear(), Number(month) - 1, Number(day));
   return Math.ceil((deadline.getTime() - startOfToday.getTime()) / 86400000);
-}
-
-function ContestApplicationForm({ contest, session, onSubmit, onClose }) {
-  const maxMembers = contest.type === "개인전" ? 1 : 5;
-  const [form, setForm] = useState({
-    contestId: contest.id,
-    teamName: contest.type === "개인전" ? session.name : `${session.name} 팀`,
-    leader: session.name,
-    major: session.major,
-    members: contest.type === "개인전" ? 1 : 3,
-    email: session.email,
-    phone: "010-1234-5678",
-    motivation: "대회 주제에 맞는 아이디어를 구체적인 결과물로 발전시키고 싶습니다."
-  });
-  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
-
-  return (
-    <form
-      className={styles.formStack}
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit(form);
-      }}
-    >
-      <div className={styles.fieldRow}>
-        <label>
-          <span>{contest.type === "개인전" ? "참가자명" : "팀명"}</span>
-          <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
-        </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
-        </label>
-      </div>
-      <div className={styles.fieldRow}>
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input
-            type="number"
-            min="1"
-            max={maxMembers}
-            value={form.members}
-            onChange={(event) => update("members", event.target.value)}
-            readOnly={contest.type === "개인전"}
-            required
-          />
-        </label>
-      </div>
-      <div className={styles.fieldRow}>
-        <label>
-          <span>이메일</span>
-          <input type="email" value={form.email} onChange={(event) => update("email", event.target.value)} required />
-        </label>
-        <label>
-          <span>연락처</span>
-          <input value={form.phone} onChange={(event) => update("phone", event.target.value)} required />
-        </label>
-      </div>
-      <label>
-        <span>지원 동기</span>
-        <textarea value={form.motivation} onChange={(event) => update("motivation", event.target.value)} required />
-      </label>
-      <div className={styles.modalActions}>
-        <button className={styles.secondaryButton} type="button" onClick={onClose}>
-          취소
-        </button>
-        <button className={styles.primaryButton} type="submit">
-          <Send size={17} aria-hidden="true" />
-          신청 제출
-        </button>
-      </div>
-    </form>
-  );
 }

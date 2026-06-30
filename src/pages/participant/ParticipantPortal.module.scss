@@ -170,37 +170,125 @@
 }
 
 .contestGrid {
-  composes: participant-contest-grid from global;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .contestCard {
-  composes: participant-contest-card from global;
-  grid-template-columns: 168px minmax(0, 1fr);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink-950);
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+  box-shadow: 0 12px 28px rgba(20, 31, 54, 0.04);
+  transition:
+    border-color var(--motion) var(--ease-standard),
+    box-shadow var(--motion) var(--ease-standard),
+    transform var(--motion) var(--ease-out),
+    background var(--motion) var(--ease-standard);
+}
+
+.contestCard:hover {
+  border-color: rgba(49, 87, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(49, 87, 255, 0.08), rgba(255, 255, 255, 0) 46%),
+    var(--surface);
+  box-shadow: 0 16px 34px rgba(31, 46, 85, 0.08);
+  transform: translateY(-1px);
+}
+
+.contestCard:focus-visible {
+  outline: 3px solid rgba(49, 87, 255, 0.18);
+  outline-offset: 3px;
 }
 
 .poster {
-  composes: participant-poster from global;
-  min-height: 210px;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(145deg, rgba(15, 139, 141, 0.08), rgba(111, 91, 215, 0.08)),
+    var(--surface-tint);
+}
+
+.poster img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.poster > div {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 18px;
+  color: var(--ink-500);
+  text-align: center;
 }
 
 .cardBody {
-  composes: participant-card-body from global;
+  min-width: 0;
+  display: grid;
   gap: 10px;
   padding: 14px;
 }
 
 .cardHead {
-  composes: participant-card-head from global;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardHeadRight {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  overflow: hidden;
 }
 
 .deadlineBadge {
+  flex: 0 0 auto;
   background: var(--purple-soft);
   color: var(--purple);
 }
 
 .cardBody h2 {
-  font-size: 18px;
+  margin: 0;
+  font-size: 17px;
   line-height: 1.28;
+}
+
+.cardBody p {
+  display: -webkit-box;
+  min-height: 40px;
+  overflow: hidden;
+  margin: 0;
+  color: var(--ink-650);
+  font-size: 12px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .inlineOk {
@@ -209,17 +297,63 @@
 }
 
 .cardMeta {
-  composes: participant-card-meta from global;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  margin-bottom: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 
-.publicTags {
-  composes: public-tags from global;
+.cardMeta span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-600);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.cardActions {
-  composes: participant-card-actions from global;
-  padding-top: 0;
+.cardMeta span + span::before {
+  margin-right: 8px;
+  color: var(--ink-300);
+  content: "/";
+}
+
+.posterStatus {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.cardTags {
+  display: flex;
+  min-width: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.cardTags span {
+  min-height: 24px;
+  min-width: 0;
+  max-width: 74px;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 1 auto;
+  border-radius: 999px;
+  padding: 1px 9px 0;
+  overflow: hidden;
+  background: #eef2f4;
+  color: var(--ink-650);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .side {
@@ -270,12 +404,22 @@
   composes: secondary-button from global;
 }
 
+@media (max-width: 1180px) {
+  .contestGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 840px) {
   .hero {
     grid-template-columns: 1fr;
   }
 
   .heroInsights {
+    grid-template-columns: 1fr;
+  }
+
+  .contestGrid {
     grid-template-columns: 1fr;
   }
 }
