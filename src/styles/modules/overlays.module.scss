@@ -26,6 +26,16 @@
   .modal-panel.wide-modal {
     width: min(1080px, 100%);
   }
+
+  .modal-panel.contest-modal {
+    width: min(1040px, calc(100vw - 32px));
+    height: min(760px, calc(100vh - 40px));
+    max-height: calc(100vh - 40px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    padding: 0;
+  }
   
   .modal-header {
     display: flex;
@@ -33,6 +43,16 @@
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 18px;
+  }
+
+  .contest-modal .modal-header {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 18px 20px 16px;
+    background: var(--surface);
+    box-shadow: 0 1px 0 rgba(17, 19, 24, 0.02);
   }
   
   .modal-header h2 {

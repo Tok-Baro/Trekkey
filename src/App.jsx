@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, ShieldCheck, UserRound, X } from "lucide-react";
+import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, UserRound, X } from "lucide-react";
 import { navItems } from "./constants/navigation.js";
 import { ModalRoot } from "./components/modals/ModalRoot.jsx";
 import { IconButton } from "./components/common/CommonUi.jsx";
@@ -353,10 +353,24 @@ function App() {
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <ShieldCheck size={18} aria-hidden="true" />
-          <div>
-            <strong>교내 인증 영역</strong>
-            <span>블록체인 연동 예정</span>
+          <div className={styles.sidebarAccount}>
+            <div className={styles.sidebarAccountIcon}>
+              <UserRound size={17} aria-hidden="true" />
+            </div>
+            <div>
+              <strong>{session.name}</strong>
+              <span>{session.role === "admin" ? "관리자 계정" : "참가자 계정"}</span>
+            </div>
+          </div>
+          <div className={styles.sidebarFooterActions}>
+            <button className={styles.sidebarFooterButton} type="button">
+              <Settings size={16} aria-hidden="true" />
+              설정
+            </button>
+            <button className={styles.sidebarFooterButton} type="button" onClick={handleLogout}>
+              <LogOut size={16} aria-hidden="true" />
+              로그아웃
+            </button>
           </div>
         </div>
       </aside>
@@ -392,14 +406,6 @@ function App() {
             <IconButton label="알림">
               <Bell size={18} />
             </IconButton>
-            <IconButton label="환경설정">
-              <Settings size={18} />
-            </IconButton>
-            <button className={styles.topbarUserButton} type="button" onClick={handleLogout}>
-              <UserRound size={17} aria-hidden="true" />
-              <span>{session.name}</span>
-              <LogOut size={16} aria-hidden="true" />
-            </button>
           </div>
         </header>
 
@@ -455,6 +461,7 @@ function App() {
               openModal={openModal}
               onExport={handleExport}
               onGenerateHashes={handleGenerateHashes}
+              onNotify={notify}
             />
           )}
           {activePage === "judging" && (

@@ -6,7 +6,6 @@ import {
   Eye,
   FileArchive,
   Gavel,
-  PanelsTopLeft,
   Plus,
   QrCode,
   Search,
@@ -25,8 +24,7 @@ const detailTabs = [
   { id: "teams", label: "신청/팀" },
   { id: "submissions", label: "제출물" },
   { id: "judging", label: "심사" },
-  { id: "awards", label: "수상" },
-  { id: "public", label: "공개페이지" }
+  { id: "awards", label: "수상" }
 ];
 
 const sortLabels = {
@@ -230,14 +228,6 @@ export function ContestsPage({
             <StatusBadge status={selectedContest.status} />
           </div>
 
-          <div className={styles.progressSummary}>
-            <div>
-              <span>운영 진행률</span>
-              <strong>{selectedContest.progress}%</strong>
-            </div>
-            <ProgressBar value={selectedContest.progress} />
-          </div>
-
           <div className={styles.detailActions}>
             <button className={styles.secondaryButton} type="button" onClick={() => openModal("contestRules", { contest: selectedContest })}>
               <SlidersHorizontal size={17} />
@@ -283,7 +273,6 @@ export function ContestsPage({
           reviewProgress={reviewProgress}
           confirmedAwards={confirmedAwards}
           onNavigate={onNavigate}
-          onOpenPublicPage={onOpenPublicPage}
           openModal={openModal}
           onGenerateHashes={onGenerateHashes}
           onCalculateResults={onCalculateResults}
@@ -307,7 +296,6 @@ function ContestDetailTab({
   reviewProgress,
   confirmedAwards,
   onNavigate,
-  onOpenPublicPage,
   openModal,
   onGenerateHashes,
   onCalculateResults
@@ -486,38 +474,6 @@ function ContestDetailTab({
           ) : (
             <EmptyState title="산출된 수상 후보가 없습니다" description="심사 결과 산출 후 후보와 확정 상태가 표시됩니다." />
           )}
-        </div>
-      </div>
-    );
-  }
-
-  if (activeTab === "public") {
-    return (
-      <div className={styles.tabPanel}>
-        <DetailSectionTitle
-          icon={PanelsTopLeft}
-          title="공개페이지 설정"
-          meta="참가자에게 노출되는 공고 정보"
-          actionLabel="공개 보기"
-          onAction={() => onOpenPublicPage(selectedContest.id)}
-        />
-        <div className={styles.publicGrid}>
-          <div className={styles.publicItem}>
-            <span>한 줄 소개</span>
-            <strong>{selectedContest.summary}</strong>
-          </div>
-          <div className={styles.publicItem}>
-            <span>참가 대상</span>
-            <strong>{selectedContest.target}</strong>
-          </div>
-          <div className={styles.publicItem}>
-            <span>접수 방법</span>
-            <strong>{selectedContest.applicationMethod}</strong>
-          </div>
-          <div className={styles.publicItem}>
-            <span>태그</span>
-            <strong>{selectedContest.tags}</strong>
-          </div>
         </div>
       </div>
     );

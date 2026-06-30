@@ -1,5 +1,15 @@
 import React from "react";
-import { Award, ChevronRight, CircleAlert, ClipboardCheck, FileArchive, Gavel, Plus, UsersRound } from "lucide-react";
+import {
+  Award,
+  ChevronRight,
+  CircleAlert,
+  ClipboardCheck,
+  FileArchive,
+  Gavel,
+  Plus,
+  Settings2,
+  UsersRound
+} from "lucide-react";
 import { PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
 import styles from "./DashboardPage.module.scss";
 
@@ -72,6 +82,10 @@ export function DashboardPage({
       page: "awards"
     }
   ];
+  const totalWorkCount = workQueue.reduce((sum, item) => sum + item.count, 0);
+  const hasPendingWork = totalWorkCount > 0;
+  const primaryWork = workQueue.find((item) => item.count > 0);
+  const orderedWorkQueue = primaryWork ? [primaryWork, ...workQueue.filter((item) => item !== primaryWork)] : workQueue;
 
   return (
     <div className={styles.layout}>
@@ -85,9 +99,14 @@ export function DashboardPage({
             </button>
           }
         />
-        <div className={styles.queueGrid}>
-          {workQueue.map((item) => (
-            <WorkQueueCard key={item.title} item={item} onClick={() => onNavigate(item.page)} />
+        <div className={styles.queueBoard}>
+          {orderedWorkQueue.map((item) => (
+            <WorkQueueItem
+              key={item.title}
+              item={item}
+              isPrimary={hasPendingWork && item === primaryWork}
+              onClick={() => onNavigate(item.page)}
+            />
           ))}
         </div>
       </section>
@@ -160,26 +179,32 @@ export function DashboardPage({
   );
 }
 
-function WorkQueueCard({ item, onClick }) {
+function WorkQueueItem({ item, isPrimary, onClick }) {
   const Icon = item.icon;
+  const isEmpty = item.count === 0;
 
   return (
-    <article className={styles.queueCard}>
-      <div className={styles.queueCardTop}>
-        <div className={`${styles.queueIcon} ${styles[item.tone] ?? ""}`}>
-          <Icon size={19} aria-hidden="true" />
-        </div>
-        <span className={styles.queueCount}>{item.count}건</span>
-      </div>
-      <div>
-        <strong>{item.title}</strong>
-        <p>{item.meta}</p>
-      </div>
-      <button className={styles.queueAction} type="button" onClick={onClick}>
-        {item.action}
+    <button
+      className={`${styles.queueItem} ${isPrimary ? styles.queueItemPrimary : ""} ${isEmpty ? styles.queueItemEmpty : ""}`}
+      type="button"
+      onClick={onClick}
+    >
+      <span className={`${styles.queueIcon} ${styles[item.tone] ?? ""}`}>
+        <Icon size={isPrimary ? 18 : 16} aria-hidden="true" />
+      </span>
+      <span className={styles.queueCopy}>
+        <span className={styles.queueTitleLine}>
+          {isPrimary && <em>우선 처리</em>}
+          <strong>{item.title}</strong>
+        </span>
+        {isPrimary && <small>{item.meta}</small>}
+      </span>
+      <span className={styles.queueCount}>{isEmpty ? "정상" : `${item.count}건`}</span>
+      <span className={styles.queueAction}>
+        {isPrimary && item.action}
         <ChevronRight size={15} aria-hidden="true" />
-      </button>
-    </article>
+      </span>
+    </button>
   );
 }
 
@@ -195,6 +220,8 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
     contestTeams.filter((team) => team.status === "보완요청").length +
     contestSubmissions.filter((submission) => ["미배정", "대기"].includes(submission.review)).length +
     Math.max(assigned - completed, 0);
+  const resolvedPrimaryAction = getContestPrimaryAction({ contest, currentStageIndex, needsAttention });
+  const PrimaryActionIcon = resolvedPrimaryAction.icon;
   const stopAndOpen = (event, page) => {
     event.stopPropagation();
     onOpenPage(contest.id, page);
@@ -223,7 +250,7 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
         </div>
         <StatusBadge status={contest.status} />
       </div>
-      <ContestStageTracker currentStageIndex={currentStageIndex} />
+      <ContestStageTracker currentStageIndex={currentStageIndex} progress={contest.progress} />
       <dl className="management-metrics">
         <div>
           <dt>참가</dt>
@@ -243,37 +270,76 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
         </div>
       </dl>
       <div className="management-actions">
-        <button className="secondary-button" type="button" onClick={(event) => stopAndOpen(event, "teams")}>
-          <UsersRound size={16} />
-          신청
+        <button className="primary-button management-primary-action" type="button" onClick={(event) => stopAndOpen(event, resolvedPrimaryAction.page)}>
+          <PrimaryActionIcon size={16} aria-hidden="true" />
+          {resolvedPrimaryAction.label}
         </button>
-        <button className="secondary-button" type="button" onClick={(event) => stopAndOpen(event, "submissions")}>
-          <FileArchive size={16} />
-          제출
-        </button>
-        <button className="secondary-button" type="button" onClick={(event) => stopAndOpen(event, "judging")}>
-          <Gavel size={16} />
-          심사
-        </button>
+        <div className="management-quick-actions" aria-label={`${contest.title} 빠른 이동`}>
+          <button className="icon-button" type="button" aria-label="신청 관리" title="신청 관리" onClick={(event) => stopAndOpen(event, "teams")}>
+            <UsersRound size={16} aria-hidden="true" />
+          </button>
+          <button className="icon-button" type="button" aria-label="제출물 관리" title="제출물 관리" onClick={(event) => stopAndOpen(event, "submissions")}>
+            <FileArchive size={16} aria-hidden="true" />
+          </button>
+          <button className="icon-button" type="button" aria-label="심사 관리" title="심사 관리" onClick={(event) => stopAndOpen(event, "judging")}>
+            <Gavel size={16} aria-hidden="true" />
+          </button>
+          <button className="icon-button" type="button" aria-label="대회 설정" title="대회 설정" onClick={(event) => stopAndOpen(event, "contests")}>
+            <Settings2 size={16} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );
 }
 
-function ContestStageTracker({ currentStageIndex }) {
+function ContestStageTracker({ currentStageIndex, progress }) {
+  const currentStage = operationStages[currentStageIndex];
+  const nextStage = operationStages[currentStageIndex + 1];
+
   return (
-    <ol className="management-stage-list" aria-label={`현재 운영 단계: ${operationStages[currentStageIndex]}`}>
-      {operationStages.map((stage, index) => {
-        const state = index < currentStageIndex ? "done" : index === currentStageIndex ? "current" : "upcoming";
-        return (
-          <li className={`management-stage-item ${state}`} key={stage}>
-            <span className="management-stage-dot" aria-hidden="true" />
-            <span>{stage}</span>
-          </li>
-        );
-      })}
-    </ol>
+    <div className="management-stage-summary" aria-label={`현재 운영 단계: ${currentStage}`}>
+      <div className="management-stage-copy">
+        <span>현재 단계</span>
+        <strong>{currentStage}</strong>
+        {nextStage && <em>다음 {nextStage}</em>}
+      </div>
+      <div className="management-stage-progress">
+        <span>{progress}%</span>
+        <div aria-hidden="true">
+          <i style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+    </div>
   );
+}
+
+function getContestPrimaryAction({ contest, currentStageIndex, needsAttention }) {
+  if (needsAttention > 0) {
+    if (contest.status === "심사중") {
+      return { label: "심사 관리", page: "judging", icon: Gavel };
+    }
+
+    if ((contest.submissions ?? 0) > 0) {
+      return { label: "제출물 확인", page: "submissions", icon: FileArchive };
+    }
+
+    return { label: "신청 검토", page: "teams", icon: UsersRound };
+  }
+
+  if (currentStageIndex >= 3) {
+    return { label: "심사 관리", page: "judging", icon: Gavel };
+  }
+
+  if (currentStageIndex >= 2) {
+    return { label: "제출물 확인", page: "submissions", icon: FileArchive };
+  }
+
+  if (contest.status === "준비중") {
+    return { label: "대회 설정", page: "contests", icon: Settings2 };
+  }
+
+  return { label: "신청 관리", page: "teams", icon: UsersRound };
 }
 
 function getContestStageIndex({ contest, contestSubmissions, completed }) {

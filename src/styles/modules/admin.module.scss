@@ -316,96 +316,109 @@
     font-size: 18px;
   }
 
-  .management-stage-list {
+  .management-stage-summary {
     grid-column: 1 / -1;
     grid-row: 2;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 0;
-    margin: 0;
-    padding: 10px 2px 0;
-    list-style: none;
+    grid-template-columns: minmax(180px, 0.34fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 13px;
   }
 
-  .management-stage-item {
-    position: relative;
+  .management-stage-copy {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-650);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .management-stage-copy span,
+  .management-stage-copy em {
+    flex: 0 0 auto;
+  }
+
+  .management-stage-copy strong {
+    min-width: 0;
+    color: var(--ink-950);
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .management-stage-copy em {
+    border-radius: 999px;
+    padding: 2px 8px 1px;
+    background: var(--surface-muted);
+    color: var(--ink-650);
+    font-size: 11px;
+    font-style: normal;
+    line-height: 1.4;
+  }
+
+  .management-stage-progress {
     min-width: 0;
     display: grid;
-    justify-items: center;
-    gap: 6px;
-    color: var(--ink-400);
-    font-size: 11px;
-    font-weight: 850;
-    line-height: 1.25;
-    text-align: center;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
   }
 
-  .management-stage-item::before {
-    content: "";
-    position: absolute;
-    top: 5px;
-    right: calc(50% + 8px);
-    left: calc(-50% + 8px);
-    height: 2px;
-    border-radius: 999px;
-    background: var(--line);
-  }
-
-  .management-stage-item:first-child::before {
-    display: none;
-  }
-
-  .management-stage-dot {
-    position: relative;
-    z-index: 1;
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--line-strong);
-    border-radius: 999px;
-    background: var(--surface);
-  }
-
-  .management-stage-item.done,
-  .management-stage-item.current {
+  .management-stage-progress > span {
     color: var(--ink-950);
+    font-size: 12px;
+    font-weight: 900;
   }
 
-  .management-stage-item.done::before,
-  .management-stage-item.current::before {
+  .management-stage-progress div {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--surface-muted);
+  }
+
+  .management-stage-progress i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
     background: linear-gradient(90deg, var(--teal), var(--purple));
-  }
-
-  .management-stage-item.done .management-stage-dot {
-    border-color: var(--teal);
-    background: var(--teal);
-  }
-
-  .management-stage-item.current .management-stage-dot {
-    width: 13px;
-    height: 13px;
-    margin-top: -1px;
-    border-color: var(--purple);
-    background: var(--surface);
-    box-shadow: 0 0 0 4px rgba(111, 91, 215, 0.12);
   }
   
   .management-actions {
     grid-column: 3;
     grid-row: 1;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(128px, 1fr) auto;
     gap: 8px;
     align-items: center;
-    opacity: 0.68;
-    transition: opacity var(--motion-fast) var(--ease-standard);
     pointer-events: auto;
   }
 
-  .management-card:hover .management-actions,
-  .management-card:focus-within .management-actions {
+  .management-primary-action {
+    min-width: 132px;
+    width: 100%;
+  }
+
+  .management-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .management-quick-actions .icon-button {
+    width: 34px;
+    height: 34px;
+    opacity: 0.72;
+  }
+
+  .management-card:hover .management-quick-actions .icon-button,
+  .management-card:focus-within .management-quick-actions .icon-button {
     opacity: 1;
   }
-  
+
   .management-actions * {
     pointer-events: auto;
   }
@@ -646,7 +659,7 @@
   .contest-context-main {
     min-width: 0;
     display: grid;
-    gap: 10px;
+    gap: 6px;
   }
   
   .context-title-line {

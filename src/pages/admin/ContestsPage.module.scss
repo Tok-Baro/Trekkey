@@ -103,6 +103,7 @@
 
 .detailMeta {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
   margin: 6px 0 0;
@@ -118,24 +119,9 @@
   gap: 8px;
 }
 
-.progressSummary {
-  display: grid;
-  gap: 8px;
-}
-
-.progressSummary > div:first-child {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--ink-500);
-  font-size: 13px;
-  font-weight: 800;
-}
-
 .tabList {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -184,8 +170,7 @@
 }
 
 .metricTile,
-.listItem,
-.publicItem {
+.listItem {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -198,8 +183,7 @@
 }
 
 .metricTile span,
-.listItem span,
-.publicItem span {
+.listItem span {
   color: var(--ink-500);
   font-size: 12px;
   font-weight: 800;
@@ -243,8 +227,7 @@
     background var(--motion-fast) var(--ease-standard);
 }
 
-.listItem:hover,
-.publicItem:hover {
+.listItem:hover {
   border-color: rgba(15, 139, 141, 0.22);
   background: #fbfcf8;
 }
@@ -282,21 +265,6 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-}
-
-.publicGrid {
-  display: grid;
-  gap: 8px;
-}
-
-.publicItem {
-  display: grid;
-  gap: 5px;
-  padding: 12px;
-}
-
-.publicItem strong {
-  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1180px) {

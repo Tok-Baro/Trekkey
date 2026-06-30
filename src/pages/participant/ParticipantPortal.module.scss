@@ -24,9 +24,10 @@
 
 .hero {
   composes: participant-hero from global;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  padding: 18px 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 20px;
 }
 
 .heroCopy {
@@ -68,6 +69,65 @@
   border: 1px solid var(--line);
   background: var(--surface-tint);
   color: var(--ink-650);
+}
+
+.heroInsights {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.heroInsight {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(15, 139, 141, 0.14);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.heroInsightIcon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--teal-strong);
+}
+
+.heroInsight span,
+.heroInsight strong,
+.heroInsight small {
+  display: block;
+}
+
+.heroInsight span {
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.heroInsight strong {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--ink-950);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroInsight small {
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--ink-500);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .layout {
@@ -208,4 +268,14 @@
 
 .secondaryButton {
   composes: secondary-button from global;
+}
+
+@media (max-width: 840px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroInsights {
+    grid-template-columns: 1fr;
+  }
 }

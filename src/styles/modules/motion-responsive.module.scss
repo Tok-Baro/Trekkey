@@ -220,17 +220,29 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   
-    .management-metrics,
-    .management-actions {
+    .management-metrics {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .management-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .management-quick-actions {
+      justify-content: flex-start;
     }
 
     .management-card-head,
     .management-metrics,
     .management-actions,
-    .management-stage-list {
+    .management-stage-summary {
       grid-column: auto;
       grid-row: auto;
+    }
+
+    .management-stage-summary {
+      grid-template-columns: 1fr;
+      gap: 10px;
     }
 
     .panel-header,
@@ -308,7 +320,6 @@
     .pipeline,
     .operation-stats,
     .management-metrics,
-    .management-actions,
     .reviewer-meta,
     .score-input-grid,
     .definition-grid,

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { Check, ChevronLeft, ChevronRight, FileArchive, ImagePlus, Plus, Type, Upload, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Eye, FileArchive, ImagePlus, Plus, Type, Upload, X } from "lucide-react";
+import { ContestPublicView } from "../public/ContestPublicView.jsx";
 import { getDefaultContestPublicFields, getTestContestFormDefaults } from "../../lib/contest.js";
 import { createSubmissionFileMeta, formatFileSize, SUBMISSION_FILE_ACCEPT } from "../../lib/submissionFiles.js";
 
@@ -22,11 +23,13 @@ export function ContestForm({ contest, onSubmit, onClose }) {
       : getTestContestFormDefaults()
   );
   const [stepIndex, setStepIndex] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
   const currentStep = contestFormSteps[stepIndex];
   const isLastStep = stepIndex === contestFormSteps.length - 1;
   const canGoNext = stepIndex !== 0 || Boolean(form.title.trim() && form.department.trim() && form.owner.trim());
+  const previewContest = useMemo(() => getContestPreviewData(form), [form]);
   const goNext = () => setStepIndex((current) => Math.min(current + 1, contestFormSteps.length - 1));
   const goBack = () => setStepIndex((current) => Math.max(current - 1, 0));
   const handlePosterUpload = (event) => {
@@ -188,7 +191,30 @@ export function ContestForm({ contest, onSubmit, onClose }) {
         )}
       </div>
 
+      {isPreviewOpen && (
+        <div className="contest-preview-layer" role="region" aria-label="공개 페이지 미리보기">
+          <div className="contest-preview-header">
+            <div>
+              <strong>공개 페이지 미리보기</strong>
+              <span>저장 전 입력값 기준으로 표시됩니다.</span>
+            </div>
+            <button className="icon-button" type="button" aria-label="미리보기 닫기" onClick={() => setIsPreviewOpen(false)}>
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="contest-preview-scroll">
+            <main className="contest-public-page contest-public-page--preview">
+              <ContestPublicView contest={previewContest} />
+            </main>
+          </div>
+        </div>
+      )}
+
       <div className="modal-actions">
+        <button className="secondary-button contest-preview-trigger" type="button" onClick={() => setIsPreviewOpen(true)}>
+          <Eye size={17} aria-hidden="true" />
+          공개 페이지 미리보기
+        </button>
         <button className="secondary-button" type="button" onClick={onClose}>
           취소
         </button>
@@ -212,6 +238,28 @@ export function ContestForm({ contest, onSubmit, onClose }) {
       </div>
     </div>
   );
+}
+
+function getContestPreviewData(form) {
+  return {
+    ...getDefaultContestPublicFields(form),
+    ...form,
+    id: form.id || "PREVIEW",
+    title: form.title || "대회명 미입력",
+    department: form.department || "주관부서 미입력",
+    owner: form.owner || "담당자 미입력",
+    status: form.status || "준비중",
+    type: form.type || "개인/팀",
+    applicationPeriod: form.applicationPeriod || "접수 기간 미입력",
+    submissionDue: form.submissionDue || "제출 마감 미입력",
+    awards: form.awards || 0,
+    summary: form.summary || "한 줄 소개가 입력되지 않았습니다.",
+    target: form.target || "참가 대상 미입력",
+    applicationMethod: form.applicationMethod || "접수 방법이 입력되지 않았습니다.",
+    benefits: form.benefits || "시상 및 혜택이 입력되지 않았습니다.",
+    tags: form.tags || "",
+    detailHtml: form.detailHtml || "<p>상세 본문이 입력되지 않았습니다.</p>"
+  };
 }
 
 function getContestStepHelp(stepId) {

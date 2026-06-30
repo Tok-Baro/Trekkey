@@ -57,6 +57,22 @@
   composes: sidebar-footer from global;
 }
 
+.sidebarAccount {
+  composes: sidebar-account from global;
+}
+
+.sidebarAccountIcon {
+  composes: sidebar-account-icon from global;
+}
+
+.sidebarFooterActions {
+  composes: sidebar-footer-actions from global;
+}
+
+.sidebarFooterButton {
+  composes: sidebar-footer-button from global;
+}
+
 .mainShell {
   composes: main-shell from global;
 }
@@ -87,10 +103,6 @@
 
 .searchBox {
   composes: search-box from global;
-}
-
-.topbarUserButton {
-  composes: topbar-user-button from global;
 }
 
 .contentArea {

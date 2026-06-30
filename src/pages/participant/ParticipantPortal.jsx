@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Layers3, LogOut, PanelsTopLeft, Plus, Search, Send, UserRound } from "lucide-react";
+import { CheckCircle2, Clock3, Layers3, LogOut, PanelsTopLeft, Plus, Search, Send, Sparkles, UserRound } from "lucide-react";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { ModalFrame } from "../../components/modals/ModalFrame.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
@@ -34,6 +34,20 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
   }, [allContests, query, statusFilter]);
   const openCount = allContests.filter(isContestApplyOpen).length;
   const approvedCount = myApplications.filter((application) => application.status === "승인").length;
+  const openContests = useMemo(() => allContests.filter(isContestApplyOpen), [allContests]);
+  const urgentContest = useMemo(
+    () =>
+      [...openContests]
+        .map((contest) => ({ contest, daysLeft: getDaysUntilDeadline(contest.submissionDue) }))
+        .filter((item) => item.daysLeft !== null && item.daysLeft >= 0)
+        .sort((a, b) => a.daysLeft - b.daysLeft)[0],
+    [openContests]
+  );
+  const recommendedContest = useMemo(
+    () => openContests.find((contest) => !findParticipantApplication(teams, contest.id, session)) ?? openContests[0],
+    [openContests, session, teams]
+  );
+  const latestApplication = myApplications[0];
 
   return (
     <div className={styles.shell}>
@@ -65,6 +79,26 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
               <span>내 신청 {myApplications.length}건</span>
               <span>승인 {approvedCount}건</span>
             </div>
+          </div>
+          <div className={styles.heroInsights} aria-label="참가자 요약">
+            <HeroInsight
+              icon={Clock3}
+              label="마감 임박"
+              title={urgentContest ? urgentContest.contest.title : "접수 일정 없음"}
+              meta={urgentContest ? `${getDeadlineLabel(urgentContest.contest.submissionDue)} · 제출 ${urgentContest.contest.submissionDue}` : "열린 대회가 생기면 표시됩니다"}
+            />
+            <HeroInsight
+              icon={CheckCircle2}
+              label="내 신청"
+              title={latestApplication ? getContestTitle(latestApplication.contestId, contests) : "아직 신청 전"}
+              meta={latestApplication ? `${latestApplication.status} · ${latestApplication.name}` : "관심 있는 대회를 신청해 보세요"}
+            />
+            <HeroInsight
+              icon={Sparkles}
+              label="추천 공고"
+              title={recommendedContest ? recommendedContest.title : "공개 예정"}
+              meta={recommendedContest ? recommendedContest.department : "새 공고가 올라오면 표시됩니다"}
+            />
           </div>
         </section>
 
@@ -214,18 +248,27 @@ export function ParticipantPortal({ session, contests, teams, onApplyContest, on
   );
 }
 
-function getDeadlineLabel(submissionDue) {
-  const match = /^(\d{1,2})\.(\d{1,2})$/.exec(submissionDue ?? "");
+function HeroInsight({ icon: Icon, label, title, meta }) {
+  return (
+    <article className={styles.heroInsight}>
+      <div className={styles.heroInsightIcon}>
+        <Icon size={16} aria-hidden="true" />
+      </div>
+      <div>
+        <span>{label}</span>
+        <strong>{title}</strong>
+        <small>{meta}</small>
+      </div>
+    </article>
+  );
+}
 
-  if (!match) {
+function getDeadlineLabel(submissionDue) {
+  const diffDays = getDaysUntilDeadline(submissionDue);
+
+  if (diffDays === null) {
     return submissionDue;
   }
-
-  const [, month, day] = match;
-  const today = new Date();
-  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const deadline = new Date(today.getFullYear(), Number(month) - 1, Number(day));
-  const diffDays = Math.ceil((deadline.getTime() - startOfToday.getTime()) / 86400000);
 
   if (diffDays < 0) {
     return "마감";
@@ -236,6 +279,20 @@ function getDeadlineLabel(submissionDue) {
   }
 
   return `D-${diffDays}`;
+}
+
+function getDaysUntilDeadline(submissionDue) {
+  const match = /^(\d{1,2})\.(\d{1,2})$/.exec(submissionDue ?? "");
+
+  if (!match) {
+    return null;
+  }
+
+  const [, month, day] = match;
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const deadline = new Date(today.getFullYear(), Number(month) - 1, Number(day));
+  return Math.ceil((deadline.getTime() - startOfToday.getTime()) / 86400000);
 }
 
 function ContestApplicationForm({ contest, session, onSubmit, onClose }) {

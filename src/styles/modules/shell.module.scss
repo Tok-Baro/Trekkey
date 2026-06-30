@@ -51,6 +51,8 @@
   .brand span,
   .sidebar-footer strong,
   .sidebar-footer span,
+  .sidebar-account strong,
+  .sidebar-account span,
   .panel-header span,
   .metric-card span,
   .metric-card small,
@@ -118,28 +120,72 @@
   
   .sidebar-footer {
     margin-top: auto;
-    display: flex;
+    display: grid;
     gap: 10px;
-    align-items: flex-start;
     padding: 14px;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: var(--surface-tint);
+    background: linear-gradient(180deg, #fff, var(--surface-tint));
   }
   
-  .sidebar-footer svg {
-    color: var(--purple);
+  .sidebar-account {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar-account-icon {
+    width: 34px;
+    height: 34px;
     flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--purple-soft);
+    color: var(--purple);
   }
   
-  .sidebar-footer strong {
+  .sidebar-account strong {
     font-size: 13px;
   }
   
-  .sidebar-footer span {
+  .sidebar-account span {
     margin-top: 4px;
     color: var(--ink-500);
     font-size: 12px;
+  }
+
+  .sidebar-footer-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .sidebar-footer-button {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fbfcff;
+    color: var(--ink-650);
+    font-size: 12px;
+    font-weight: 850;
+    transition:
+      background var(--motion-fast) var(--ease-standard),
+      border-color var(--motion-fast) var(--ease-standard),
+      color var(--motion-fast) var(--ease-standard),
+      box-shadow var(--motion-fast) var(--ease-standard);
+  }
+
+  .sidebar-footer-button:hover {
+    border-color: rgba(15, 139, 141, 0.28);
+    background: var(--teal-soft);
+    color: var(--teal-strong);
+    box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.07);
   }
   
   .main-shell {

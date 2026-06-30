@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Download, LockKeyhole, Search, Upload } from "lucide-react";
 import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
-import { getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
+import { downloadSubmissionFiles, getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
 
 export function SubmissionsPage({
   contests,
@@ -12,7 +12,8 @@ export function SubmissionsPage({
   setSelectedContestId,
   openModal,
   onExport,
-  onGenerateHashes
+  onGenerateHashes,
+  onNotify
 }) {
   const [query, setQuery] = useState("");
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
@@ -22,6 +23,11 @@ export function SubmissionsPage({
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
   });
   const hashReadyCount = contestSubmissions.filter((submission) => submission.hashReady).length;
+  const handleDownload = (event, submission) => {
+    event.stopPropagation();
+    const result = downloadSubmissionFiles(submission);
+    onNotify?.(result.message);
+  };
 
   return (
     <div className="page-grid split-grid">
@@ -71,6 +77,7 @@ export function SubmissionsPage({
                 <th>접수시각</th>
                 <th>무결성</th>
                 <th>심사</th>
+                <th>다운로드</th>
               </tr>
             </thead>
             <tbody>
@@ -93,6 +100,16 @@ export function SubmissionsPage({
                   </td>
                   <td data-label="심사">
                     <StatusBadge status={submission.review} />
+                  </td>
+                  <td data-label="다운로드">
+                    <button
+                      className="icon-button"
+                      type="button"
+                      aria-label={`${submission.title} 다운로드`}
+                      onClick={(event) => handleDownload(event, submission)}
+                    >
+                      <Download size={17} aria-hidden="true" />
+                    </button>
                   </td>
                 </tr>
               ))}

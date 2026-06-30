@@ -2,10 +2,15 @@ import React from "react";
 import { X } from "lucide-react";
 
 export function ModalFrame({ title, description, children, onClose, size }) {
+  const sizeClass = {
+    wide: "wide-modal",
+    contest: "contest-modal"
+  }[size] ?? "";
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section
-        className={`modal-panel ${size === "wide" ? "wide-modal" : ""}`}
+        className={`modal-panel ${sizeClass}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"

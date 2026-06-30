@@ -5,7 +5,7 @@ import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
 import { getAverage, getReviewTotal } from "../../lib/review.js";
-import { formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
+import { downloadSubmissionFiles, formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import { ModalFrame } from "./ModalFrame.jsx";
 
 export function ModalRoot({
@@ -40,7 +40,12 @@ export function ModalRoot({
   if (type === "contest") {
     const contest = payload.contest;
     return (
-      <ModalFrame title={contest ? "대회 편집" : "대회 생성"} description="운영에 필요한 기본 정보와 공개 상세 페이지를 함께 관리합니다." onClose={onClose} size="wide">
+      <ModalFrame
+        title={contest ? "대회 편집" : "대회 생성"}
+        description="운영에 필요한 기본 정보와 공개 상세 페이지를 함께 관리합니다."
+        onClose={onClose}
+        size="contest"
+      >
         <ContestForm contest={contest} onSubmit={onSaveContest} onClose={onClose} />
       </ModalFrame>
     );
@@ -133,6 +138,11 @@ export function ModalRoot({
   if (type === "submissionDetail") {
     const { submission } = payload;
     const attachments = Array.isArray(submission.attachments) ? submission.attachments : [];
+    const handleDownload = () => {
+      const result = downloadSubmissionFiles(submission);
+      onNotify?.(result.message);
+    };
+
     return (
       <ModalFrame title={submission.title} description="제출물 상세" onClose={onClose}>
         <div className="modal-info-stack">
@@ -160,6 +170,15 @@ export function ModalRoot({
           ) : (
             <p className="modal-copy">기존 데모 제출물은 파일 개수만 보유하고 있습니다.</p>
           )}
+          <div className="modal-actions">
+            <button className="secondary-button" type="button" onClick={onClose}>
+              닫기
+            </button>
+            <button className="primary-button" type="button" onClick={handleDownload}>
+              <Download size={17} aria-hidden="true" />
+              제출물 다운로드
+            </button>
+          </div>
         </div>
       </ModalFrame>
     );

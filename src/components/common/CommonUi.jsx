@@ -70,7 +70,6 @@ export function ContestScopeBar({ contests, selectedContest, selectedContestId, 
           {selectedContest.department} · {selectedContest.owner} · 접수 {selectedContest.applicationPeriod} · 제출 마감{" "}
           {selectedContest.submissionDue}
         </p>
-        <ProgressBar value={selectedContest.progress} />
       </div>
       <div className="contest-context-tools">
         <label className="contest-context-select">
