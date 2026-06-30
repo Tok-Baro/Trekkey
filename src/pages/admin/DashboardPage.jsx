@@ -89,32 +89,53 @@ export function DashboardPage({
 
   return (
     <div className={styles.layout}>
-      <section className={styles.workQueue} aria-label="오늘 처리할 일">
-        <PanelHeader
-          title="오늘 처리할 일"
-          action={
-            <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
-              전체 운영 보기
-              <ChevronRight size={16} />
-            </button>
-          }
-        />
-        <div className={styles.queueBoard}>
-          {orderedWorkQueue.map((item) => (
-            <WorkQueueItem
-              key={item.title}
-              item={item}
-              isPrimary={hasPendingWork && item === primaryWork}
-              onClick={() => onNavigate(item.page)}
-            />
-          ))}
+      <section className={styles.topRow} aria-label="운영 처리 및 신규 등록">
+        <section className={styles.workQueue} aria-label="오늘 처리할 일">
+          <PanelHeader
+            title="오늘 처리할 일"
+            action={
+              <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
+                전체 운영 보기
+                <ChevronRight size={16} />
+              </button>
+            }
+          />
+          <div className={styles.queueBoard}>
+            {orderedWorkQueue.map((item) => (
+              <WorkQueueItem
+                key={item.title}
+                item={item}
+                isPrimary={hasPendingWork && item === primaryWork}
+                onClick={() => onNavigate(item.page)}
+              />
+            ))}
+          </div>
+        </section>
+        <div className="create-contest-card">
+          <div className="create-contest-icon">
+            <Plus size={22} aria-hidden="true" />
+          </div>
+          <div>
+            <strong>신규 대회 등록</strong>
+            <span>공고 정보와 접수 기간을 먼저 만들고 이후 팀/제출/심사를 연결합니다.</span>
+          </div>
+          <button className={styles.primaryButton} type="button" onClick={() => openModal("contest")}>
+            <Plus size={17} />
+            대회 생성
+          </button>
         </div>
       </section>
 
-      <section className={styles.hero} aria-label="대회 운영 홈">
-        <div className="admin-hero-main">
-          <div>
-            <h2>진행 중인 대회 관리</h2>
+      <section className={styles.panelWide}>
+        <div className={styles.contestOverview}>
+          <div className={styles.contestOverviewCopy}>
+            <div className={styles.contestOverviewHeader}>
+              <h2>진행 중인 대회 관리</h2>
+              <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
+                전체 대회
+                <ChevronRight size={16} />
+              </button>
+            </div>
             <p>접수, 제출, 심사, 수상 확정까지 현재 움직이는 대회를 기준으로 운영합니다.</p>
           </div>
           <dl className="operation-stats">
@@ -136,32 +157,6 @@ export function DashboardPage({
             </div>
           </dl>
         </div>
-
-        <div className="create-contest-card">
-          <div className="create-contest-icon">
-            <Plus size={22} aria-hidden="true" />
-          </div>
-          <div>
-            <strong>신규 대회 등록</strong>
-            <span>공고 정보와 접수 기간을 먼저 만들고 이후 팀/제출/심사를 연결합니다.</span>
-          </div>
-          <button className={styles.primaryButton} type="button" onClick={() => openModal("contest")}>
-            <Plus size={17} />
-            대회 생성
-          </button>
-        </div>
-      </section>
-
-      <section className={styles.panelWide}>
-        <PanelHeader
-          title="진행 중인 대회"
-          action={
-            <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
-              전체 대회
-              <ChevronRight size={16} />
-            </button>
-          }
-        />
         <div className="contest-management-grid">
           {activeContests.map((contest) => (
             <ContestManagementCard

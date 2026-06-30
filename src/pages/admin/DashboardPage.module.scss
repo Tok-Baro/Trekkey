@@ -2,8 +2,21 @@
   composes: page-grid dashboard-grid from global;
 }
 
+.topRow {
+  composes: wide from global;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.34fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.topRow :global(.create-contest-card) {
+  min-height: 100%;
+}
+
 .workQueue {
-  composes: panel wide from global;
+  composes: panel from global;
+  min-height: 100%;
 }
 
 .workQueue :global(.panel-header) {
@@ -216,12 +229,52 @@
   color: var(--green);
 }
 
-.hero {
-  composes: admin-hero wide from global;
-}
-
 .panelWide {
   composes: panel wide from global;
+  display: grid;
+  gap: 18px;
+}
+
+.contestOverview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(520px, 0.82fr);
+  gap: 18px;
+  align-items: center;
+  border-bottom: 0;
+  padding: 4px 0 2px;
+}
+
+.contestOverviewCopy {
+  min-width: 0;
+}
+
+.contestOverviewHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.contestOverviewCopy h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.16;
+}
+
+.contestOverviewHeader .textAction {
+  flex: 0 0 auto;
+}
+
+.contestOverviewCopy p {
+  max-width: 720px;
+  margin: 8px 0 0;
+  color: var(--ink-500);
+  line-height: 1.55;
+}
+
+.contestOverview :global(.operation-stats) {
+  align-self: stretch;
+  align-content: center;
 }
 
 .panel {
@@ -245,6 +298,11 @@
 }
 
 @media (max-width: 980px) {
+  .topRow,
+  .contestOverview {
+    grid-template-columns: 1fr;
+  }
+
   .queueBoard {
     grid-template-columns: 1fr;
   }
