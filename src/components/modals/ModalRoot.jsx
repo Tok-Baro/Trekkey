@@ -4,6 +4,7 @@ import { Award, Copy, Download, Link2, Pencil, QrCode, Trash2 } from "lucide-rea
 import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
+import { downloadJson } from "../../lib/exportCsv.js";
 import { getAverage, getReviewTotal } from "../../lib/review.js";
 import { downloadSubmissionFiles, formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import { ModalFrame } from "./ModalFrame.jsx";
@@ -15,6 +16,7 @@ export function ModalRoot({
   submissions,
   judgingAssignments,
   reviewScores,
+  awardCandidates = [],
   selectedContest,
   selectedContestId,
   openModal,
@@ -36,6 +38,34 @@ export function ModalRoot({
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
   const contestJudges = judgingAssignments.filter((judge) => judge.contestId === selectedContestId);
   const contestReviewScores = reviewScores.filter((record) => record.contestId === selectedContestId);
+
+  if (type === "notifications") {
+    return (
+      <NotificationsModal
+        teams={teams}
+        submissions={submissions}
+        judgingAssignments={judgingAssignments}
+        awardCandidates={awardCandidates}
+        onClose={onClose}
+      />
+    );
+  }
+
+  if (type === "settings") {
+    return (
+      <SettingsModal
+        contests={contests}
+        teams={teams}
+        submissions={submissions}
+        judgingAssignments={judgingAssignments}
+        reviewScores={reviewScores}
+        awardCandidates={awardCandidates}
+        selectedContest={selectedContest}
+        onClose={onClose}
+        onNotify={onNotify}
+      />
+    );
+  }
 
   if (type === "contest") {
     const contest = payload.contest;
@@ -250,17 +280,21 @@ export function ModalRoot({
   }
 
   if (type === "confirmAwards") {
+    const canConfirm = Number(payload.count || 0) > 0;
+
     return (
       <ModalFrame title="수상 결과 확정" description={selectedContest.title} onClose={onClose}>
         <div className="modal-info-stack">
           <p className="modal-copy">
-            후보 {payload.count}건을 확정 상태로 변경합니다. 이후 블록체인 검증 메타데이터 생성 단계로 이어질 수 있습니다.
+            {canConfirm
+              ? `후보 ${payload.count}건을 확정 상태로 변경합니다. 이후 블록체인 검증 메타데이터 생성 단계로 이어질 수 있습니다.`
+              : "확정할 수상 후보가 없습니다. 먼저 심사 결과를 산출해 주세요."}
           </p>
           <div className="modal-actions">
             <button className="secondary-button" type="button" onClick={onClose}>
               취소
             </button>
-            <button className="primary-button" type="button" onClick={onConfirmAwards}>
+            <button className="primary-button" type="button" disabled={!canConfirm} onClick={onConfirmAwards}>
               <Award size={17} />
               확정
             </button>
@@ -288,6 +322,93 @@ export function ModalRoot({
   }
 
   return null;
+}
+
+function NotificationsModal({ teams, submissions, judgingAssignments, awardCandidates, onClose }) {
+  const supplementCount = teams.filter((team) => team.status === "보완요청").length;
+  const unassignedCount = submissions.filter((submission) => ["미배정", "대기"].includes(submission.review)).length;
+  const delayedReviewCount = judgingAssignments.reduce(
+    (sum, judge) => sum + Math.max(Number(judge.assigned || 0) - Number(judge.completed || 0), 0),
+    0
+  );
+  const pendingAwardCount = awardCandidates.filter((candidate) => candidate.status !== "확정").length;
+  const totalCount = supplementCount + unassignedCount + delayedReviewCount + pendingAwardCount;
+
+  return (
+    <ModalFrame title="운영 알림" description={totalCount ? `${totalCount}건의 확인 항목이 있습니다.` : "확인할 운영 알림이 없습니다."} onClose={onClose}>
+      <div className="modal-info-stack">
+        <DetailList
+          items={[
+            ["보완요청 신청", `${supplementCount}건`],
+            ["심사 배정 대기 제출물", `${unassignedCount}건`],
+            ["미완료 심사", `${delayedReviewCount}건`],
+            ["수상 확정 대기", `${pendingAwardCount}건`]
+          ]}
+        />
+        <div className="modal-actions">
+          <button className="primary-button" type="button" onClick={onClose}>
+            확인
+          </button>
+        </div>
+      </div>
+    </ModalFrame>
+  );
+}
+
+function SettingsModal({
+  contests,
+  teams,
+  submissions,
+  judgingAssignments,
+  reviewScores,
+  awardCandidates,
+  selectedContest,
+  onClose,
+  onNotify
+}) {
+  const exportSnapshot = () => {
+    downloadJson(`trekkey-demo-snapshot-${new Date().toISOString().slice(0, 10)}.json`, {
+      exportedAt: new Date().toISOString(),
+      selectedContestId: selectedContest.id,
+      contestRecords: contests,
+      teamRecords: teams,
+      submissionRecords: submissions,
+      judgeRecords: judgingAssignments,
+      reviewRecords: reviewScores,
+      awardRecords: awardCandidates
+    });
+    onNotify?.("현재 데모 데이터 JSON을 다운로드했습니다.");
+  };
+
+  return (
+    <ModalFrame title="운영 설정" description="데모 데이터와 콘솔 상태를 관리합니다." onClose={onClose}>
+      <div className="modal-info-stack">
+        <DetailList
+          items={[
+            ["선택 대회", selectedContest.title],
+            ["대회", `${contests.length}건`],
+            ["참가 신청", `${teams.length}건`],
+            ["제출물", `${submissions.length}건`],
+            ["심사위원", `${judgingAssignments.length}명`],
+            ["평가 기록", `${reviewScores.length}건`],
+            ["수상 후보", `${awardCandidates.length}건`]
+          ]}
+        />
+        <p className="modal-copy">
+          현재 앱 데이터는 브라우저 로컬 저장소에 저장됩니다. 백엔드 연결 전에는 JSON 백업 파일로 현재 목업 상태를 보관할 수 있습니다.
+        </p>
+        <div className="modal-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>
+            닫기
+          </button>
+          <button className="primary-button" type="button" onClick={exportSnapshot}>
+            <Download size={17} />
+            데이터 백업
+          </button>
+        </div>
+      </div>
+    </ModalFrame>
+  );
 }
 
 function ReviewReportModal({ contest, judges, submissions, reviewScores, onClose, onNotify }) {

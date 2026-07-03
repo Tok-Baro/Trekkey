@@ -154,9 +154,9 @@ export function ProgressRing({ value }) {
   );
 }
 
-export function IconButton({ label, children, onClick }) {
+export function IconButton({ label, children, onClick, ...buttonProps }) {
   return (
-    <button className="icon-button" type="button" aria-label={label} title={label} onClick={onClick}>
+    <button className="icon-button" type="button" aria-label={label} title={label} onClick={onClick} {...buttonProps}>
       {children}
     </button>
   );

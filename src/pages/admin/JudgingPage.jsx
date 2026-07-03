@@ -37,7 +37,7 @@ export function JudgingPage({
       <section className="panel workflow-main">
         <PanelHeader
           eyebrow="심사 배정"
-          title={`${selectedContest.title} 심사위원`}
+          title="심사위원"
           action={
             <div className="action-group">
               <button className="secondary-button" type="button" onClick={() => openModal("reviewReport")}>
@@ -66,6 +66,7 @@ export function JudgingPage({
               <div className="judge-main">
                 <strong>{judge.name}</strong>
                 <span>{judge.role}</span>
+                {judge.reminderSentAt && <small>독촉 {judge.reminderSentAt}</small>}
               </div>
               <div className="judge-stats">
                 <ProgressRing value={judge.assigned ? Math.round((judge.completed / judge.assigned) * 100) : 0} />

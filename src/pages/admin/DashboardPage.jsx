@@ -13,8 +13,6 @@ import {
 import { PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
 import styles from "./DashboardPage.module.scss";
 
-const operationStages = ["공고 등록", "접수중", "제출 접수", "심사중", "수상 확정"];
-
 export function DashboardPage({
   contests,
   teams,
@@ -85,7 +83,6 @@ export function DashboardPage({
   const totalWorkCount = workQueue.reduce((sum, item) => sum + item.count, 0);
   const hasPendingWork = totalWorkCount > 0;
   const primaryWork = workQueue.find((item) => item.count > 0);
-  const orderedWorkQueue = primaryWork ? [primaryWork, ...workQueue.filter((item) => item !== primaryWork)] : workQueue;
 
   return (
     <div className={styles.layout}>
@@ -101,14 +98,33 @@ export function DashboardPage({
             }
           />
           <div className={styles.queueBoard}>
-            {orderedWorkQueue.map((item) => (
+            {primaryWork ? (
               <WorkQueueItem
-                key={item.title}
-                item={item}
-                isPrimary={hasPendingWork && item === primaryWork}
-                onClick={() => onNavigate(item.page)}
+                item={primaryWork}
+                isPrimary={hasPendingWork}
+                onClick={() => onNavigate(primaryWork.page)}
               />
-            ))}
+            ) : (
+              <div className={styles.queueClear}>
+                <span className={`${styles.queueIcon} ${styles.success}`}>
+                  <ClipboardCheck size={18} aria-hidden="true" />
+                </span>
+                <div>
+                  <strong>오늘 급한 처리 없음</strong>
+                  <span>진행 중인 대회만 가볍게 확인하면 됩니다.</span>
+                </div>
+              </div>
+            )}
+            <div className={styles.queueSummary} aria-label="처리 상태 요약">
+              {workQueue.map((item) => (
+                <div className={styles.queueSummaryItem} key={item.title}>
+                  <span>{item.title}</span>
+                  <strong className={item.count === 0 ? styles.queueSummaryClear : ""}>
+                    {item.count === 0 ? "정상" : `${item.count}건`}
+                  </strong>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
         <div className="create-contest-card">
@@ -245,7 +261,6 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
         </div>
         <StatusBadge status={contest.status} />
       </div>
-      <ContestStageTracker currentStageIndex={currentStageIndex} progress={contest.progress} />
       <dl className="management-metrics">
         <div>
           <dt>참가</dt>
@@ -285,27 +300,6 @@ function ContestManagementCard({ contest, teams, submissions, judgingAssignments
         </div>
       </div>
     </article>
-  );
-}
-
-function ContestStageTracker({ currentStageIndex, progress }) {
-  const currentStage = operationStages[currentStageIndex];
-  const nextStage = operationStages[currentStageIndex + 1];
-
-  return (
-    <div className="management-stage-summary" aria-label={`현재 운영 단계: ${currentStage}`}>
-      <div className="management-stage-copy">
-        <span>현재 단계</span>
-        <strong>{currentStage}</strong>
-        {nextStage && <em>다음 {nextStage}</em>}
-      </div>
-      <div className="management-stage-progress">
-        <span>{progress}%</span>
-        <div aria-hidden="true">
-          <i style={{ width: `${progress}%` }} />
-        </div>
-      </div>
-    </div>
   );
 }
 

@@ -38,7 +38,12 @@ export function AwardsPage({
                 <Download size={17} />
                 명단
               </button>
-              <button className="primary-button" type="button" onClick={() => openModal("confirmAwards", { count: contestAwards.length })}>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={contestAwards.length === 0}
+                onClick={() => openModal("confirmAwards", { count: contestAwards.length })}
+              >
                 <Award size={17} />
                 확정
               </button>

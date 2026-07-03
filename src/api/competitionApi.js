@@ -13,6 +13,7 @@ import {
   isContestApplyOpen
 } from "../lib/contest.js";
 import { readStoredAppData, readStoredSession, storeAppData, storeSession } from "../lib/storage.js";
+import { getAverage, getReviewTotal } from "../lib/review.js";
 import { getSubmissionFileCount } from "../lib/submissionFiles.js";
 
 export const DEMO_DATA_VERSION = "hsportal-poster-2026-06-30";
@@ -374,6 +375,32 @@ export function batchAssignJudges(state, contestId) {
   };
 }
 
+export function sendReviewReminders(state, contestId) {
+  const targetJudgeIds = state.judgeRecords
+    .filter((judge) => judge.contestId === contestId && Number(judge.assigned || 0) > Number(judge.completed || 0))
+    .map((judge) => judge.id);
+
+  if (!targetJudgeIds.length) {
+    return { state, message: "독촉할 미완료 심사위원이 없습니다." };
+  }
+
+  return {
+    state: {
+      ...state,
+      judgeRecords: state.judgeRecords.map((judge) =>
+        targetJudgeIds.includes(judge.id)
+          ? {
+              ...judge,
+              reminderCount: Number(judge.reminderCount || 0) + 1,
+              reminderSentAt: "방금 전"
+            }
+          : judge
+      )
+    },
+    message: `${targetJudgeIds.length}명의 미완료 심사위원에게 독촉 알림을 기록했습니다.`
+  };
+}
+
 export function submitJudgeReview(state, { contestId, judgeName, reviewedCount, averageScore, records = [] }) {
   const reviewedSubmissionIds = records.map((record) => record.submissionId);
 
@@ -413,36 +440,77 @@ export function submitJudgeReview(state, { contestId, judgeName, reviewedCount, 
 }
 
 export function calculateResults(state, contestId) {
-  const nextAwards = state.submissionRecords
-    .filter((submission) => submission.contestId === contestId)
-    .slice(0, 3)
-    .map((submission, index) => ({
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+  const contestSubmissions = state.submissionRecords.filter((submission) => submission.contestId === contestId);
+  const scoredSubmissions = contestSubmissions
+    .map((submission) => {
+      const records = state.reviewRecords.filter(
+        (record) => record.contestId === contestId && record.submissionId === submission.id
+      );
+      const totals = records.map(getReviewTotal);
+
+      return {
+        submission,
+        reviewCount: records.length,
+        average: getAverage(totals),
+        highest: totals.length ? Math.max(...totals) : 0
+      };
+    })
+    .filter((item) => item.reviewCount > 0)
+    .sort((a, b) => b.average - a.average || b.reviewCount - a.reviewCount || b.highest - a.highest);
+
+  if (!contestSubmissions.length) {
+    return { state, ok: false, message: "결과 산출을 위한 제출물이 없습니다." };
+  }
+
+  if (!scoredSubmissions.length) {
+    return { state, ok: false, message: "결과 산출을 위한 심사 점수가 없습니다." };
+  }
+
+  const awardLimit = Math.min(Number(contest?.awards || 3), scoredSubmissions.length);
+  const prizeLabels = ["대상 후보", "최우수상 후보", "우수상 후보", "장려상 후보", "입선 후보"];
+  const nextAwards = scoredSubmissions.slice(0, awardLimit).map(({ submission, average }, index) => ({
       rank: index + 1,
       contestId,
-      prize: ["대상 후보", "최우수상 후보", "우수상 후보"][index],
+      prize: prizeLabels[index] ?? `${index + 1}위 후보`,
       team: submission.team,
-      score: Number((92.4 - index * 3.1).toFixed(1)),
+      score: Number(average.toFixed(1)),
       members: state.teamRecords.find((team) => team.contestId === contestId && team.name === submission.team)?.members ?? 1,
       status: "확정대기",
       certificateNo: `2026-${contestId.slice(-3)}-${String(index + 1).padStart(3, "0")}`
     }));
-
-  if (nextAwards.length === 0) {
-    return { state, ok: false, message: "결과 산출을 위한 제출물이 없습니다." };
-  }
+  const awardTeams = new Set(nextAwards.map((award) => award.team));
 
   return {
     state: {
       ...state,
+      submissionRecords: state.submissionRecords.map((submission) =>
+        submission.contestId === contestId
+          ? {
+              ...submission,
+              review: awardTeams.has(submission.team)
+                ? "수상후보"
+                : submission.review === "수상후보"
+                  ? "심사완료"
+                  : submission.review
+            }
+          : submission
+      ),
       awardRecords: [...nextAwards, ...state.awardRecords.filter((candidate) => candidate.contestId !== contestId)]
     },
     ok: true,
     routePage: "awards",
-    message: "심사 결과를 산출했습니다."
+    message: `${nextAwards.length}건의 수상 후보를 심사 평균 기준으로 산출했습니다.`
   };
 }
 
 export function confirmAwards(state, contestId) {
+  const targetCount = state.awardRecords.filter((candidate) => candidate.contestId === contestId).length;
+
+  if (!targetCount) {
+    return { state, ok: false, message: "확정할 수상 후보가 없습니다." };
+  }
+
   return {
     state: {
       ...state,
@@ -454,6 +522,7 @@ export function confirmAwards(state, contestId) {
         progress: 100
       })
     },
+    ok: true,
     message: "수상 결과를 확정했습니다."
   };
 }

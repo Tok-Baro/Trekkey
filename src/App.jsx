@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, UserRound, X } from "lucide-react";
 import { navItems } from "./constants/navigation.js";
@@ -17,6 +17,7 @@ import { ParticipantPortal } from "./pages/participant/ParticipantPortal.jsx";
 import { ContestPublicDetailPage } from "./pages/public/ContestPublicDetailPage.jsx";
 import { ReviewerPage } from "./pages/review/ReviewerPage.jsx";
 import { getContestWithPublicFields } from "./lib/contest.js";
+import { exportAwardsCsv, exportSubmissionsCsv } from "./lib/exportCsv.js";
 import { useCompetitionStore } from "./hooks/useCompetitionStore.js";
 import { useSessionStore } from "./hooks/useSessionStore.js";
 import {
@@ -56,8 +57,10 @@ function App() {
     setSelectedContestId
   } = competition;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const notificationRef = useRef(null);
 
   useEffect(() => {
     if (routeContestId && contestRecords.some((contest) => contest.id === routeContestId)) {
@@ -99,6 +102,32 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [toast]);
 
+  useEffect(() => {
+    if (!isNotificationsOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (notificationRef.current?.contains(event.target)) {
+        return;
+      }
+      setIsNotificationsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isNotificationsOpen]);
+
   const notify = (message) => setToast({ id: Date.now(), message });
   const openModal = (type, payload = {}) => setModal({ type, payload });
   const closeModal = () => setModal(null);
@@ -130,6 +159,7 @@ function App() {
       setSelectedContestId(contestId);
     }
     setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
     navigate(getAdminPath(page, contestId));
   };
 
@@ -199,7 +229,8 @@ function App() {
   };
 
   const handleSendReminder = () => {
-    notify("미완료 심사위원에게 독촉 알림을 발송했습니다.");
+    const result = competition.sendReviewReminders(selectedContestId);
+    notify(result.message);
   };
 
   const handleSubmitJudgeReview = ({ contestId, judgeName, reviewedCount, averageScore, records = [] }) => {
@@ -218,12 +249,53 @@ function App() {
   const handleConfirmAwards = () => {
     const result = competition.confirmAwards(selectedContestId);
     notify(result.message);
-    closeModal();
+    if (result.ok !== false) {
+      closeModal();
+    }
   };
 
   const handleExport = (label) => {
-    notify(`${label} 내보내기를 준비했습니다.`);
+    if (label === "제출물") {
+      const result = exportSubmissionsCsv({
+        contest: selectedContest,
+        submissions: submissionRecords.filter((submission) => submission.contestId === selectedContestId)
+      });
+      notify(result.message);
+      return;
+    }
+
+    if (label === "수상 명단") {
+      const result = exportAwardsCsv({
+        contest: selectedContest,
+        awardCandidates: awardRecords.filter((candidate) => candidate.contestId === selectedContestId)
+      });
+      notify(result.message);
+      return;
+    }
+
+    notify(`${label} 내보내기 대상이 없습니다.`);
   };
+
+  const notificationSummary = useMemo(() => {
+    const supplementCount = teamRecords.filter((team) => team.status === "보완요청").length;
+    const unassignedCount = submissionRecords.filter((submission) => ["미배정", "대기"].includes(submission.review)).length;
+    const delayedReviewCount = judgeRecords.reduce(
+      (sum, judge) => sum + Math.max(Number(judge.assigned || 0) - Number(judge.completed || 0), 0),
+      0
+    );
+    const pendingAwardCount = awardRecords.filter((candidate) => candidate.status !== "확정").length;
+    const items = [
+      { label: "보완요청 신청", count: supplementCount, page: "teams", tone: "danger" },
+      { label: "심사 배정 대기", count: unassignedCount, page: "submissions", tone: "warning" },
+      { label: "미완료 심사", count: delayedReviewCount, page: "judging", tone: "warning" },
+      { label: "수상 확정 대기", count: pendingAwardCount, page: "awards", tone: "success" }
+    ];
+
+    return {
+      totalCount: items.reduce((sum, item) => sum + item.count, 0),
+      items
+    };
+  }, [awardRecords, judgeRecords, submissionRecords, teamRecords]);
 
   if (isLoginRoute) {
     return (
@@ -365,7 +437,14 @@ function App() {
             </div>
           </div>
           <div className={styles.sidebarFooterActions}>
-            <button className={styles.sidebarFooterButton} type="button">
+            <button
+              className={styles.sidebarFooterButton}
+              type="button"
+              onClick={() => {
+                setIsSidebarOpen(false);
+                openModal("settings");
+              }}
+            >
               <Settings size={16} aria-hidden="true" />
               설정
             </button>
@@ -405,9 +484,25 @@ function App() {
               <Search size={17} aria-hidden="true" />
               <input type="search" placeholder="대회, 팀, 제출물 검색" />
             </label>
-            <IconButton label="알림">
-              <Bell size={18} />
-            </IconButton>
+            <div className={styles.notificationRoot} ref={notificationRef}>
+              <IconButton
+                label="알림"
+                aria-controls="notification-popover"
+                aria-expanded={isNotificationsOpen}
+                onClick={() => setIsNotificationsOpen((current) => !current)}
+              >
+                <Bell size={18} />
+                {notificationSummary.totalCount > 0 && <span className={styles.notificationIndicator}>{notificationSummary.totalCount}</span>}
+              </IconButton>
+              {isNotificationsOpen && (
+                <NotificationPopover
+                  summary={notificationSummary}
+                  onOpenPage={(page) => {
+                    navigatePage(page);
+                  }}
+                />
+              )}
+            </div>
           </div>
         </header>
 
@@ -500,6 +595,7 @@ function App() {
         submissions={submissionRecords}
         judgingAssignments={judgeRecords}
         reviewScores={reviewRecords}
+        awardCandidates={awardRecords}
         selectedContest={selectedContest}
         selectedContestId={selectedContestId}
         openModal={openModal}
@@ -513,6 +609,37 @@ function App() {
         onNotify={notify}
       />
       {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+    </div>
+  );
+}
+
+function NotificationPopover({ summary, onOpenPage }) {
+  return (
+    <div className={styles.notificationPopover} id="notification-popover" role="dialog" aria-label="운영 알림">
+      <div className={styles.notificationHeader}>
+        <div>
+          <strong>운영 알림</strong>
+          <span>{summary.totalCount ? `${summary.totalCount}건의 확인 항목이 있습니다.` : "확인할 운영 알림이 없습니다."}</span>
+        </div>
+        <span className={styles.notificationTotal}>{summary.totalCount ? `${summary.totalCount}건` : "정상"}</span>
+      </div>
+      <div className={styles.notificationList}>
+        {summary.items.map((item) => (
+          <button
+            className={`${styles.notificationItem} ${item.count === 0 ? styles.notificationItemMuted : ""}`}
+            key={item.label}
+            type="button"
+            onClick={() => onOpenPage(item.page)}
+          >
+            <span className={`${styles.notificationDot} ${styles[item.tone]}`} aria-hidden="true" />
+            <span>
+              <strong>{item.label}</strong>
+              <small>{item.count > 0 ? "확인이 필요합니다" : "처리할 항목 없음"}</small>
+            </span>
+            <b>{item.count}건</b>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

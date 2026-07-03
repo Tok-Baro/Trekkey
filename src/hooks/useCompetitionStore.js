@@ -11,6 +11,7 @@ import {
   generateSubmissionHashes,
   persistCompetitionState,
   saveContest,
+  sendReviewReminders,
   submitJudgeReview,
   updateJudge,
   updateTeamStatus
@@ -59,6 +60,7 @@ export function useCompetitionStore() {
     updateJudge: (form, options) => runMutation((current) => updateJudge(current, form), options),
     deleteJudge: (judgeId, options) => runMutation((current) => deleteJudge(current, judgeId), options),
     batchAssignJudges: (contestId, options) => runMutation((current) => batchAssignJudges(current, contestId), options),
+    sendReviewReminders: (contestId, options) => runMutation((current) => sendReviewReminders(current, contestId), options),
     submitJudgeReview: (payload, options) => runMutation((current) => submitJudgeReview(current, payload), options),
     calculateResults: (contestId, options) => runMutation((current) => calculateResults(current, contestId), options),
     confirmAwards: (contestId, options) => runMutation((current) => confirmAwards(current, contestId), options)

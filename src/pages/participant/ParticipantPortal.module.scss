@@ -177,9 +177,17 @@
 
 .carouselContent {
   position: absolute;
-  inset: auto auto 24px 78px;
+  inset: 0 auto 0 78px;
   z-index: 2;
   width: min(620px, calc(100% - 440px));
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(30px, 3vw, 42px) 0;
+}
+
+.carouselHeader,
+.carouselDetails {
   display: grid;
   gap: 10px;
 }
@@ -211,11 +219,17 @@
 }
 
 .carouselContent h1 {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: #fff;
-  font-size: clamp(26px, 3.2vw, 42px);
-  line-height: 1.15;
+  font-size: clamp(24px, 2.8vw, 38px);
+  line-height: 1.18;
   letter-spacing: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .carouselContent p {
@@ -349,6 +363,7 @@
 }
 
 .contestCard {
+  position: relative;
   width: 100%;
   min-width: 0;
   overflow: visible;
@@ -441,6 +456,40 @@
   flex: 0 0 auto;
   background: var(--purple-soft);
   color: var(--purple);
+  transition:
+    background var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.deadlineNormal {
+  background: rgba(49, 87, 255, 0.1);
+  color: #3157ff;
+}
+
+.deadlineWatch {
+  background: rgba(111, 91, 215, 0.12);
+  color: #5b4bd1;
+}
+
+.deadlineSoon {
+  background: rgba(15, 139, 141, 0.12);
+  color: #0f7c80;
+}
+
+.deadlineUrgent {
+  background: rgba(232, 96, 55, 0.13);
+  color: #c2410c;
+}
+
+.deadlineToday {
+  background: rgba(220, 38, 38, 0.13);
+  color: #b91c1c;
+}
+
+.deadlineClosed,
+.deadlineUnknown {
+  background: #eef2f4;
+  color: var(--ink-600);
 }
 
 .cardBody h2 {
@@ -459,11 +508,6 @@
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-}
-
-.inlineOk {
-  composes: inline-state ok from global;
-  justify-self: start;
 }
 
 .cardMeta {
@@ -499,6 +543,53 @@
   left: 10px;
 }
 
+.applicationMark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(111, 91, 215, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(25, 35, 72, 0.14);
+  color: var(--purple);
+  pointer-events: auto;
+  transform: translateZ(0);
+}
+
+.applicationMark::after {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: max-content;
+  max-width: 190px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
+  color: #fff;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+
+.applicationMark:hover::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .cardTags {
   display: flex;
   min-width: 0;
@@ -532,18 +623,47 @@
 
 .profile {
   composes: participant-profile from global;
+  display: grid;
+  align-items: stretch;
+  gap: 18px;
+  padding: 20px;
+}
+
+.side .profile {
+  display: grid;
+  align-items: stretch;
+  gap: 18px;
+  padding: 20px;
+}
+
+.profileSummary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .avatar {
   composes: participant-avatar from global;
+  flex: 0 0 auto;
+}
+
+.profileDivider {
+  width: 100%;
+  height: 1px;
+  background: var(--line);
 }
 
 .applications {
   composes: participant-applications from global;
+  gap: 14px;
 }
 
 .sideHead {
   composes: participant-side-head from global;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .applicationList {
@@ -552,6 +672,56 @@
 
 .application {
   composes: participant-application from global;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.side .application {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.application > div {
+  min-width: 0;
+}
+
+.application strong,
+.application span {
+  min-width: 0;
+}
+
+.application strong {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.application > :global(.status-badge) {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 3px;
+  min-width: 56px;
+  height: 30px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.application > :global(.status-badge span) {
+  display: inline-flex;
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .formStack {
@@ -586,8 +756,9 @@
   }
 
   .carouselContent {
-    inset: auto 18px 20px 56px;
+    inset: 0 18px 0 56px;
     width: auto;
+    padding: 24px 0 22px;
   }
 
   .carouselPosterImage {

@@ -178,8 +178,19 @@
   
   .judge-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .judge-grid > .empty-state {
+    grid-column: 1 / -1;
+    align-content: center;
+    justify-items: center;
+    gap: 6px;
+    min-height: 220px;
+    border: 0;
+    margin-top: 0;
+    background: transparent;
   }
   
   .judge-card {
@@ -230,6 +241,23 @@
     margin-top: 4px;
     color: var(--ink-500);
     font-size: 13px;
+  }
+
+  .judge-main small {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 7px;
+    border-radius: 999px;
+    padding: 3px 8px;
+    overflow: hidden;
+    background: var(--purple-soft);
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
   .judge-stats {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Layers3, LogOut, PanelsTopLeft, Search, UserRound } from "lucide-react";
+import { ChevronLeft, ChevronRight, Layers3, LogOut, PanelsTopLeft, Search, Star, UserRound } from "lucide-react";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
 import { findParticipantApplication, getContestTitle, getContestWithPublicFields, isContestApplyOpen } from "../../lib/contest.js";
@@ -131,18 +131,22 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
                       </div>
                       <div className={styles.carouselShade} />
                       <div className={styles.carouselContent}>
-                        <div className={styles.carouselBadges}>
-                          <StatusBadge status={contest.status} />
-                          <span>{deadlineLabel}</span>
+                        <div className={styles.carouselHeader}>
+                          <div className={styles.carouselBadges}>
+                            <StatusBadge status={contest.status} />
+                            <span>{deadlineLabel}</span>
+                          </div>
+                          <h1>{contest.title}</h1>
                         </div>
-                        <h1>{contest.title}</h1>
-                        <p>{contest.summary}</p>
-                        <div className={styles.carouselMeta}>
-                          <span>{contest.department}</span>
-                          <span>제출 {contest.submissionDue}</span>
-                          {tags.map((tag) => (
-                            <span key={tag}>#{tag}</span>
-                          ))}
+                        <div className={styles.carouselDetails}>
+                          <p>{contest.summary}</p>
+                          <div className={styles.carouselMeta}>
+                            <span>{contest.department}</span>
+                            <span>제출 {contest.submissionDue}</span>
+                            {tags.map((tag) => (
+                              <span key={tag}>#{tag}</span>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </button>
@@ -211,7 +215,7 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
             <div className={styles.contestGrid}>
               {visibleContests.map((contest) => {
                 const application = findParticipantApplication(teams, contest.id, session);
-                const deadlineLabel = getDeadlineLabel(contest.submissionDue);
+                const deadlineMeta = getDeadlineMeta(contest.submissionDue);
                 const tags = String(contest.tags || "")
                   .split(",")
                   .map((tag) => tag.trim())
@@ -220,6 +224,15 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
 
                 return (
                   <button className={styles.contestCard} key={contest.id} type="button" onClick={() => onOpenPublicPage(contest.id)}>
+                    {application && (
+                      <span
+                        className={styles.applicationMark}
+                        data-tooltip={getApplicationTooltip(application.status)}
+                        aria-label={getApplicationTooltip(application.status)}
+                      >
+                        <Star size={15} fill="currentColor" aria-hidden="true" />
+                      </span>
+                    )}
                     <div className={styles.poster}>
                       {contest.posterUrl ? (
                         <img src={contest.posterUrl} alt={`${contest.title} 포스터`} />
@@ -235,7 +248,9 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
                     </div>
                     <div className={styles.cardBody}>
                       <div className={styles.cardHead}>
-                        <span className={styles.deadlineBadge}>{deadlineLabel}</span>
+                        <span className={`${styles.deadlineBadge} ${getDeadlineToneClass(deadlineMeta.tone)}`}>
+                          {deadlineMeta.label}
+                        </span>
                         <div className={styles.cardHeadRight}>
                           {tags.length > 0 && (
                             <div className={styles.cardTags}>
@@ -244,7 +259,6 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
                               ))}
                             </div>
                           )}
-                          {application && <span className={styles.inlineOk}>내 신청 {application.status}</span>}
                         </div>
                       </div>
                       <h2>{contest.title}</h2>
@@ -265,33 +279,37 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
 
           <aside className={styles.side}>
             <section className={styles.profile}>
-              <div className={styles.avatar}>
-                <UserRound size={24} aria-hidden="true" />
+              <div className={styles.profileSummary}>
+                <div className={styles.avatar}>
+                  <UserRound size={24} aria-hidden="true" />
+                </div>
+                <div>
+                  <strong>{session.name}</strong>
+                  <span>{session.studentId} · {session.major}</span>
+                </div>
               </div>
-              <div>
-                <strong>{session.name}</strong>
-                <span>{session.studentId} · {session.major}</span>
-              </div>
-            </section>
 
-            <section className={styles.applications}>
-              <div className={styles.sideHead}>
-                <strong>내 신청</strong>
-                <span>{myApplications.length}건</span>
-              </div>
-              <div className={styles.applicationList}>
-                {myApplications.map((application) => (
-                  <article className={styles.application} key={application.id}>
-                    <div>
-                      <strong>{getContestTitle(application.contestId, contests)}</strong>
-                      <span>{application.name} · {application.members}명</span>
-                    </div>
-                    <StatusBadge status={application.status} />
-                  </article>
-                ))}
-                {myApplications.length === 0 && (
-                  <EmptyState title="신청 없음" description="접수중 대회에서 신청하세요." />
-                )}
+              <div className={styles.profileDivider} />
+
+              <div className={styles.applications}>
+                <div className={styles.sideHead}>
+                  <strong>내 신청</strong>
+                  <span>{myApplications.length}건</span>
+                </div>
+                <div className={styles.applicationList}>
+                  {myApplications.map((application) => (
+                    <article className={styles.application} key={application.id}>
+                      <div>
+                        <strong>{getContestTitle(application.contestId, contests)}</strong>
+                        <span>{application.name} · {application.members}명</span>
+                      </div>
+                      <StatusBadge status={application.status} />
+                    </article>
+                  ))}
+                  {myApplications.length === 0 && (
+                    <EmptyState title="신청 없음" description="접수중 대회에서 신청하세요." />
+                  )}
+                </div>
               </div>
             </section>
           </aside>
@@ -302,21 +320,67 @@ export function ParticipantPortal({ session, contests, teams, onOpenPublicPage, 
 }
 
 function getDeadlineLabel(submissionDue) {
+  return getDeadlineMeta(submissionDue).label;
+}
+
+function getDeadlineMeta(submissionDue) {
   const diffDays = getDaysUntilDeadline(submissionDue);
 
   if (diffDays === null) {
-    return submissionDue;
+    return { label: submissionDue, tone: "unknown" };
   }
 
   if (diffDays < 0) {
-    return "마감";
+    return { label: "마감", tone: "closed" };
   }
 
   if (diffDays === 0) {
-    return "오늘 마감";
+    return { label: "오늘 마감", tone: "today" };
   }
 
-  return `D-${diffDays}`;
+  if (diffDays <= 3) {
+    return { label: `D-${diffDays}`, tone: "urgent" };
+  }
+
+  if (diffDays <= 10) {
+    return { label: `D-${diffDays}`, tone: "soon" };
+  }
+
+  if (diffDays <= 30) {
+    return { label: `D-${diffDays}`, tone: "watch" };
+  }
+
+  return { label: `D-${diffDays}`, tone: "normal" };
+}
+
+function getDeadlineToneClass(tone) {
+  return (
+    {
+      closed: styles.deadlineClosed,
+      today: styles.deadlineToday,
+      urgent: styles.deadlineUrgent,
+      soon: styles.deadlineSoon,
+      watch: styles.deadlineWatch,
+      normal: styles.deadlineNormal,
+      unknown: styles.deadlineUnknown,
+    }[tone] ?? styles.deadlineUnknown
+  );
+}
+
+function getApplicationTooltip(status) {
+  if (status === "승인") {
+    return "참가 신청이 승인되었습니다";
+  }
+
+  if (status === "보완요청") {
+    return "신청 보완 요청이 있습니다";
+  }
+
+  if (status === "반려") {
+    return "신청이 반려되었습니다";
+  }
+
+  return "신청이 접수되었습니다";
 }
 
 function getDaysUntilDeadline(submissionDue) {
