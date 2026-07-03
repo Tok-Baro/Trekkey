@@ -13,10 +13,17 @@ import {
   isContestApplyOpen
 } from "../lib/contest.js";
 import { readStoredAppData, readStoredSession, storeAppData, storeSession } from "../lib/storage.js";
-import { getAverage, getReviewTotal } from "../lib/review.js";
+import {
+  getAverage,
+  getPrimaryRound,
+  getReviewTotal,
+  getRoundIdForRecord,
+  isRecordInRound,
+  normalizeEvaluationRounds
+} from "../lib/review.js";
 import { getSubmissionFileCount } from "../lib/submissionFiles.js";
 
-export const DEMO_DATA_VERSION = "hsportal-poster-2026-06-30";
+export const DEMO_DATA_VERSION = "evaluation-rounds-2026-07-03";
 
 const LEGACY_DEMO_CONTEST_IDS = new Set(["CT-2026-014", "CT-2026-011", "CT-2026-008", "CT-2026-017"]);
 
@@ -39,7 +46,7 @@ function mergeRecordsById(seedRecords, storedRecords = [], shouldKeepStored = ()
 }
 
 function mergeReviewRecords(seedRecords, storedRecords = [], validContestIds) {
-  const getKey = (record) => `${record.contestId}:${record.judgeName}:${record.submissionId}`;
+  const getKey = (record) => `${record.contestId}:${record.roundId ?? "default"}:${record.judgeName}:${record.submissionId}`;
   const seedKeys = new Set(seedRecords.map(getKey));
   const customRecords = storedRecords.filter(
     (record) => validContestIds.has(record.contestId) && !seedKeys.has(getKey(record))
@@ -138,6 +145,8 @@ export function clearSession() {
 
 export function saveContest(state, form) {
   if (form.id) {
+    const evaluationRounds = normalizeEvaluationRounds(form.evaluationRounds, form.id);
+
     return {
       state: {
         ...state,
@@ -147,6 +156,7 @@ export function saveContest(state, form) {
                 ...contest,
                 ...form,
                 awards: Number(form.awards),
+                evaluationRounds,
                 ...getDefaultContestPublicFields(form)
               }
             : contest
@@ -157,11 +167,14 @@ export function saveContest(state, form) {
     };
   }
 
+  const nextContestId = `CT-2026-${String(state.contestRecords.length + 18).padStart(3, "0")}`;
+  const evaluationRounds = normalizeEvaluationRounds(form.evaluationRounds, nextContestId);
   const nextContest = {
     ...form,
     ...getDefaultContestPublicFields(form),
-    id: `CT-2026-${String(state.contestRecords.length + 18).padStart(3, "0")}`,
+    id: nextContestId,
     awards: Number(form.awards),
+    evaluationRounds,
     teams: 0,
     submissions: 0,
     judges: 0,
@@ -220,6 +233,85 @@ export function applyContest(state, form, session) {
     },
     ok: true,
     message: `${contest.title} 참가 신청을 접수했습니다.`
+  };
+}
+
+export function updateParticipantApplication(state, teamId, patch = {}) {
+  const targetTeam = state.teamRecords.find((team) => team.id === teamId);
+
+  if (!targetTeam) {
+    return { state, ok: false, message: "수정할 신청 정보를 찾을 수 없습니다." };
+  }
+
+  const nextStatus = targetTeam.status === "보완요청" ? "검토중" : targetTeam.status;
+  const nextPatch = {
+    ...patch,
+    members: patch.members == null ? targetTeam.members : Number(patch.members),
+    status: nextStatus,
+    updatedAt: "방금 전"
+  };
+
+  return {
+    state: {
+      ...state,
+      teamRecords: state.teamRecords.map((team) => (team.id === teamId ? { ...team, ...nextPatch } : team))
+    },
+    ok: true,
+    message: targetTeam.status === "보완요청" ? "신청 정보를 수정하고 검토중으로 전환했습니다." : "신청 정보를 수정했습니다."
+  };
+}
+
+export function upsertParticipantSubmission(state, contestId, teamId, form) {
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+  const team = state.teamRecords.find((item) => item.id === teamId);
+
+  if (!contest || !team) {
+    return { state, ok: false, message: "제출할 신청 정보를 찾을 수 없습니다." };
+  }
+
+  const attachments = Array.isArray(form.attachments) ? form.attachments : [];
+  const existingSubmission = state.submissionRecords.find(
+    (submission) => submission.contestId === contestId && submission.team === team.name
+  );
+  const submissionPatch = {
+    contestId,
+    team: team.name,
+    title: form.title?.trim() || `${team.name} 제출물`,
+    files: attachments.length || Number(form.files || existingSubmission?.files || 0),
+    attachments,
+    uploadStatus: attachments.length ? "metadata-ready" : "metadata-missing",
+    uploadBatchId: attachments.length ? `UP-${Date.now()}` : existingSubmission?.uploadBatchId ?? null,
+    submittedAt: "방금 전",
+    hashReady: false,
+    review: "접수완료"
+  };
+
+  const nextSubmissionRecords = existingSubmission
+    ? state.submissionRecords.map((submission) =>
+        submission.id === existingSubmission.id ? { ...submission, ...submissionPatch } : submission
+      )
+    : [
+        {
+          id: `SB-${8800 + state.submissionRecords.length + 1}`,
+          ...submissionPatch
+        },
+        ...state.submissionRecords
+      ];
+
+  return {
+    state: {
+      ...state,
+      submissionRecords: nextSubmissionRecords,
+      teamRecords: state.teamRecords.map((item) =>
+        item.id === teamId ? { ...item, submitted: true, submittedAt: "방금 전" } : item
+      ),
+      contestRecords: patchContest(state.contestRecords, contestId, {
+        submissions: existingSubmission ? contest.submissions : (contest.submissions ?? 0) + 1,
+        progress: Math.min(Math.max(contest.progress ?? 0, 42), 92)
+      })
+    },
+    ok: true,
+    message: existingSubmission ? "제출물을 다시 접수했습니다." : "제출물을 접수했습니다."
   };
 }
 
@@ -283,9 +375,11 @@ export function generateSubmissionHashes(state, contestId) {
 
 export function addJudge(state, selectedContest, form) {
   const assigned = Math.max(Number(form.assigned) || 1, 1);
+  const roundId = form.roundId || getPrimaryRound(selectedContest)?.id;
   const nextJudge = {
     id: `JG-${state.judgeRecords.length + 31}`,
     contestId: selectedContest.id,
+    roundId,
     name: form.name,
     role: form.role,
     assigned,
@@ -314,6 +408,8 @@ export function updateJudge(state, form) {
 
   const assigned = Math.max(Number(form.assigned) || 1, 1);
   const nextName = form.name.trim();
+  const contest = state.contestRecords.find((item) => item.id === previousJudge.contestId);
+  const previousRoundId = getRoundIdForRecord(previousJudge, contest);
 
   return {
     state: {
@@ -324,14 +420,17 @@ export function updateJudge(state, form) {
               ...judge,
               name: nextName,
               role: form.role,
+              roundId: form.roundId || judge.roundId,
               assigned,
               completed: Math.min(judge.completed, assigned)
             }
           : judge
       ),
       reviewRecords: state.reviewRecords.map((record) =>
-        record.contestId === previousJudge.contestId && record.judgeName === previousJudge.name
-          ? { ...record, judgeName: nextName }
+        record.contestId === previousJudge.contestId &&
+        record.judgeName === previousJudge.name &&
+        getRoundIdForRecord(record, contest) === previousRoundId
+          ? { ...record, judgeName: nextName, roundId: form.roundId || previousRoundId }
           : record
       )
     },
@@ -351,7 +450,14 @@ export function deleteJudge(state, judgeId) {
       ...state,
       judgeRecords: state.judgeRecords.filter((judge) => judge.id !== judgeId),
       reviewRecords: state.reviewRecords.filter(
-        (record) => !(record.contestId === targetJudge.contestId && record.judgeName === targetJudge.name)
+        (record) => {
+          const contest = state.contestRecords.find((item) => item.id === targetJudge.contestId);
+          return !(
+            record.contestId === targetJudge.contestId &&
+            record.judgeName === targetJudge.name &&
+            getRoundIdForRecord(record, contest) === getRoundIdForRecord(targetJudge, contest)
+          );
+        }
       ),
       contestRecords: patchContest(state.contestRecords, targetJudge.contestId, {
         judges: Math.max((state.contestRecords.find((contest) => contest.id === targetJudge.contestId)?.judges ?? 1) - 1, 0)
@@ -375,9 +481,16 @@ export function batchAssignJudges(state, contestId) {
   };
 }
 
-export function sendReviewReminders(state, contestId) {
+export function sendReviewReminders(state, contestId, roundId) {
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+  const targetRound = normalizeEvaluationRounds(contest?.evaluationRounds, contestId).find((round) => round.id === roundId);
   const targetJudgeIds = state.judgeRecords
-    .filter((judge) => judge.contestId === contestId && Number(judge.assigned || 0) > Number(judge.completed || 0))
+    .filter(
+      (judge) =>
+        judge.contestId === contestId &&
+        (!targetRound || isRecordInRound(judge, targetRound, contest)) &&
+        Number(judge.assigned || 0) > Number(judge.completed || 0)
+    )
     .map((judge) => judge.id);
 
   if (!targetJudgeIds.length) {
@@ -401,14 +514,18 @@ export function sendReviewReminders(state, contestId) {
   };
 }
 
-export function submitJudgeReview(state, { contestId, judgeName, reviewedCount, averageScore, records = [] }) {
+export function submitJudgeReview(state, { contestId, roundId, judgeName, reviewedCount, averageScore, records = [] }) {
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+  const activeRoundId = roundId || getPrimaryRound(contest)?.id;
   const reviewedSubmissionIds = records.map((record) => record.submissionId);
 
   return {
     state: {
       ...state,
       judgeRecords: state.judgeRecords.map((judge) =>
-        judge.contestId === contestId && judge.name === judgeName
+        judge.contestId === contestId &&
+        judge.name === judgeName &&
+        getRoundIdForRecord(judge, contest) === activeRoundId
           ? {
               ...judge,
               completed: Math.min(judge.assigned, Math.max(judge.completed, reviewedCount)),
@@ -421,11 +538,12 @@ export function submitJudgeReview(state, { contestId, judgeName, reviewedCount, 
           (record) =>
             !(
               record.contestId === contestId &&
+              getRoundIdForRecord(record, contest) === activeRoundId &&
               record.judgeName === judgeName &&
               records.some((nextRecord) => nextRecord.submissionId === record.submissionId)
             )
         ),
-        ...records
+        ...records.map((record) => ({ ...record, roundId: activeRoundId }))
       ],
       submissionRecords: state.submissionRecords.map((submission) =>
         submission.contestId === contestId &&
@@ -439,13 +557,18 @@ export function submitJudgeReview(state, { contestId, judgeName, reviewedCount, 
   };
 }
 
-export function calculateResults(state, contestId) {
+export function calculateResults(state, contestId, roundId) {
   const contest = state.contestRecords.find((item) => item.id === contestId);
+  const rounds = normalizeEvaluationRounds(contest?.evaluationRounds, contestId);
+  const targetRound = rounds.find((round) => round.id === roundId) ?? rounds.at(-1);
   const contestSubmissions = state.submissionRecords.filter((submission) => submission.contestId === contestId);
   const scoredSubmissions = contestSubmissions
     .map((submission) => {
       const records = state.reviewRecords.filter(
-        (record) => record.contestId === contestId && record.submissionId === submission.id
+        (record) =>
+          record.contestId === contestId &&
+          record.submissionId === submission.id &&
+          (!targetRound || isRecordInRound(record, targetRound, contest))
       );
       const totals = records.map(getReviewTotal);
 
@@ -472,6 +595,7 @@ export function calculateResults(state, contestId) {
   const nextAwards = scoredSubmissions.slice(0, awardLimit).map(({ submission, average }, index) => ({
       rank: index + 1,
       contestId,
+      roundId: targetRound?.id,
       prize: prizeLabels[index] ?? `${index + 1}위 후보`,
       team: submission.team,
       score: Number(average.toFixed(1)),

@@ -1,12 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { Check, Gavel, Send, ShieldCheck } from "lucide-react";
+import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState, ScoreItem } from "../../components/common/CommonUi.jsx";
-import { reviewCriteria } from "../../lib/review.js";
+import { getRoundScoreCriteria, isRecordInRound, normalizeEvaluationRounds } from "../../lib/review.js";
 import { getSubmissionFileCount } from "../../lib/submissionFiles.js";
 
-export function ReviewerPage({ contestId, contests, judgingAssignments, submissions, onSubmitReview }) {
+export function ReviewerPage({ contestId, roundId, contests, judgingAssignments, submissions, onSubmitReview }) {
   const contest = contests.find((item) => item.id === contestId);
-  const contestJudges = judgingAssignments.filter((judge) => judge.contestId === contestId);
+  const rounds = normalizeEvaluationRounds(contest?.evaluationRounds, contestId);
+  const activeRound = rounds.find((round) => round.id === roundId) ?? rounds[0];
+  const reviewCriteria = getRoundScoreCriteria(activeRound);
+  const contestJudges = judgingAssignments.filter(
+    (judge) => judge.contestId === contestId && isRecordInRound(judge, activeRound, contest)
+  );
   const contestSubmissions = submissions.filter((submission) => submission.contestId === contestId);
   const [judgeName, setJudgeName] = useState("");
   const [activeJudgeName, setActiveJudgeName] = useState("");
@@ -32,6 +38,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
           <h1>심사 링크를 찾을 수 없습니다</h1>
           <p>관리자가 전달한 최신 링크 또는 QR을 다시 확인하세요.</p>
         </section>
+        <AppFooter variant="review" />
       </main>
     );
   }
@@ -97,6 +104,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
       : activeJudge.avgScore;
     const records = assignedSubmissions.map((submission) => ({
       contestId,
+      roundId: activeRound.id,
       judgeName: activeJudge.name,
       submissionId: submission.id,
       scores: reviewCriteria.reduce((acc, criterion) => {
@@ -108,6 +116,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
 
     onSubmitReview({
       contestId,
+      roundId: activeRound.id,
       judgeName: activeJudge.name,
       reviewedCount: activeJudge.completed + assignedSubmissions.length,
       averageScore,
@@ -132,7 +141,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
         <div>
           <h1>{contest.title}</h1>
           <p>
-            {contest.department} · 제출 마감 {contest.submissionDue}
+            {activeRound.name} · {contest.department} · 제출 마감 {contest.submissionDue}
           </p>
         </div>
       </section>
@@ -243,6 +252,7 @@ export function ReviewerPage({ contestId, contests, judgingAssignments, submissi
           </section>
         </form>
       )}
+      <AppFooter variant="review" />
     </main>
   );
 }

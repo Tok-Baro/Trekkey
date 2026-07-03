@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { ContestApplicationForm } from "../../components/forms/ContestApplicationForm.jsx";
 import { ModalFrame } from "../../components/modals/ModalFrame.jsx";
 import { ContestPublicView } from "../../components/public/ContestPublicView.jsx";
@@ -23,6 +24,7 @@ export function ContestPublicDetailPage({ contest, onBack, session, teams = [], 
             관리자 화면
           </button>
         </section>
+        <AppFooter variant="public" />
       </main>
     );
   }
@@ -68,6 +70,7 @@ export function ContestPublicDetailPage({ contest, onBack, session, teams = [], 
           />
         </ModalFrame>
       )}
+      <AppFooter variant="public" />
     </main>
   );
 }

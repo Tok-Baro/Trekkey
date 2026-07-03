@@ -1,12 +1,13 @@
 import { getReviewPath } from "../routeConfig.js";
+import { normalizeEvaluationRounds } from "./review.js";
 import { getParticipantKey } from "./auth.js";
 
-export function getReviewUrl(contestId) {
+export function getReviewUrl(contestId, roundId) {
   if (typeof window === "undefined") {
     return "";
   }
 
-  const url = new URL(getReviewPath(contestId), window.location.origin);
+  const url = new URL(getReviewPath(contestId, roundId), window.location.origin);
   return url.toString();
 }
 
@@ -21,6 +22,7 @@ export function getDefaultContestPublicFields(contest = {}) {
     applicationMethod: contest.applicationMethod || "Trekkey 대회관리 페이지에서 팀 생성 후 제출물을 접수합니다.",
     benefits: contest.benefits || "수상팀 상장 및 비교과 활동 이력 등록",
     tags: contest.tags || "AI,공모전,비교과",
+    evaluationRounds: normalizeEvaluationRounds(contest.evaluationRounds, contest.id),
     detailHtml:
       contest.detailHtml ||
       `<h2>${title}</h2><p>대회 목적, 참가 대상, 제출 형식, 심사 기준을 이곳에 입력하세요.</p><h3>공모 주제</h3><ul><li>문제 정의와 해결 아이디어</li><li>구현 또는 시연 가능한 결과물</li></ul><h3>제출 안내</h3><p>PDF 제안서와 발표 자료를 제출합니다.</p>`
@@ -76,6 +78,40 @@ export function getTestContestFormDefaults() {
     applicationMethod: "공개 상세 페이지에서 공고를 확인한 뒤 참가 신청과 작품 파일을 제출합니다.",
     benefits: "총상금, 상장, 포트폴리오 인증 및 비교과 활동 이력 등록",
     tags: "AI,광고,마케팅,공모전",
+    evaluationRounds: normalizeEvaluationRounds(
+      [
+        {
+          id: "preview-round-1",
+          order: 1,
+          name: "1차 서류평가",
+          status: "준비중",
+          targetType: "all-submissions",
+          passRule: "top-n",
+          passCount: 12,
+          criteria: [
+            { id: "creativity", label: "아이디어", max: 35 },
+            { id: "strategy", label: "전략성", max: 30 },
+            { id: "feasibility", label: "실현가능성", max: 20 },
+            { id: "clarity", label: "문서 완성도", max: 15 }
+          ]
+        },
+        {
+          id: "preview-round-2",
+          order: 2,
+          name: "최종 발표평가",
+          status: "준비중",
+          targetType: "previous-passed",
+          passRule: "final",
+          criteria: [
+            { id: "presentation", label: "발표력", max: 30 },
+            { id: "creative-output", label: "크리에이티브", max: 35 },
+            { id: "qa", label: "질의응답", max: 20 },
+            { id: "impact", label: "확장성", max: 15 }
+          ]
+        }
+      ],
+      "preview"
+    ),
     detailHtml:
       "<h2>공모전 소개</h2><p>생성형 AI와 데이터 기반 크리에이티브를 활용해 실제 브랜드 과제를 해결하는 광고 공모전입니다.</p><h3>공모 주제</h3><ul><li>AI 기반 캠페인 아이디어</li><li>브랜드 문제 해결을 위한 광고 전략</li><li>영상, 이미지, 카피를 포함한 통합 제안</li></ul><h3>제출물</h3><ul><li>기획서 PDF</li><li>대표 이미지 또는 영상 링크</li><li>AI 활용 과정 설명</li></ul>"
   };
@@ -84,7 +120,8 @@ export function getTestContestFormDefaults() {
 export function getContestWithPublicFields(contest) {
   return {
     ...contest,
-    ...getDefaultContestPublicFields(contest)
+    ...getDefaultContestPublicFields(contest),
+    evaluationRounds: normalizeEvaluationRounds(contest.evaluationRounds, contest.id)
   };
 }
 

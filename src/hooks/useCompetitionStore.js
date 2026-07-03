@@ -14,6 +14,8 @@ import {
   sendReviewReminders,
   submitJudgeReview,
   updateJudge,
+  updateParticipantApplication,
+  upsertParticipantSubmission,
   updateTeamStatus
 } from "../api/competitionApi.js";
 import { contests } from "../data/competitionData.js";
@@ -51,6 +53,10 @@ export function useCompetitionStore() {
     setSelectedContestId,
     saveContest: (form, options) => runMutation((current) => saveContest(current, form), options),
     applyContest: (form, session, options) => runMutation((current) => applyContest(current, form, session), options),
+    updateParticipantApplication: (teamId, patch, options) =>
+      runMutation((current) => updateParticipantApplication(current, teamId, patch), options),
+    upsertParticipantSubmission: (contestId, teamId, form, options) =>
+      runMutation((current) => upsertParticipantSubmission(current, contestId, teamId, form), options),
     updateTeamStatus: (teamId, status, options) =>
       runMutation((current) => updateTeamStatus(current, teamId, status), options),
     addSubmission: (form, options) => runMutation((current) => addSubmission(current, selectedContest, form), options),
@@ -59,10 +65,11 @@ export function useCompetitionStore() {
     addJudge: (form, options) => runMutation((current) => addJudge(current, selectedContest, form), options),
     updateJudge: (form, options) => runMutation((current) => updateJudge(current, form), options),
     deleteJudge: (judgeId, options) => runMutation((current) => deleteJudge(current, judgeId), options),
-    batchAssignJudges: (contestId, options) => runMutation((current) => batchAssignJudges(current, contestId), options),
-    sendReviewReminders: (contestId, options) => runMutation((current) => sendReviewReminders(current, contestId), options),
+    batchAssignJudges: (contestId, roundId, options) => runMutation((current) => batchAssignJudges(current, contestId, roundId), options),
+    sendReviewReminders: (contestId, roundId, options) =>
+      runMutation((current) => sendReviewReminders(current, contestId, roundId), options),
     submitJudgeReview: (payload, options) => runMutation((current) => submitJudgeReview(current, payload), options),
-    calculateResults: (contestId, options) => runMutation((current) => calculateResults(current, contestId), options),
+    calculateResults: (contestId, roundId, options) => runMutation((current) => calculateResults(current, contestId, roundId), options),
     confirmAwards: (contestId, options) => runMutation((current) => confirmAwards(current, contestId), options)
   };
 }

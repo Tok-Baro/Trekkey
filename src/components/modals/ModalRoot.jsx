@@ -5,7 +5,13 @@ import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
 import { downloadJson } from "../../lib/exportCsv.js";
-import { getAverage, getReviewTotal } from "../../lib/review.js";
+import {
+  getAverage,
+  getReviewTotal,
+  getRoundScoreCriteria,
+  isRecordInRound,
+  normalizeEvaluationRounds
+} from "../../lib/review.js";
 import { downloadSubmissionFiles, formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import { ModalFrame } from "./ModalFrame.jsx";
 
@@ -36,8 +42,14 @@ export function ModalRoot({
   const { type, payload = {} } = modal;
   const contestTeams = teams.filter((team) => team.contestId === selectedContestId);
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
-  const contestJudges = judgingAssignments.filter((judge) => judge.contestId === selectedContestId);
-  const contestReviewScores = reviewScores.filter((record) => record.contestId === selectedContestId);
+  const selectedRounds = normalizeEvaluationRounds(selectedContest.evaluationRounds, selectedContestId);
+  const modalRound = payload.round ?? selectedRounds.find((round) => round.id === payload.roundId) ?? selectedRounds[0];
+  const contestJudges = judgingAssignments.filter(
+    (judge) => judge.contestId === selectedContestId && (!modalRound || isRecordInRound(judge, modalRound, selectedContest))
+  );
+  const contestReviewScores = reviewScores.filter(
+    (record) => record.contestId === selectedContestId && (!modalRound || isRecordInRound(record, modalRound, selectedContest))
+  );
 
   if (type === "notifications") {
     return (
@@ -76,12 +88,19 @@ export function ModalRoot({
         onClose={onClose}
         size="contest"
       >
-        <ContestForm contest={contest} onSubmit={onSaveContest} onClose={onClose} />
+        <ContestForm contest={contest} initialStepId={payload.initialStepId} onSubmit={onSaveContest} onClose={onClose} />
       </ModalFrame>
     );
   }
 
   if (type === "contestRules") {
+    const criteriaRows = selectedRounds.map((round) => [
+      `${round.name} 기준`,
+      getRoundScoreCriteria(round)
+        .map((criterion) => `${criterion.label} ${criterion.max}점`)
+        .join(", ")
+    ]);
+
     return (
       <ModalFrame title="대회 세부 조건" description={selectedContest.title} onClose={onClose}>
         <div className="modal-info-stack">
@@ -90,7 +109,7 @@ export function ModalRoot({
               ["참가 방식", selectedContest.type],
               ["최대 팀원", "5명"],
               ["중복 신청", "대회별 1회"],
-              ["심사 기준", "창의성 30, 구현 완성도 30, 문제 해결성 25, 발표 전달력 15"]
+              ...criteriaRows
             ]}
           />
           <div className="modal-actions">
@@ -104,13 +123,14 @@ export function ModalRoot({
   }
 
   if (type === "reviewLink") {
-    return <ReviewLinkModal contest={payload.contest ?? selectedContest} onClose={onClose} onNotify={onNotify} />;
+    return <ReviewLinkModal contest={payload.contest ?? selectedContest} round={payload.round ?? modalRound} onClose={onClose} onNotify={onNotify} />;
   }
 
   if (type === "reviewReport") {
     return (
       <ReviewReportModal
         contest={selectedContest}
+        round={modalRound}
         judges={contestJudges}
         submissions={contestSubmissions}
         reviewScores={contestReviewScores}
@@ -218,7 +238,13 @@ export function ModalRoot({
     const { judge } = payload;
     return (
       <ModalFrame title={judge ? "심사위원 수정" : "심사위원 추가"} description={selectedContest.title} onClose={onClose}>
-        <JudgeForm judge={judge} onSubmit={judge ? onUpdateJudge : onAddJudge} onClose={onClose} />
+        <JudgeForm
+          judge={judge}
+          rounds={selectedRounds}
+          defaultRoundId={payload.roundId ?? modalRound?.id}
+          onSubmit={judge ? onUpdateJudge : onAddJudge}
+          onClose={onClose}
+        />
       </ModalFrame>
     );
   }
@@ -230,6 +256,7 @@ export function ModalRoot({
         <DetailList
           items={[
             ["역할", judge.role],
+            ["평가 라운드", selectedRounds.find((round) => round.id === (judge.roundId ?? selectedRounds[0]?.id))?.name ?? "-"],
             ["배정", `${judge.assigned}건`],
             ["완료", `${judge.completed}건`],
             ["평균 점수", judge.avgScore ? `${judge.avgScore}점` : "산출 전"]
@@ -411,7 +438,8 @@ function SettingsModal({
   );
 }
 
-function ReviewReportModal({ contest, judges, submissions, reviewScores, onClose, onNotify }) {
+function ReviewReportModal({ contest, round, judges, submissions, reviewScores, onClose, onNotify }) {
+  const criteria = getRoundScoreCriteria(round);
   const judgeRows = judges.map((judge) => {
     const records = reviewScores.filter((record) => record.judgeName === judge.name);
     const totals = records.map(getReviewTotal);
@@ -450,15 +478,16 @@ function ReviewReportModal({ contest, judges, submissions, reviewScores, onClose
   });
 
   const exportCsv = () => {
-    downloadReviewReportCsv({ contest, judgeRows, submissionRows, detailRows });
+    downloadReviewReportCsv({ contest, round, criteria, judgeRows, submissionRows, detailRows });
     onNotify?.("엑셀용 평가표 CSV를 다운로드했습니다.");
   };
 
   return (
-    <ModalFrame title="심사 평가 현황" description={contest.title} onClose={onClose} size="wide">
+    <ModalFrame title="심사 평가 현황" description={`${contest.title} · ${round?.name ?? "전체 라운드"}`} onClose={onClose} size="wide">
       <div className="review-report-modal">
         <div className="report-toolbar">
           <div className="report-summary">
+            {round && <span className="inline-state muted">{round.name}</span>}
             <span className="inline-state muted">심사위원 {judges.length}명</span>
             <span className="inline-state muted">평가 기록 {reviewScores.length}건</span>
             <span className="inline-state muted">제출물 {submissions.length}건</span>
@@ -498,15 +527,12 @@ function ReviewReportModal({ contest, judges, submissions, reviewScores, onClose
 
         <ReportTable
           title="세부 평가 기록"
-          headers={["심사위원", "제출물", "팀", "창의성", "구현", "문제 해결", "발표", "총점", "제출시각"]}
+          headers={["심사위원", "제출물", "팀", ...criteria.map((criterion) => criterion.label), "총점", "제출시각"]}
           rows={detailRows.map((record) => [
             record.judgeName,
             record.submissionTitle,
             record.team,
-            record.scores.creativity,
-            record.scores.completion,
-            record.scores.impact,
-            record.scores.delivery,
+            ...criteria.map((criterion) => record.scores[criterion.id] ?? ""),
             record.total,
             record.submittedAt
           ])}
@@ -549,10 +575,11 @@ function ReportTable({ title, headers, rows, emptyText = "표시할 데이터가
   );
 }
 
-function downloadReviewReportCsv({ contest, judgeRows, submissionRows, detailRows }) {
+function downloadReviewReportCsv({ contest, round, criteria, judgeRows, submissionRows, detailRows }) {
   const rows = [
     ["대회명", contest.title],
     ["대회ID", contest.id],
+    ["평가 라운드", round?.name ?? "전체"],
     [],
     ["심사위원별 요약"],
     ["심사위원", "역할", "배정", "완료", "평가 기록", "평균", "최근 제출"],
@@ -578,15 +605,12 @@ function downloadReviewReportCsv({ contest, judgeRows, submissionRows, detailRow
     ]),
     [],
     ["세부 평가 기록"],
-    ["심사위원", "제출물", "팀", "창의성", "구현 완성도", "문제 해결성", "발표 전달력", "총점", "제출시각"],
+    ["심사위원", "제출물", "팀", ...criteria.map((criterion) => criterion.label), "총점", "제출시각"],
     ...detailRows.map((record) => [
       record.judgeName,
       record.submissionTitle,
       record.team,
-      record.scores.creativity,
-      record.scores.completion,
-      record.scores.impact,
-      record.scores.delivery,
+      ...criteria.map((criterion) => record.scores[criterion.id] ?? ""),
       record.total,
       record.submittedAt
     ])
@@ -595,7 +619,7 @@ function downloadReviewReportCsv({ contest, judgeRows, submissionRows, detailRow
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const anchor = document.createElement("a");
   anchor.href = URL.createObjectURL(blob);
-  anchor.download = `${contest.id}-review-report.csv`;
+  anchor.download = `${contest.id}-${round?.id ?? "all"}-review-report.csv`;
   anchor.click();
   URL.revokeObjectURL(anchor.href);
 }
@@ -605,8 +629,8 @@ function toCsvCell(value) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
-function ReviewLinkModal({ contest, onClose, onNotify }) {
-  const reviewUrl = getReviewUrl(contest.id);
+function ReviewLinkModal({ contest, round, onClose, onNotify }) {
+  const reviewUrl = getReviewUrl(contest.id, round?.id);
   const [qrDataUrl, setQrDataUrl] = useState("");
 
   useEffect(() => {
@@ -642,13 +666,13 @@ function ReviewLinkModal({ contest, onClose, onNotify }) {
 
     const anchor = document.createElement("a");
     anchor.href = qrDataUrl;
-    anchor.download = `${contest.id}-review-qr.png`;
+    anchor.download = `${contest.id}-${round?.id ?? "review"}-qr.png`;
     anchor.click();
     onNotify?.("심사 QR 이미지를 다운로드했습니다.");
   };
 
   return (
-    <ModalFrame title="심사 링크/QR 생성" description={contest.title} onClose={onClose}>
+    <ModalFrame title="심사 링크/QR 생성" description={`${contest.title} · ${round?.name ?? "심사"}`} onClose={onClose}>
       <div className="review-link-modal">
         <div className="qr-preview">
           {qrDataUrl ? (
@@ -665,7 +689,7 @@ function ReviewLinkModal({ contest, onClose, onNotify }) {
             <Link2 size={18} aria-hidden="true" />
             <div>
               <strong>심사위원 전용 링크</strong>
-              <span>이 링크에서는 관리자 메뉴 없이 이름 입력 후 심사만 진행합니다.</span>
+              <span>{round?.name ?? "선택 심사"} 라운드의 심사위원에게 전달합니다.</span>
             </div>
           </div>
           <label className="copy-field">

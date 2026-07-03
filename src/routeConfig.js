@@ -29,8 +29,9 @@ export function getAdminPath(page, contestId) {
   return `${path}?contest=${encodeURIComponent(contestId)}`;
 }
 
-export function getReviewPath(contestId) {
-  return `/review/${encodeURIComponent(contestId)}`;
+export function getReviewPath(contestId, roundId) {
+  const path = `/review/${encodeURIComponent(contestId)}`;
+  return roundId ? `${path}?round=${encodeURIComponent(roundId)}` : path;
 }
 
 export function getContestDetailPath(contestId) {

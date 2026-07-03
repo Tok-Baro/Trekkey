@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, UserRound, X } from "lucide-react";
 import { navItems } from "./constants/navigation.js";
 import { ModalRoot } from "./components/modals/ModalRoot.jsx";
+import { AppFooter } from "./components/common/AppFooter.jsx";
 import { IconButton } from "./components/common/CommonUi.jsx";
 import {
   AwardsPage,
@@ -43,6 +44,7 @@ function App() {
     const params = new URLSearchParams(location.search);
     return routeContestParam ?? params.get("contest");
   }, [location.search, routeContestParam]);
+  const routeRoundId = useMemo(() => new URLSearchParams(location.search).get("round"), [location.search]);
   const { session, login, logout } = useSessionStore();
   const competition = useCompetitionStore();
   const {
@@ -189,6 +191,18 @@ function App() {
     return result.ok;
   };
 
+  const handleUpdateParticipantApplication = (teamId, patch) => {
+    const result = competition.updateParticipantApplication(teamId, patch);
+    notify(result.message);
+    return result.ok;
+  };
+
+  const handleUpsertParticipantSubmission = (contestId, teamId, form) => {
+    const result = competition.upsertParticipantSubmission(contestId, teamId, form);
+    notify(result.message);
+    return result.ok;
+  };
+
   const handleUpdateTeamStatus = (teamId, status) => {
     const result = competition.updateTeamStatus(teamId, status);
     notify(result.message);
@@ -223,23 +237,23 @@ function App() {
     closeModal();
   };
 
-  const handleBatchAssignJudges = () => {
-    const result = competition.batchAssignJudges(selectedContestId);
+  const handleBatchAssignJudges = (roundId) => {
+    const result = competition.batchAssignJudges(selectedContestId, roundId);
     notify(result.message);
   };
 
-  const handleSendReminder = () => {
-    const result = competition.sendReviewReminders(selectedContestId);
+  const handleSendReminder = (roundId) => {
+    const result = competition.sendReviewReminders(selectedContestId, roundId);
     notify(result.message);
   };
 
-  const handleSubmitJudgeReview = ({ contestId, judgeName, reviewedCount, averageScore, records = [] }) => {
-    const result = competition.submitJudgeReview({ contestId, judgeName, reviewedCount, averageScore, records });
+  const handleSubmitJudgeReview = ({ contestId, roundId, judgeName, reviewedCount, averageScore, records = [] }) => {
+    const result = competition.submitJudgeReview({ contestId, roundId, judgeName, reviewedCount, averageScore, records });
     notify(result.message);
   };
 
-  const handleCalculateResults = () => {
-    const result = competition.calculateResults(selectedContestId);
+  const handleCalculateResults = (roundId) => {
+    const result = competition.calculateResults(selectedContestId, roundId);
     if (result.ok) {
       navigatePage(result.routePage, selectedContestId);
     }
@@ -316,6 +330,7 @@ function App() {
       <>
         <ReviewerPage
           contestId={routeContestParam}
+          roundId={routeRoundId}
           contests={contestRecords}
           judgingAssignments={judgeRecords}
           submissions={submissionRecords}
@@ -358,7 +373,11 @@ function App() {
           session={session}
           contests={contestRecords}
           teams={teamRecords}
+          submissions={submissionRecords}
+          awardCandidates={awardRecords}
           onOpenPublicPage={openContestDetailPage}
+          onUpdateApplication={handleUpdateParticipantApplication}
+          onSubmitSubmission={handleUpsertParticipantSubmission}
           onLogout={handleLogout}
         />
         {toast && <div className={styles.toast} role="status">{toast.message}</div>}
@@ -565,6 +584,8 @@ function App() {
             <JudgingPage
               contests={contestRecords}
               judgingAssignments={judgeRecords}
+              submissions={submissionRecords}
+              reviewScores={reviewRecords}
               selectedContest={selectedContest}
               selectedContestId={selectedContestId}
               setSelectedContestId={selectContest}
@@ -586,6 +607,7 @@ function App() {
             />
           )}
         </main>
+        <AppFooter variant="admin" />
       </div>
 
       <ModalRoot

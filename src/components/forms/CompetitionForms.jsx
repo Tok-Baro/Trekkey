@@ -4,25 +4,33 @@ import StarterKit from "@tiptap/starter-kit";
 import { Check, ChevronLeft, ChevronRight, Eye, FileArchive, ImagePlus, Plus, Type, Upload, X } from "lucide-react";
 import { ContestPublicView } from "../public/ContestPublicView.jsx";
 import { getDefaultContestPublicFields, getTestContestFormDefaults } from "../../lib/contest.js";
+import {
+  createEvaluationRound,
+  normalizeEvaluationRounds,
+  passRuleLabels,
+  roundTargetLabels
+} from "../../lib/review.js";
 import { createSubmissionFileMeta, formatFileSize, SUBMISSION_FILE_ACCEPT } from "../../lib/submissionFiles.js";
 
 const contestFormSteps = [
   { id: "basic", label: "기본 정보" },
   { id: "public", label: "공개 페이지" },
   { id: "content", label: "본문/조건" },
+  { id: "evaluation", label: "평가 라운드" },
   { id: "confirm", label: "확인" }
 ];
 
-export function ContestForm({ contest, onSubmit, onClose }) {
+export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic" }) {
   const [form, setForm] = useState(
     contest
       ? {
           ...contest,
-          ...getDefaultContestPublicFields(contest)
+          ...getDefaultContestPublicFields(contest),
+          evaluationRounds: normalizeEvaluationRounds(contest.evaluationRounds, contest.id)
         }
       : getTestContestFormDefaults()
   );
-  const [stepIndex, setStepIndex] = useState(0);
+  const [stepIndex, setStepIndex] = useState(() => Math.max(contestFormSteps.findIndex((step) => step.id === initialStepId), 0));
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -30,8 +38,88 @@ export function ContestForm({ contest, onSubmit, onClose }) {
   const isLastStep = stepIndex === contestFormSteps.length - 1;
   const canGoNext = stepIndex !== 0 || Boolean(form.title.trim() && form.department.trim() && form.owner.trim());
   const previewContest = useMemo(() => getContestPreviewData(form), [form]);
+  const evaluationRounds = useMemo(() => normalizeEvaluationRounds(form.evaluationRounds, form.id || "contest"), [form.evaluationRounds, form.id]);
   const goNext = () => setStepIndex((current) => Math.min(current + 1, contestFormSteps.length - 1));
   const goBack = () => setStepIndex((current) => Math.max(current - 1, 0));
+  const updateRounds = (nextRounds) => update("evaluationRounds", normalizeEvaluationRounds(nextRounds, form.id || "contest"));
+  const updateRound = (roundId, field, value) => {
+    updateRounds(evaluationRounds.map((round) => (round.id === roundId ? { ...round, [field]: value } : round)));
+  };
+  const addRound = () => {
+    const nextOrder = evaluationRounds.length + 1;
+    const preparedRounds = evaluationRounds.map((round, index) => {
+      if (index !== evaluationRounds.length - 1 || round.passRule !== "final") {
+        return round;
+      }
+
+      return {
+        ...round,
+        name: evaluationRounds.length === 1 && round.name === "최종 심사" ? "1차 평가" : round.name,
+        passRule: "top-n",
+        passCount: round.passCount || 10,
+        targetType: index === 0 ? "all-submissions" : round.targetType
+      };
+    });
+
+    updateRounds([
+      ...preparedRounds,
+      createEvaluationRound({
+        contestId: form.id || "contest",
+        order: nextOrder,
+        name: nextOrder === 2 ? "최종 평가" : `${nextOrder}차 최종 평가`,
+        targetType: "previous-passed",
+        passRule: "final"
+      })
+    ]);
+  };
+  const removeRound = (roundId) => {
+    if (evaluationRounds.length <= 1) {
+      return;
+    }
+    updateRounds(evaluationRounds.filter((round) => round.id !== roundId));
+  };
+  const updateCriterion = (roundId, criterionId, field, value) => {
+    updateRounds(
+      evaluationRounds.map((round) =>
+        round.id === roundId
+          ? {
+              ...round,
+              criteria: round.criteria.map((criterion) =>
+                criterion.id === criterionId ? { ...criterion, [field]: value } : criterion
+              )
+            }
+          : round
+      )
+    );
+  };
+  const addCriterion = (roundId) => {
+    updateRounds(
+      evaluationRounds.map((round) =>
+        round.id === roundId
+          ? {
+              ...round,
+              criteria: [
+                ...round.criteria,
+                {
+                  id: `${round.id}-criterion-${round.criteria.length + 1}`,
+                  label: `기준 ${round.criteria.length + 1}`,
+                  max: 10
+                }
+              ]
+            }
+          : round
+      )
+    );
+  };
+  const removeCriterion = (roundId, criterionId) => {
+    updateRounds(
+      evaluationRounds.map((round) =>
+        round.id === roundId && round.criteria.length > 1
+          ? { ...round, criteria: round.criteria.filter((criterion) => criterion.id !== criterionId) }
+          : round
+      )
+    );
+  };
   const handlePosterUpload = (event) => {
     const file = event.target.files?.[0];
     if (!file) {
@@ -179,6 +267,145 @@ export function ContestForm({ contest, onSubmit, onClose }) {
           </>
         )}
 
+        {currentStep.id === "evaluation" && (
+          <div className="round-builder">
+            <div className="round-builder-head">
+              <div>
+                <strong>평가 라운드</strong>
+                <span>대회마다 필요한 평가 단계와 점수 기준을 다르게 설정합니다.</span>
+              </div>
+              <button className="secondary-button" type="button" onClick={addRound}>
+                <Plus size={16} aria-hidden="true" />
+                라운드 추가
+              </button>
+            </div>
+
+            <div className="round-card-list">
+              {evaluationRounds.map((round, roundIndex) => {
+                const totalScore = round.criteria.reduce((sum, criterion) => sum + Number(criterion.max || 0), 0);
+
+                return (
+                  <section className="round-card" key={round.id}>
+                    <div className="round-card-head">
+                      <strong>{roundIndex + 1}단계</strong>
+                      <div>
+                        <span>{totalScore}점 기준</span>
+                        <button
+                          className="icon-button"
+                          type="button"
+                          aria-label={`${round.name} 삭제`}
+                          disabled={evaluationRounds.length <= 1}
+                          onClick={() => removeRound(round.id)}
+                        >
+                          <X size={15} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="field-row">
+                      <label>
+                        <span>라운드명</span>
+                        <input value={round.name} onChange={(event) => updateRound(round.id, "name", event.target.value)} />
+                      </label>
+                      <label>
+                        <span>상태</span>
+                        <select value={round.status} onChange={(event) => updateRound(round.id, "status", event.target.value)}>
+                          {["준비중", "평가중", "완료"].map((status) => (
+                            <option key={status}>{status}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="field-row">
+                      <label>
+                        <span>평가 대상</span>
+                        <select value={round.targetType} onChange={(event) => updateRound(round.id, "targetType", event.target.value)}>
+                          {Object.entries(roundTargetLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        <span>통과 방식</span>
+                        <select value={round.passRule} onChange={(event) => updateRound(round.id, "passRule", event.target.value)}>
+                          {Object.entries(passRuleLabels).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    {round.passRule !== "final" && (
+                      <div className="field-row">
+                        <label>
+                          <span>통과 팀 수</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={round.passCount ?? ""}
+                            onChange={(event) => updateRound(round.id, "passCount", event.target.value)}
+                            placeholder="예: 10"
+                          />
+                        </label>
+                        <label>
+                          <span>기준 점수</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={round.minScore ?? ""}
+                            onChange={(event) => updateRound(round.id, "minScore", event.target.value)}
+                            placeholder="선택"
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="criteria-builder">
+                      <div className="criteria-builder-head">
+                        <span>점수 기준</span>
+                        <button type="button" onClick={() => addCriterion(round.id)}>
+                          <Plus size={14} aria-hidden="true" />
+                          기준 추가
+                        </button>
+                      </div>
+                      {round.criteria.map((criterion) => (
+                        <div className="criteria-row" key={criterion.id}>
+                          <input
+                            value={criterion.label}
+                            onChange={(event) => updateCriterion(round.id, criterion.id, "label", event.target.value)}
+                            aria-label="평가 기준명"
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            value={criterion.max}
+                            onChange={(event) => updateCriterion(round.id, criterion.id, "max", event.target.value)}
+                            aria-label="배점"
+                          />
+                          <button
+                            className="icon-button"
+                            type="button"
+                            aria-label={`${criterion.label} 삭제`}
+                            disabled={round.criteria.length <= 1}
+                            onClick={() => removeCriterion(round.id, criterion.id)}
+                          >
+                            <X size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {currentStep.id === "confirm" && (
           <div className="wizard-confirm-grid">
             <SummaryItem label="대회명" value={form.title} />
@@ -187,6 +414,10 @@ export function ContestForm({ contest, onSubmit, onClose }) {
             <SummaryItem label="접수/제출" value={`${form.applicationPeriod} · ${form.submissionDue}`} />
             <SummaryItem label="대상" value={form.target} />
             <SummaryItem label="시상" value={`${form.awards}개 · ${form.benefits}`} />
+            <SummaryItem
+              label="평가"
+              value={`${evaluationRounds.length}개 라운드 · ${evaluationRounds.map((round) => round.name).join(" → ")}`}
+            />
           </div>
         )}
       </div>
@@ -225,7 +456,11 @@ export function ContestForm({ contest, onSubmit, onClose }) {
           </button>
         )}
         {isLastStep ? (
-          <button className="primary-button" type="button" onClick={() => onSubmit(form)}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => onSubmit({ ...form, evaluationRounds })}
+          >
             <Check size={17} />
             저장
           </button>
@@ -258,6 +493,7 @@ function getContestPreviewData(form) {
     applicationMethod: form.applicationMethod || "접수 방법이 입력되지 않았습니다.",
     benefits: form.benefits || "시상 및 혜택이 입력되지 않았습니다.",
     tags: form.tags || "",
+    evaluationRounds: normalizeEvaluationRounds(form.evaluationRounds, form.id || "PREVIEW"),
     detailHtml: form.detailHtml || "<p>상세 본문이 입력되지 않았습니다.</p>"
   };
 }
@@ -267,6 +503,7 @@ function getContestStepHelp(stepId) {
     basic: "운영 목록과 대시보드에 먼저 노출되는 핵심 정보입니다.",
     public: "참가자가 공개 페이지와 참가자 포털에서 보는 정보입니다.",
     content: "공고 본문과 시상 조건을 정리합니다.",
+    evaluation: "라운드 수, 대상, 통과 방식, 점수 기준을 대회별로 설정합니다.",
     confirm: "저장 전 관리자 화면에 반영될 정보를 확인합니다."
   };
 
@@ -442,10 +679,11 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
   );
 }
 
-export function JudgeForm({ judge, onSubmit, onClose }) {
+export function JudgeForm({ judge, rounds = [], defaultRoundId, onSubmit, onClose }) {
   const isEdit = Boolean(judge);
   const [form, setForm] = useState({
     id: judge?.id,
+    roundId: judge?.roundId ?? defaultRoundId ?? rounds[0]?.id,
     name: judge?.name ?? "",
     role: judge?.role ?? "외부 심사위원",
     assigned: judge?.assigned ?? 5
@@ -464,6 +702,18 @@ export function JudgeForm({ judge, onSubmit, onClose }) {
         <span>이름</span>
         <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
       </label>
+      {rounds.length > 0 && (
+        <label>
+          <span>평가 라운드</span>
+          <select value={form.roundId} onChange={(event) => update("roundId", event.target.value)}>
+            {rounds.map((round) => (
+              <option key={round.id} value={round.id}>
+                {round.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <div className="field-row">
         <label>
           <span>역할</span>

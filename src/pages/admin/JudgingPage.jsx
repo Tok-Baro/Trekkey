@@ -1,17 +1,19 @@
-import React from "react";
-import { Bell, ClipboardCheck, FileCheck2, ListChecks, Plus, QrCode } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Bell, ClipboardCheck, FileCheck2, ListChecks, Plus, QrCode, Settings2 } from "lucide-react";
 import { ContestScopeBar, EmptyState, PanelHeader, ProgressBar, ProgressRing } from "../../components/common/CommonUi.jsx";
-
-const scoreCriteria = [
-  { label: "창의성", value: 30, color: "var(--blue)" },
-  { label: "구현 완성도", value: 30, color: "var(--teal)" },
-  { label: "문제 해결성", value: 25, color: "var(--purple)" },
-  { label: "발표 전달력", value: 15, color: "var(--amber)" }
-];
+import {
+  getRoundScoreCriteria,
+  isRecordInRound,
+  normalizeEvaluationRounds,
+  passRuleLabels,
+  roundTargetLabels
+} from "../../lib/review.js";
 
 export function JudgingPage({
   contests,
   judgingAssignments,
+  submissions = [],
+  reviewScores = [],
   selectedContest,
   selectedContestId,
   setSelectedContestId,
@@ -20,10 +22,27 @@ export function JudgingPage({
   onSendReminder,
   onCalculateResults
 }) {
-  const contestJudges = judgingAssignments.filter((judge) => judge.contestId === selectedContestId);
+  const rounds = useMemo(
+    () => normalizeEvaluationRounds(selectedContest.evaluationRounds, selectedContestId),
+    [selectedContest.evaluationRounds, selectedContestId]
+  );
+  const [activeRoundId, setActiveRoundId] = useState(rounds[0]?.id);
+  const activeRound = rounds.find((round) => round.id === activeRoundId) ?? rounds[0];
+  const scoreCriteria = useMemo(() => getRoundScoreCriteria(activeRound), [activeRound]);
+  const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
+  const contestReviewScores = reviewScores.filter(
+    (record) => record.contestId === selectedContestId && isRecordInRound(record, activeRound, selectedContest)
+  );
+  const contestJudges = judgingAssignments.filter(
+    (judge) => judge.contestId === selectedContestId && isRecordInRound(judge, activeRound, selectedContest)
+  );
   const totalAssigned = contestJudges.reduce((sum, judge) => sum + judge.assigned, 0);
   const totalCompleted = contestJudges.reduce((sum, judge) => sum + judge.completed, 0);
   const completionRate = totalAssigned ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
+
+  useEffect(() => {
+    setActiveRoundId(rounds[0]?.id);
+  }, [rounds[0]?.id, selectedContestId]);
 
   return (
     <div className="page-grid split-grid">
@@ -34,25 +53,59 @@ export function JudgingPage({
         setSelectedContestId={setSelectedContestId}
       />
 
+      <section className="panel wide round-panel">
+        <PanelHeader
+          eyebrow="평가 방식"
+          title="평가 라운드"
+          action={
+            <button className="secondary-button" type="button" onClick={() => openModal("contest", { contest: selectedContest, initialStepId: "evaluation" })}>
+              <Settings2 size={17} />
+              라운드 설정
+            </button>
+          }
+        />
+        <div className="round-tabs" role="tablist" aria-label="평가 라운드 선택">
+          {rounds.map((round) => (
+            <button
+              className={round.id === activeRound.id ? "active" : ""}
+              key={round.id}
+              type="button"
+              role="tab"
+              aria-selected={round.id === activeRound.id}
+              onClick={() => setActiveRoundId(round.id)}
+            >
+              <strong>{round.name}</strong>
+              <span>{round.status}</span>
+            </button>
+          ))}
+        </div>
+        <div className="round-summary-grid" aria-label={`${activeRound.name} 운영 요약`}>
+          <RoundSummaryItem label="평가 대상" value={roundTargetLabels[activeRound.targetType] ?? "전체 제출팀"} meta={`${contestSubmissions.length}개 제출물 기준`} />
+          <RoundSummaryItem label="통과 방식" value={passRuleLabels[activeRound.passRule] ?? "관리자 확정"} meta={getPassMeta(activeRound)} />
+          <RoundSummaryItem label="심사위원" value={`${contestJudges.length}명`} meta={`${totalCompleted}/${totalAssigned || 0}건 완료`} />
+          <RoundSummaryItem label="평가 기록" value={`${contestReviewScores.length}건`} meta={`${scoreCriteria.reduce((sum, item) => sum + item.value, 0)}점 기준`} />
+        </div>
+      </section>
+
       <section className="panel workflow-main">
         <PanelHeader
-          eyebrow="심사 배정"
+          eyebrow={activeRound.name}
           title="심사위원"
           action={
             <div className="action-group">
-              <button className="secondary-button" type="button" onClick={() => openModal("reviewReport")}>
+              <button className="secondary-button" type="button" onClick={() => openModal("reviewReport", { round: activeRound })}>
                 <ClipboardCheck size={17} />
                 평가 현황
               </button>
-              <button className="secondary-button" type="button" onClick={() => openModal("reviewLink", { contest: selectedContest })}>
+              <button className="secondary-button" type="button" onClick={() => openModal("reviewLink", { contest: selectedContest, round: activeRound })}>
                 <QrCode size={17} />
                 링크/QR
               </button>
-              <button className="secondary-button" type="button" onClick={onBatchAssign}>
+              <button className="secondary-button" type="button" onClick={() => onBatchAssign(activeRound.id)}>
                 <ListChecks size={17} />
                 일괄 배정
               </button>
-              <button className="primary-button" type="button" onClick={() => openModal("judge")}>
+              <button className="primary-button" type="button" onClick={() => openModal("judge", { roundId: activeRound.id })}>
                 <Plus size={17} />
                 심사위원
               </button>
@@ -80,7 +133,7 @@ export function JudgingPage({
             </article>
           ))}
           {contestJudges.length === 0 && (
-            <EmptyState title="배정된 심사위원이 없습니다" description="대회 준비 단계에서 심사위원을 먼저 배정하세요." />
+            <EmptyState title="배정된 심사위원이 없습니다" description={`${activeRound.name} 라운드에 심사위원을 배정하세요.`} />
           )}
         </div>
       </section>
@@ -100,11 +153,11 @@ export function JudgingPage({
           <ProgressBar value={completionRate} />
         </div>
         <div className="button-row">
-          <button className="secondary-button" type="button" onClick={onSendReminder}>
+          <button className="secondary-button" type="button" onClick={() => onSendReminder(activeRound.id)}>
             <Bell size={17} />
             독촉 발송
           </button>
-          <button className="primary-button" type="button" onClick={onCalculateResults}>
+          <button className="primary-button" type="button" onClick={() => onCalculateResults(activeRound.id)}>
             <FileCheck2 size={17} />
             결과 산출
           </button>
@@ -112,6 +165,32 @@ export function JudgingPage({
       </section>
     </div>
   );
+}
+
+function RoundSummaryItem({ label, value, meta }) {
+  return (
+    <div className="round-summary-item">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{meta}</small>
+    </div>
+  );
+}
+
+function getPassMeta(round) {
+  if (round.passRule === "top-n" && round.passCount) {
+    return `${round.passCount}팀 진출`;
+  }
+
+  if (round.passRule === "score-min" && round.minScore) {
+    return `${round.minScore}점 이상`;
+  }
+
+  if (round.passRule === "final") {
+    return "수상 확정 기준";
+  }
+
+  return "결과 확인 후 확정";
 }
 
 function ScoreRubricChart({ items }) {

@@ -54,6 +54,40 @@ export const contests = [
     submissions: 12,
     judges: 5,
     progress: 46,
+    evaluationRounds: [
+      {
+        id: "CT-HS-13949-round-1",
+        order: 1,
+        name: "1차 서류평가",
+        status: "평가중",
+        targetType: "all-submissions",
+        passRule: "top-n",
+        passCount: 12,
+        minScore: "",
+        criteria: [
+          { id: "problem", label: "문제 정의", max: 30 },
+          { id: "feasibility", label: "운영 가능성", max: 30 },
+          { id: "impact", label: "참여 효과", max: 25 },
+          { id: "document", label: "문서 완성도", max: 15 }
+        ]
+      },
+      {
+        id: "CT-HS-13949-round-2",
+        order: 2,
+        name: "최종 발표평가",
+        status: "준비중",
+        targetType: "previous-passed",
+        passRule: "final",
+        passCount: "",
+        minScore: "",
+        criteria: [
+          { id: "presentation", label: "발표 전달력", max: 30 },
+          { id: "qa", label: "질의응답", max: 20 },
+          { id: "prototype", label: "운영 모델 완성도", max: 35 },
+          { id: "scalability", label: "확장 가능성", max: 15 }
+        ]
+      }
+    ],
     posterUrl: hsPortalImage("/attachment/view/85889/2026+%EB%B9%84%EA%B5%90%EA%B3%BC+%EC%95%84%EC%9D%B4%EB%94%94%EC%96%B4+%EA%B3%B5%EB%AA%A8%EC%A0%84.png?ts=0"),
     summary: "전공 수업과 비교과 활동을 연결하는 프로그램 아이디어를 제안하고 실제 운영 모델까지 설계하는 공모전입니다.",
     target: "한성대학교 재학생 및 휴학생, 개인 또는 4인 이하 팀",
@@ -240,6 +274,40 @@ export const contests = [
     submissions: 45,
     judges: 6,
     progress: 74,
+    evaluationRounds: [
+      {
+        id: "CT-HS-13870-round-1",
+        order: 1,
+        name: "1차 에세이 심사",
+        status: "평가중",
+        targetType: "all-submissions",
+        passRule: "top-n",
+        passCount: 20,
+        minScore: "",
+        criteria: [
+          { id: "authenticity", label: "진정성", max: 35 },
+          { id: "growth", label: "성장 서사", max: 30 },
+          { id: "sharing", label: "공유 가치", max: 20 },
+          { id: "expression", label: "표현 완성도", max: 15 }
+        ]
+      },
+      {
+        id: "CT-HS-13870-round-2",
+        order: 2,
+        name: "2차 영상 심사",
+        status: "준비중",
+        targetType: "previous-passed",
+        passRule: "manual",
+        passCount: 8,
+        minScore: "",
+        criteria: [
+          { id: "storytelling", label: "스토리텔링", max: 30 },
+          { id: "message", label: "메시지 전달", max: 30 },
+          { id: "production", label: "영상 완성도", max: 25 },
+          { id: "fit", label: "인재상 부합", max: 15 }
+        ]
+      }
+    ],
     posterUrl: hsPortalImage("/attachment/view/85147/2026+%EB%8F%84%EC%A0%84%EC%9D%B4%EC%95%BC%EA%B8%B0.jpg?ts=0"),
     summary: "도전과 성취 경험을 에세이와 영상으로 정리해 공유하는 인재인증형 비교과 프로그램입니다.",
     target: "한성대학교 재학생, 휴학생, 수료생",
