@@ -12,8 +12,27 @@ export const routeByPage = adminRoutes.reduce((acc, route) => {
   return acc;
 }, {});
 
+export const participantRoutes = [
+  { id: "discover", path: "/participant", label: "대회 찾기" },
+  { id: "applications", path: "/participant/applications", label: "내 신청" },
+  { id: "submissions", path: "/participant/submissions", label: "제출물" },
+  { id: "teams", path: "/participant/teams", label: "팀 관리" },
+  { id: "results", path: "/participant/results", label: "결과" },
+  { id: "activity", path: "/participant/activity", label: "활동 이력" },
+  { id: "profile", path: "/participant/profile", label: "마이페이지" }
+];
+
+export const participantRouteByPage = participantRoutes.reduce((acc, route) => {
+  acc[route.id] = route;
+  return acc;
+}, {});
+
 export function getPageFromPath(pathname) {
   return adminRoutes.find((route) => route.path === pathname)?.id ?? "dashboard";
+}
+
+export function getParticipantPageFromPath(pathname) {
+  return participantRoutes.find((route) => route.path === pathname)?.id ?? "discover";
 }
 
 export function getPageHeading(page) {
@@ -42,6 +61,6 @@ export function getLoginPath() {
   return "/login";
 }
 
-export function getParticipantPath() {
-  return "/participant";
+export function getParticipantPath(page = "discover") {
+  return participantRouteByPage[page]?.path ?? participantRouteByPage.discover.path;
 }

@@ -1,17 +1,48 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { ContestApplicationForm } from "../../components/forms/ContestApplicationForm.jsx";
 import { ModalFrame } from "../../components/modals/ModalFrame.jsx";
 import { ContestPublicView } from "../../components/public/ContestPublicView.jsx";
-import { findParticipantApplication, isContestApplyOpen } from "../../lib/contest.js";
+import {
+  findParticipantApplication,
+  getContestEngagement,
+  getContestReactionKey,
+  isContestApplyOpen
+} from "../../lib/contest.js";
 
-export function ContestPublicDetailPage({ contest, onBack, session, teams = [], onApplyContest }) {
+export function ContestPublicDetailPage({
+  contest,
+  onBack,
+  session,
+  teams = [],
+  onApplyContest,
+  onRecordView,
+  onToggleLike,
+  onNotify
+}) {
   const [isApplyOpen, setIsApplyOpen] = useState(false);
+  const viewedKeyRef = useRef("");
   const application = useMemo(
     () => (contest && session ? findParticipantApplication(teams, contest.id, session) : null),
     [contest, session, teams]
   );
+  const engagement = useMemo(() => (contest ? getContestEngagement(contest) : null), [contest]);
+  const reactionKey = useMemo(() => getContestReactionKey(session), [session]);
+
+  useEffect(() => {
+    if (!contest?.id) {
+      return;
+    }
+
+    const viewedKey = `${contest.id}:${reactionKey}`;
+    if (viewedKeyRef.current === viewedKey) {
+      return;
+    }
+
+    viewedKeyRef.current = viewedKey;
+    onRecordView?.(contest.id);
+  }, [contest?.id, onRecordView, reactionKey]);
 
   if (!contest) {
     return (
@@ -34,6 +65,38 @@ export function ContestPublicDetailPage({ contest, onBack, session, teams = [], 
   const canApply = isParticipant && isOpen && !application;
   const applyLabel = application ? "신청 완료" : isOpen ? "참가 신청" : "신청 마감";
   const backLabel = isParticipant ? "참가자 화면" : "관리자 화면";
+  const handleShare = async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const shareUrl = window.location.href;
+    const shareData = {
+      title: contest.title,
+      text: contest.summary,
+      url: shareUrl
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        onNotify?.("공유 창을 열었습니다.");
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        onNotify?.("공유 링크를 복사했습니다.");
+        return;
+      }
+
+      onNotify?.("공유 링크를 복사할 수 없습니다.");
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        onNotify?.("공유를 완료하지 못했습니다.");
+      }
+    }
+  };
 
   return (
     <main className="contest-public-page">
@@ -49,6 +112,11 @@ export function ContestPublicDetailPage({ contest, onBack, session, teams = [], 
         showApplyButton={isParticipant}
         applyLabel={applyLabel}
         applyDisabled={!canApply}
+        engagement={engagement}
+        canReact={isParticipant}
+        isLiked={engagement?.likedBy.includes(reactionKey)}
+        onLike={() => onToggleLike?.(contest.id)}
+        onShare={handleShare}
         onApply={() => {
           if (canApply) {
             setIsApplyOpen(true);

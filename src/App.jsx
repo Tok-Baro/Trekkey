@@ -27,6 +27,7 @@ import {
   getLoginPath,
   getPageFromPath,
   getPageHeading,
+  getParticipantPageFromPath,
   getParticipantPath
 } from "./routeConfig.js";
 import styles from "./styles/App.module.scss";
@@ -40,6 +41,7 @@ function App() {
   const isLoginRoute = location.pathname === getLoginPath();
   const isParticipantRoute = location.pathname.startsWith(getParticipantPath());
   const activePage = isReviewRoute ? "review" : isContestDetailRoute ? "contestDetail" : getPageFromPath(location.pathname);
+  const activeParticipantPage = isParticipantRoute ? getParticipantPageFromPath(location.pathname) : "discover";
   const routeContestId = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return routeContestParam ?? params.get("contest");
@@ -169,6 +171,10 @@ function App() {
     navigate(getContestDetailPath(contestId));
   };
 
+  const navigateParticipantPage = (page) => {
+    navigate(getParticipantPath(page));
+  };
+
   const selectContest = (contestId) => {
     setSelectedContestId(contestId);
     if (!isReviewRoute && activePage !== "dashboard") {
@@ -189,6 +195,15 @@ function App() {
     const result = competition.applyContest(form, session);
     notify(result.message);
     return result.ok;
+  };
+
+  const handleRecordContestView = (contestId) => {
+    competition.recordContestView(contestId, session);
+  };
+
+  const handleToggleContestLike = (contestId) => {
+    const result = competition.toggleContestLike(contestId, session);
+    notify(result.message);
   };
 
   const handleUpdateParticipantApplication = (teamId, patch) => {
@@ -350,6 +365,9 @@ function App() {
         session={session}
         teams={teamRecords}
         onApplyContest={handleApplyContest}
+        onRecordView={handleRecordContestView}
+        onToggleLike={handleToggleContestLike}
+        onNotify={notify}
         onBack={() =>
           navigate(session?.role === "participant" ? getParticipantPath() : getAdminPath("contests", routeContestParam))
         }
@@ -375,7 +393,10 @@ function App() {
           teams={teamRecords}
           submissions={submissionRecords}
           awardCandidates={awardRecords}
+          activeView={activeParticipantPage}
           onOpenPublicPage={openContestDetailPage}
+          onToggleLike={handleToggleContestLike}
+          onNavigate={navigateParticipantPage}
           onUpdateApplication={handleUpdateParticipantApplication}
           onSubmitSubmission={handleUpsertParticipantSubmission}
           onLogout={handleLogout}

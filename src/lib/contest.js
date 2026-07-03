@@ -29,6 +29,52 @@ export function getDefaultContestPublicFields(contest = {}) {
   };
 }
 
+function normalizeCount(value, fallback = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) && numberValue >= 0 ? Math.round(numberValue) : fallback;
+}
+
+function normalizeKeyList(value) {
+  return Array.isArray(value) ? [...new Set(value.filter(Boolean).map(String))] : [];
+}
+
+function getMetricSeed(contest = {}) {
+  const source = String(contest.id || contest.title || "");
+  return [...source].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+}
+
+function getDefaultEngagementCount(contest = {}, type) {
+  const teams = normalizeCount(contest.teams);
+  const submissions = normalizeCount(contest.submissions);
+  const hasSeedActivity = contest.id?.startsWith("CT-HS-") || teams > 0 || submissions > 0;
+
+  if (!hasSeedActivity) {
+    return 0;
+  }
+
+  const seed = getMetricSeed(contest);
+  const metricMap = {
+    views: teams * 8 + submissions * 13 + (seed % 73),
+    likes: Math.round(teams * 0.85 + submissions * 0.45 + (seed % 11))
+  };
+
+  return Math.max(metricMap[type] ?? 0, 0);
+}
+
+export function getContestEngagement(contest = {}) {
+  return {
+    views: normalizeCount(contest.views ?? contest.viewCount, getDefaultEngagementCount(contest, "views")),
+    likes: normalizeCount(contest.likes ?? contest.likeCount, getDefaultEngagementCount(contest, "likes")),
+    viewedBy: normalizeKeyList(contest.viewedBy),
+    likedBy: normalizeKeyList(contest.likedBy)
+  };
+}
+
+export function getContestReactionKey(session) {
+  const role = session?.role || "guest";
+  return `${role}:${getParticipantKey(session)}`;
+}
+
 function getTestContestPosterDataUrl() {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="960" height="1280" viewBox="0 0 960 1280">
@@ -121,6 +167,7 @@ export function getContestWithPublicFields(contest) {
   return {
     ...contest,
     ...getDefaultContestPublicFields(contest),
+    ...getContestEngagement(contest),
     evaluationRounds: normalizeEvaluationRounds(contest.evaluationRounds, contest.id)
   };
 }

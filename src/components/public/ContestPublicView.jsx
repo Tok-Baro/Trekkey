@@ -1,12 +1,39 @@
 import React from "react";
-import { ImagePlus, UsersRound } from "lucide-react";
+import { Eye, Heart, ImagePlus, Share2, UsersRound } from "lucide-react";
 import { StatusBadge } from "../common/CommonUi.jsx";
+import { getContestEngagement } from "../../lib/contest.js";
 
-export function ContestPublicView({ contest, showApplyButton = true, applyLabel = "참가 신청", applyDisabled = false, onApply }) {
+function formatEngagementCount(value) {
+  const count = Number(value) || 0;
+
+  if (count >= 10000) {
+    return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}만`;
+  }
+
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}천`;
+  }
+
+  return String(count);
+}
+
+export function ContestPublicView({
+  contest,
+  showApplyButton = true,
+  applyLabel = "참가 신청",
+  applyDisabled = false,
+  engagement,
+  canReact = false,
+  isLiked = false,
+  onLike,
+  onShare,
+  onApply
+}) {
   const tags = String(contest.tags || "")
     .split(",")
     .map((tag) => tag.trim())
     .filter(Boolean);
+  const stats = engagement ?? getContestEngagement(contest);
 
   return (
     <>
@@ -22,6 +49,29 @@ export function ContestPublicView({ contest, showApplyButton = true, applyLabel 
             {tags.map((tag) => (
               <span key={tag}>#{tag}</span>
             ))}
+          </div>
+          <div className="public-engagement-bar" aria-label="대회 관심 지표">
+            <span>
+              <Eye size={16} aria-hidden="true" />
+              조회 {formatEngagementCount(stats.views)}
+            </span>
+            <button
+              className={isLiked ? "is-active" : ""}
+              type="button"
+              aria-pressed={isLiked}
+              disabled={!canReact || !onLike}
+              title={canReact ? "좋아요" : "참가자 로그인 후 좋아요를 누를 수 있습니다"}
+              onClick={onLike}
+            >
+              <Heart size={16} fill={isLiked ? "currentColor" : "none"} aria-hidden="true" />
+              좋아요 {formatEngagementCount(stats.likes)}
+            </button>
+            {onShare && (
+              <button type="button" title="공유" onClick={onShare}>
+                <Share2 size={16} aria-hidden="true" />
+                공유
+              </button>
+            )}
           </div>
           <dl className="hero-info-grid">
             <div>

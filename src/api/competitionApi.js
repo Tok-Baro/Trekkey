@@ -9,6 +9,8 @@ import {
 import { getParticipantKey } from "../lib/auth.js";
 import {
   findParticipantApplication,
+  getContestEngagement,
+  getContestReactionKey,
   getDefaultContestPublicFields,
   isContestApplyOpen
 } from "../lib/contest.js";
@@ -233,6 +235,64 @@ export function applyContest(state, form, session) {
     },
     ok: true,
     message: `${contest.title} 참가 신청을 접수했습니다.`
+  };
+}
+
+export function recordContestView(state, contestId, session) {
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+
+  if (!contest) {
+    return { state, ok: false };
+  }
+
+  const viewerKey = getContestReactionKey(session);
+  const engagement = getContestEngagement(contest);
+
+  if (engagement.viewedBy.includes(viewerKey)) {
+    return { state, ok: true };
+  }
+
+  return {
+    state: {
+      ...state,
+      contestRecords: patchContest(state.contestRecords, contestId, {
+        views: engagement.views + 1,
+        viewedBy: [...engagement.viewedBy, viewerKey]
+      })
+    },
+    ok: true
+  };
+}
+
+export function toggleContestLike(state, contestId, session) {
+  if (!session || session.role !== "participant") {
+    return { state, ok: false, message: "참가자 로그인 후 이용할 수 있습니다." };
+  }
+
+  const contest = state.contestRecords.find((item) => item.id === contestId);
+
+  if (!contest) {
+    return { state, ok: false, message: "대회를 찾을 수 없습니다." };
+  }
+
+  const reactionKey = getContestReactionKey(session);
+  const engagement = getContestEngagement(contest);
+  const currentList = engagement.likedBy;
+  const isActive = currentList.includes(reactionKey);
+  const nextList = isActive ? currentList.filter((key) => key !== reactionKey) : [...currentList, reactionKey];
+  const nextCount = Math.max(engagement.likes + (isActive ? -1 : 1), 0);
+
+  return {
+    state: {
+      ...state,
+      contestRecords: patchContest(state.contestRecords, contestId, {
+        likes: nextCount,
+        likedBy: nextList
+      })
+    },
+    ok: true,
+    active: !isActive,
+    message: isActive ? "좋아요를 취소했습니다." : "좋아요를 눌렀습니다."
   };
 }
 

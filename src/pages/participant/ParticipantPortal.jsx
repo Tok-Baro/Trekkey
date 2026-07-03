@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   CalendarClock,
@@ -8,6 +8,8 @@ import {
   ClipboardList,
   FileArchive,
   History,
+  Eye,
+  Heart,
   IdCard,
   Layers3,
   LogOut,
@@ -26,7 +28,13 @@ import {
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
-import { findParticipantApplication, getContestTitle, getContestWithPublicFields, isContestApplyOpen } from "../../lib/contest.js";
+import {
+  findParticipantApplication,
+  getContestReactionKey,
+  getContestTitle,
+  getContestWithPublicFields,
+  isContestApplyOpen
+} from "../../lib/contest.js";
 import {
   createSubmissionFileMeta,
   formatFileSize,
@@ -43,10 +51,23 @@ const portalTabs = [
   { id: "teams", label: "팀 관리", icon: UsersRound },
   { id: "results", label: "결과", icon: Trophy },
   { id: "activity", label: "활동 이력", icon: History },
-  { id: "notifications", label: "알림", icon: Bell },
   { id: "profile", label: "마이페이지", icon: IdCard }
 ];
-const sidebarTabs = portalTabs.filter((tab) => !["notifications", "profile"].includes(tab.id));
+const sidebarTabs = portalTabs.filter((tab) => tab.id !== "profile");
+
+function formatEngagementCount(value) {
+  const count = Number(value) || 0;
+
+  if (count >= 10000) {
+    return `${(count / 10000).toFixed(count >= 100000 ? 0 : 1)}만`;
+  }
+
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}천`;
+  }
+
+  return String(count);
+}
 
 export function ParticipantPortal({
   session,
@@ -54,19 +75,24 @@ export function ParticipantPortal({
   teams,
   submissions = [],
   awardCandidates = [],
+  activeView = "discover",
   onOpenPublicPage,
+  onToggleLike,
+  onNavigate,
   onUpdateApplication,
   onSubmitSubmission,
   onLogout
 }) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("접수중");
-  const [activeView, setActiveView] = useState("discover");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [editingApplicationId, setEditingApplicationId] = useState("");
   const [submissionTargetId, setSubmissionTargetId] = useState("");
+  const notificationRef = useRef(null);
   const allContests = useMemo(() => contests.map(getContestWithPublicFields), [contests]);
   const featuredContests = useMemo(() => {
     const open = allContests.filter(isContestApplyOpen);
@@ -170,6 +196,34 @@ export function ParticipantPortal({
     };
   }, [isSidebarOpen]);
 
+  useEffect(() => {
+    if (!isNotificationsOpen && !isProfileOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (notificationRef.current?.contains(event.target)) {
+        return;
+      }
+      setIsNotificationsOpen(false);
+      setIsProfileOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsNotificationsOpen(false);
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isNotificationsOpen, isProfileOpen]);
+
   const moveSlide = (direction) => {
     if (featuredContests.length < 2) {
       return;
@@ -190,10 +244,12 @@ export function ParticipantPortal({
     }
   };
   const switchView = (nextView) => {
-    setActiveView(nextView);
+    onNavigate?.(nextView);
     setEditingApplicationId("");
     setSubmissionTargetId("");
     setIsSidebarOpen(false);
+    setIsNotificationsOpen(false);
+    setIsProfileOpen(false);
   };
 
   return (
@@ -284,31 +340,47 @@ export function ParticipantPortal({
         </div>
         <div className={styles.account}>
           <span>{session.name}</span>
-          <div className={styles.headerActions}>
+          <div className={styles.headerActions} ref={notificationRef}>
             <button
-              className={`${styles.headerIconButton} ${activeView === "notifications" ? styles.headerIconButtonActive : ""}`}
+              className={`${styles.headerIconButton} ${isNotificationsOpen ? styles.headerIconButtonActive : ""}`}
               type="button"
               aria-label="알림"
-              onClick={() => switchView("notifications")}
+              aria-expanded={isNotificationsOpen}
+              onClick={() => setIsNotificationsOpen((current) => !current)}
             >
               <Bell size={18} aria-hidden="true" />
               {notifications.length > 0 && <b className={styles.notificationBadge}>{notifications.length}</b>}
             </button>
             <button
-              className={`${styles.headerIconButton} ${activeView === "profile" ? styles.headerIconButtonActive : ""}`}
+              className={`${styles.headerIconButton} ${isProfileOpen ? styles.headerIconButtonActive : ""}`}
               type="button"
               aria-label="마이페이지"
-              onClick={() => switchView("profile")}
+              aria-expanded={isProfileOpen}
+              onClick={() => {
+                setIsProfileOpen((current) => !current);
+                setIsNotificationsOpen(false);
+              }}
             >
               <UserRound size={18} aria-hidden="true" />
             </button>
+            {isNotificationsOpen && (
+              <NotificationPopover notifications={notifications} onClose={() => setIsNotificationsOpen(false)} />
+            )}
+            {isProfileOpen && (
+              <ProfilePopover
+                session={session}
+                summary={summary}
+                records={applicationRecords}
+                notifications={notifications}
+                onClose={() => setIsProfileOpen(false)}
+                onOpenProfilePage={() => switchView("profile")}
+              />
+            )}
           </div>
         </div>
       </header>
 
       <main className={styles.mainShell}>
-        <SummaryStrip summary={summary} />
-
         {activeView === "discover" && (
           <DiscoverView
             featuredContests={featuredContests}
@@ -326,6 +398,7 @@ export function ParticipantPortal({
             onMoveSlide={moveSlide}
             onSetActiveSlide={setActiveSlide}
             onOpenPublicPage={onOpenPublicPage}
+            onToggleLike={onToggleLike}
           />
         )}
 
@@ -361,8 +434,6 @@ export function ParticipantPortal({
           />
         )}
 
-        {activeView === "notifications" && <NotificationsView notifications={notifications} />}
-
         {activeView === "results" && <ResultsView records={applicationRecords} />}
 
         {activeView === "activity" && <ActivityView items={activityItems} />}
@@ -373,26 +444,6 @@ export function ParticipantPortal({
       </main>
       <AppFooter variant="participant" />
     </div>
-  );
-}
-
-function SummaryStrip({ summary }) {
-  const items = [
-    { label: "내 신청", value: `${summary.applications}건` },
-    { label: "제출 완료", value: `${summary.submitted}건` },
-    { label: "처리 필요", value: `${summary.actionRequired}건` },
-    { label: "수상/후보", value: `${summary.awards}건` }
-  ];
-
-  return (
-    <section className={styles.summaryStrip} aria-label="내 활동 요약">
-      {items.map((item) => (
-        <div key={item.label}>
-          <span>{item.label}</span>
-          <strong>{item.value}</strong>
-        </div>
-      ))}
-    </section>
   );
 }
 
@@ -411,7 +462,8 @@ function DiscoverView({
   onStatusFilterChange,
   onMoveSlide,
   onSetActiveSlide,
-  onOpenPublicPage
+  onOpenPublicPage,
+  onToggleLike
 }) {
   return (
     <>
@@ -523,7 +575,13 @@ function DiscoverView({
             <SegmentedControl options={["접수중", "전체", "종료"]} value={statusFilter} onChange={onStatusFilterChange} />
           </div>
 
-          <ContestGrid contests={visibleContests} teams={teams} session={session} onOpenPublicPage={onOpenPublicPage} />
+          <ContestGrid
+            contests={visibleContests}
+            teams={teams}
+            session={session}
+            onOpenPublicPage={onOpenPublicPage}
+            onToggleLike={onToggleLike}
+          />
         </section>
 
         <aside className={styles.side}>
@@ -570,59 +628,81 @@ function DiscoverView({
   );
 }
 
-function ContestGrid({ contests, teams, session, onOpenPublicPage }) {
+function ContestGrid({ contests, teams, session, onOpenPublicPage, onToggleLike }) {
+  const reactionKey = getContestReactionKey(session);
+
   return (
     <div className={styles.contestGrid}>
       {contests.map((contest) => {
         const application = findParticipantApplication(teams, contest.id, session);
         const deadlineMeta = getDeadlineMeta(contest.submissionDue);
         const tags = getContestTags(contest);
+        const isLiked = contest.likedBy?.includes(reactionKey);
 
         return (
-          <button className={styles.contestCard} key={contest.id} type="button" onClick={() => onOpenPublicPage(contest.id)}>
+          <article className={styles.contestCard} key={contest.id}>
             {application && (
-              <span
-                className={styles.applicationMark}
-                data-tooltip={getApplicationTooltip(application.status)}
-                aria-label={getApplicationTooltip(application.status)}
-              >
-                <Star size={15} fill="currentColor" aria-hidden="true" />
+              <span className={styles.cardMarks}>
+                <span
+                  className={styles.applicationMark}
+                  data-tooltip={getApplicationTooltip(application.status)}
+                  aria-label={getApplicationTooltip(application.status)}
+                >
+                  <Star size={15} fill="currentColor" aria-hidden="true" />
+                </span>
               </span>
             )}
-            <div className={styles.poster}>
-              {contest.posterUrl ? (
-                <img src={contest.posterUrl} alt={`${contest.title} 포스터`} />
-              ) : (
-                <div>
-                  <PanelsTopLeft size={24} aria-hidden="true" />
-                  <span>{contest.department}</span>
+            <button className={styles.contestCardLink} type="button" onClick={() => onOpenPublicPage(contest.id)}>
+              <div className={styles.poster}>
+                {contest.posterUrl ? (
+                  <img src={contest.posterUrl} alt={`${contest.title} 포스터`} />
+                ) : (
+                  <div>
+                    <PanelsTopLeft size={24} aria-hidden="true" />
+                    <span>{contest.department}</span>
+                  </div>
+                )}
+                <span className={styles.posterStatus}>
+                  <StatusBadge status={contest.status} />
+                </span>
+              </div>
+              <div className={styles.cardBody}>
+                <div className={styles.cardHead}>
+                  <span className={`${styles.deadlineBadge} ${getDeadlineToneClass(deadlineMeta.tone)}`}>{deadlineMeta.label}</span>
+                  <div className={styles.cardHeadRight}>
+                    {tags.length > 0 && (
+                      <div className={styles.cardTags}>
+                        {tags.map((tag) => (
+                          <span key={tag}>#{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              <span className={styles.posterStatus}>
-                <StatusBadge status={contest.status} />
+                <h2>{contest.title}</h2>
+                <p>{contest.summary}</p>
+              </div>
+            </button>
+            <div className={styles.cardEngagement} aria-label="대회 관심 지표">
+              <span>
+                <Eye size={14} aria-hidden="true" />
+                {formatEngagementCount(contest.views)}
               </span>
+              <button
+                className={isLiked ? styles.cardEngagementActive : ""}
+                type="button"
+                aria-pressed={isLiked}
+                onClick={() => onToggleLike?.(contest.id)}
+              >
+                <Heart size={14} fill={isLiked ? "currentColor" : "none"} aria-hidden="true" />
+                {formatEngagementCount(contest.likes)}
+              </button>
             </div>
-            <div className={styles.cardBody}>
-              <div className={styles.cardHead}>
-                <span className={`${styles.deadlineBadge} ${getDeadlineToneClass(deadlineMeta.tone)}`}>{deadlineMeta.label}</span>
-                <div className={styles.cardHeadRight}>
-                  {tags.length > 0 && (
-                    <div className={styles.cardTags}>
-                      {tags.map((tag) => (
-                        <span key={tag}>#{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <h2>{contest.title}</h2>
-              <p>{contest.summary}</p>
-              <div className={styles.cardMeta} aria-label="대회 정보">
-                <span>{contest.department}</span>
-                <span>{contest.submissionDue}</span>
-              </div>
+            <div className={styles.cardMeta} aria-label="대회 정보">
+              <span>{contest.department}</span>
+              <span>{contest.submissionDue}</span>
             </div>
-          </button>
+          </article>
         );
       })}
       {contests.length === 0 && <EmptyState title="표시할 대회가 없습니다" description="검색어나 상태 필터를 조정해 주세요." />}
@@ -990,6 +1070,89 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
         {records.length === 0 && <EmptyState title="관리할 팀이 없습니다" description="팀전 대회 신청 후 팀 정보를 관리할 수 있습니다." />}
       </div>
     </section>
+  );
+}
+
+function NotificationPopover({ notifications, onClose }) {
+  return (
+    <div className={styles.notificationPopover} role="dialog" aria-label="참가자 알림">
+      <div className={styles.notificationPopoverHead}>
+        <div>
+          <strong>알림</strong>
+          <span>{notifications.length ? `${notifications.length}건의 확인 항목이 있습니다.` : "확인할 알림이 없습니다."}</span>
+        </div>
+        <button type="button" onClick={onClose}>
+          닫기
+        </button>
+      </div>
+      <div className={styles.notificationPopoverList}>
+        {notifications.slice(0, 5).map((notification) => (
+          <article className={`${styles.notificationPopoverItem} ${styles[notification.tone] ?? ""}`} key={notification.id}>
+            <div>
+              <strong>{notification.title}</strong>
+              <span>{notification.description}</span>
+            </div>
+            <small>{notification.meta}</small>
+          </article>
+        ))}
+        {notifications.length === 0 && (
+          <div className={styles.notificationPopoverEmpty}>
+            <strong>새 알림이 없습니다</strong>
+            <span>신청 승인, 보완요청, 제출 마감 알림이 이곳에 표시됩니다.</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProfilePopover({ session, summary, records, notifications, onClose, onOpenProfilePage }) {
+  const verifiedCount = records.filter((record) => record.submission || record.award).length;
+
+  return (
+    <div className={`${styles.notificationPopover} ${styles.profilePopover}`} role="dialog" aria-label="마이페이지 요약">
+      <div className={styles.notificationPopoverHead}>
+        <div>
+          <strong>마이페이지</strong>
+          <span>{session.name}님의 참가 정보</span>
+        </div>
+        <button type="button" onClick={onClose}>
+          닫기
+        </button>
+      </div>
+      <div className={styles.profilePopoverBody}>
+        <div className={styles.profilePopoverUser}>
+          <div className={styles.avatar}>
+            <UserRound size={22} aria-hidden="true" />
+          </div>
+          <div>
+            <strong>{session.name}</strong>
+            <span>{session.studentId} · {session.major}</span>
+          </div>
+        </div>
+        <dl className={styles.profilePopoverStats}>
+          <div>
+            <dt>신청</dt>
+            <dd>{summary.applications}건</dd>
+          </div>
+          <div>
+            <dt>알림</dt>
+            <dd>{notifications.length}건</dd>
+          </div>
+          <div>
+            <dt>검증 이력</dt>
+            <dd>{verifiedCount}건</dd>
+          </div>
+          <div>
+            <dt>수상/후보</dt>
+            <dd>{summary.awards}건</dd>
+          </div>
+        </dl>
+        <button className={styles.primaryButton} type="button" onClick={onOpenProfilePage}>
+          전체 보기
+        </button>
+      </div>
+    </div>
   );
 }
 

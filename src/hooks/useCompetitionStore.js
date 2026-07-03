@@ -10,9 +10,11 @@ import {
   deleteJudge,
   generateSubmissionHashes,
   persistCompetitionState,
+  recordContestView,
   saveContest,
   sendReviewReminders,
   submitJudgeReview,
+  toggleContestLike,
   updateJudge,
   updateParticipantApplication,
   upsertParticipantSubmission,
@@ -53,6 +55,10 @@ export function useCompetitionStore() {
     setSelectedContestId,
     saveContest: (form, options) => runMutation((current) => saveContest(current, form), options),
     applyContest: (form, session, options) => runMutation((current) => applyContest(current, form, session), options),
+    recordContestView: (contestId, session, options) =>
+      runMutation((current) => recordContestView(current, contestId, session), options),
+    toggleContestLike: (contestId, session, options) =>
+      runMutation((current) => toggleContestLike(current, contestId, session), options),
     updateParticipantApplication: (teamId, patch, options) =>
       runMutation((current) => updateParticipantApplication(current, teamId, patch), options),
     upsertParticipantSubmission: (contestId, teamId, form, options) =>
