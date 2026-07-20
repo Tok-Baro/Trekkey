@@ -19,18 +19,18 @@
   .wizard-steps {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 5px;
-    background: #eef2f4;
+    gap: 4px;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
   }
 
   .contest-modal .wizard-steps {
     position: relative;
     z-index: 2;
-    margin: 14px 20px 0;
-    background: #f0f3f8;
+    margin: 16px 20px 4px;
+    background: transparent;
   }
 
   .wizard-steps button {
@@ -40,23 +40,25 @@
     justify-content: center;
     gap: 7px;
     border: 0;
-    border-radius: 6px;
-    padding: 0 8px;
+    border-radius: var(--radius-sm);
+    padding: 6px 8px 10px;
     background: transparent;
-    color: var(--ink-650);
+    color: var(--grey-500);
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 600;
     white-space: nowrap;
+    box-shadow: inset 0 -2px 0 var(--grey-200);
     transition:
-      background var(--motion-fast) var(--ease-standard),
-      color var(--motion-fast) var(--ease-standard),
-      box-shadow var(--motion-fast) var(--ease-standard);
+      background var(--motion) var(--spring),
+      color var(--motion) var(--spring),
+      box-shadow var(--motion) var(--spring),
+      transform var(--motion) var(--spring);
   }
 
   .wizard-steps button.active {
-    background: var(--surface);
+    background: transparent;
     color: var(--teal-strong);
-    box-shadow: 0 1px 4px rgba(17, 19, 24, 0.08);
+    box-shadow: inset 0 -2px 0 var(--teal);
   }
 
   .wizard-steps button span {
@@ -65,14 +67,18 @@
     display: inline-grid;
     place-items: center;
     border-radius: 999px;
-    background: var(--surface);
-    color: var(--ink-650);
-    font-size: 11px;
+    background: var(--grey-100);
+    color: var(--grey-500);
+    font-size: 13px;
+    font-weight: 600;
+    transition:
+      background var(--motion) var(--spring),
+      color var(--motion) var(--spring);
   }
 
   .wizard-steps button.active span {
     background: var(--teal);
-    color: #fff;
+    color: var(--surface);
   }
 
   .wizard-body {
@@ -120,8 +126,8 @@
 
   .wizard-confirm-grid span {
     color: var(--ink-500);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .wizard-confirm-grid strong {
@@ -180,7 +186,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 14px;
-    background: linear-gradient(135deg, #fff, rgba(49, 87, 255, 0.035));
+    background: var(--surface);
   }
 
   .round-card-head {
@@ -193,8 +199,8 @@
     align-items: center;
     gap: 8px;
     color: var(--ink-500);
-    font-size: 12px;
-    font-weight: 900;
+    font-size: 13px;
+    font-weight: 700;
     white-space: nowrap;
   }
 
@@ -209,7 +215,7 @@
   .criteria-builder-head span {
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 700;
   }
 
   .criteria-builder-head button {
@@ -222,8 +228,8 @@
     padding: 0 9px;
     background: var(--surface);
     color: var(--ink-650);
-    font-size: 12px;
-    font-weight: 900;
+    font-size: 13px;
+    font-weight: 700;
   }
 
   .criteria-builder-head button:hover {
@@ -280,7 +286,7 @@
   .form-stack label span {
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .poster-upload-field {
@@ -313,7 +319,7 @@
     place-items: center;
     gap: 6px;
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .editor-field {
@@ -364,7 +370,7 @@
 
   .file-upload-drop small {
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.45;
   }
 
@@ -393,7 +399,7 @@
   }
 
   .file-preview-item svg {
-    color: var(--purple);
+    color: var(--teal-strong);
   }
 
   .file-preview-item strong,
@@ -411,7 +417,7 @@
   .file-preview-item span {
     margin-top: 3px;
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .file-preview-item button {
@@ -421,7 +427,7 @@
     place-items: center;
     border: 1px solid var(--line);
     border-radius: 8px;
-    background: #fbfcff;
+    background: var(--surface);
     color: var(--ink-650);
   }
 
@@ -434,7 +440,7 @@
   .editor-field > span {
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .rich-editor-shell {
@@ -450,7 +456,7 @@
     gap: 4px;
     border-bottom: 1px solid var(--line);
     padding: 7px;
-    background: #f5f7fa;
+    background: var(--grey-50);
   }
   
   .rich-editor-toolbar button {
@@ -464,7 +470,7 @@
     background: transparent;
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 600;
   }
   
   .rich-editor-toolbar button:hover,
@@ -504,29 +510,33 @@
   select,
   textarea {
     width: 100%;
-    min-height: 40px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 9px 11px;
-    background: var(--surface);
+    min-height: 44px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 10px 13px;
+    background: var(--grey-100);
     color: var(--ink-950);
     outline: 0;
     transition:
       background var(--motion-fast) var(--ease-standard),
-      border-color var(--motion-fast) var(--ease-standard),
       box-shadow var(--motion-fast) var(--ease-standard);
   }
-  
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--grey-400);
+  }
+
   textarea {
     min-height: 92px;
     resize: vertical;
   }
-  
+
   input:focus,
   select:focus,
   textarea:focus {
-    border-color: var(--teal);
-    box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.1);
+    background: var(--surface);
+    box-shadow: 0 0 0 2px var(--teal);
   }
 
   .contest-modal .modal-actions {
@@ -680,7 +690,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     padding: 3px;
-    background: #eef2f4;
+    background: var(--grey-100);
   }
   
   .segmented-control button {
@@ -691,7 +701,7 @@
     background: transparent;
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1;
     white-space: nowrap;
     transition:

@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Award, Download, Search, Trophy } from "lucide-react";
-import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, SortableTh, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { sortRecords, toggleSortState } from "../../lib/sort.js";
 
 export function AwardsPage({
   contests,
@@ -12,11 +13,14 @@ export function AwardsPage({
   onExport
 }) {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState({ key: "", direction: "asc" });
   const contestAwards = awardCandidates.filter((candidate) => candidate.contestId === selectedContestId);
-  const visibleAwards = contestAwards.filter((candidate) => {
+  const filteredAwards = contestAwards.filter((candidate) => {
     const searchable = `${candidate.rank} ${candidate.prize} ${candidate.team} ${candidate.score} ${candidate.status}`.toLowerCase();
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
   });
+  const visibleAwards = useMemo(() => sortRecords(filteredAwards, sort), [filteredAwards, sort]);
+  const toggleSort = (key) => setSort((current) => toggleSortState(current, key));
   const topCandidate = contestAwards[0];
 
   return (
@@ -66,12 +70,12 @@ export function AwardsPage({
           <table>
             <thead>
               <tr>
-                <th>순위</th>
-                <th>상격</th>
-                <th>팀</th>
-                <th>점수</th>
+                <SortableTh label="순위" sortKey="rank" sort={sort} onSort={toggleSort} />
+                <SortableTh label="상격" sortKey="prize" sort={sort} onSort={toggleSort} />
+                <SortableTh label="팀" sortKey="team" sort={sort} onSort={toggleSort} />
+                <SortableTh label="점수" sortKey="score" sort={sort} onSort={toggleSort} />
                 <th>인원</th>
-                <th>상태</th>
+                <SortableTh label="상태" sortKey="status" sort={sort} onSort={toggleSort} />
               </tr>
             </thead>
             <tbody>

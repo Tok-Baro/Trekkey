@@ -15,7 +15,9 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  Pause,
   Pencil,
+  Play,
   Search,
   Send,
   Star,
@@ -89,6 +91,8 @@ export function ParticipantPortal({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [editingApplicationId, setEditingApplicationId] = useState("");
   const [submissionTargetId, setSubmissionTargetId] = useState("");
@@ -158,7 +162,7 @@ export function ParticipantPortal({
   }, [activeSlide, featuredContests.length]);
 
   useEffect(() => {
-    if (featuredContests.length < 2) {
+    if (featuredContests.length < 2 || isCarouselPaused || isCarouselHovered) {
       return undefined;
     }
 
@@ -167,7 +171,7 @@ export function ParticipantPortal({
     }, 6000);
 
     return () => window.clearInterval(timer);
-  }, [featuredContests.length]);
+  }, [featuredContests.length, isCarouselPaused, isCarouselHovered]);
 
   useEffect(() => {
     if (!selectedApplicationId && applicationRecords[0]) {
@@ -267,6 +271,7 @@ export function ParticipantPortal({
         id="participant-sidebar"
         aria-label="참가자 메뉴"
         aria-hidden={!isSidebarOpen}
+        inert={!isSidebarOpen}
       >
         <div className={styles.sidebarBrand}>
           <div className={styles.brandMark}>
@@ -397,6 +402,9 @@ export function ParticipantPortal({
             onStatusFilterChange={setStatusFilter}
             onMoveSlide={moveSlide}
             onSetActiveSlide={setActiveSlide}
+            isCarouselPaused={isCarouselPaused}
+            onToggleCarouselPause={() => setIsCarouselPaused((current) => !current)}
+            onCarouselHoverChange={setIsCarouselHovered}
             onOpenPublicPage={onOpenPublicPage}
             onToggleLike={onToggleLike}
           />
@@ -462,13 +470,27 @@ function DiscoverView({
   onStatusFilterChange,
   onMoveSlide,
   onSetActiveSlide,
+  isCarouselPaused,
+  onToggleCarouselPause,
+  onCarouselHoverChange,
   onOpenPublicPage,
   onToggleLike
 }) {
   return (
     <>
       {featuredContests.length > 0 && (
-        <section className={styles.posterCarousel} aria-label="주요 대회 포스터">
+        <section
+          className={styles.posterCarousel}
+          aria-label="주요 대회 포스터"
+          onMouseEnter={() => onCarouselHoverChange(true)}
+          onMouseLeave={() => onCarouselHoverChange(false)}
+          onFocus={() => onCarouselHoverChange(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              onCarouselHoverChange(false);
+            }
+          }}
+        >
           <div className={styles.carouselViewport}>
             <div className={styles.carouselTrack} style={{ transform: `translateX(-${activeSlide * 100}%)` }}>
               {featuredContests.map((contest) => {
@@ -537,6 +559,15 @@ function DiscoverView({
                   onClick={() => onMoveSlide(1)}
                 >
                   <ChevronRight size={20} aria-hidden="true" />
+                </button>
+                <button
+                  className={styles.carouselPause}
+                  type="button"
+                  aria-label={isCarouselPaused ? "자동 넘김 재생" : "자동 넘김 일시정지"}
+                  aria-pressed={isCarouselPaused}
+                  onClick={onToggleCarouselPause}
+                >
+                  {isCarouselPaused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
                 </button>
                 <div className={styles.carouselDots} aria-label="대회 포스터 선택">
                   {featuredContests.map((contest, index) => (
