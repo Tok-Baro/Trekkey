@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Award, Copy, Download, Link2, Pencil, QrCode, Trash2 } from "lucide-react";
 import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
+import { TeamRosterSummary } from "../forms/TeamRosterField.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
 import { downloadJson } from "../../lib/exportCsv.js";
 import {
@@ -173,6 +174,7 @@ export function ModalRoot({
             ...(team.motivation ? [["지원동기", team.motivation]] : [])
           ]}
         />
+        <TeamRosterSummary team={team} title="팀원 명단" />
       </ModalFrame>
     );
   }

@@ -47,6 +47,7 @@
     --radius-md: 14px;
     --radius-lg: 18px;
     --radius-xl: 24px;
+    --radius-pill: 999px;
 
     /* 그림자 — 경계선 대신 공중부양 */
     --shadow: 0 1px 3px rgba(25, 31, 40, 0.04), 0 4px 12px rgba(25, 31, 40, 0.04);
@@ -58,13 +59,61 @@
     --motion-fast: 160ms;
     --motion: 240ms;
     --motion-slow: 420ms;
+
+    /* 공개 랜딩(/home) 신규 토큰 — design-tokens.json과 동기화. 값 변경 시 양쪽 함께 갱신 */
+    --font-hero: clamp(36px, 5vw, 54px);
+    --font-section-title: clamp(26px, 3.4vw, 36px);
+    --font-lead: 17px;
+    --font-eyebrow: 13px;
+    --ls-hero: -0.03em;
+    --ls-eyebrow: 0.08em;
+    --layout-container: 1080px;
+    --section-pad: clamp(48px, 8vw, 96px);
+    --nav-h: 68px; /* 고정 랜딩 네비 높이(터치 타깃 44px + 상하 12px) */
+
+    /* 미래지향 레이어 — 다크 히어로/CTA 밴드 전용 "살짝" 오버레이. design-tokens.json과 동기화. teal 단일, 라임/블루 금지 */
+    --teal-bright: #2ab6b8; /* 그라데이션 텍스트 밝은 끝 */
+    --hero-bg-1: #10151d; /* 딥 다크 상단 */
+    --hero-bg-2: #191f28; /* grey-900 하단 */
+    --orb-teal: rgba(15, 139, 141, 0.34); /* 오로라 orb 라디얼 글로우 */
+    --grid-line: rgba(255, 255, 255, 0.04); /* 미세 그리드 라인 */
+    --glass-dark: rgba(255, 255, 255, 0.08); /* 다크 위 글래스 표면 */
+    --on-dark: #ffffff; /* 다크 위 본문/제목 */
+    --on-dark-muted: rgba(255, 255, 255, 0.65); /* 다크 위 리드 텍스트 */
+    --on-dark-dim: rgba(255, 255, 255, 0.42); /* 다크 위 장식 텍스트(마퀴) */
+    --on-dark-faint: rgba(255, 255, 255, 0.16); /* 다크 위 글래스 hover / 미세 구분자 */
+    --on-dark-line: rgba(255, 255, 255, 0.08); /* 다크 위 1px 경계선 */
+    --glass-light: rgba(255, 255, 255, 0.82); /* 스크롤 후 밝은 글래스 네비 배경 */
+    --hairline: rgba(25, 31, 40, 0.06); /* 이미지 위 inset 헤어라인 */
+    --shadow-lift: 0 16px 28px rgba(25, 31, 40, 0.28), 0 32px 64px rgba(25, 31, 40, 0.3); /* 다크 위 카드 hover 상승 */
+    --teal-glow: 0 0 24px rgba(15, 139, 141, 0.35); /* CTA 은은한 teal 글로우 */
+    --teal-glow-strong: 0 0 36px rgba(15, 139, 141, 0.5); /* hover 시 글로우 강화 */
+    --motion-reveal: 560ms; /* 스크롤 reveal 진입 duration */
+    --motion-float: 7s; /* 프리뷰 카드 부유 주기 */
+    --motion-orb: 32s; /* orb 드리프트 주기 */
+    --motion-marquee: 64s; /* 모노 마퀴 슬라이드 주기 */
+    --motion-wizard: 5.2s; /* 위저드 단계 인디케이터 루프 주기 */
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    /* z-index 스케일 */
+    --z-base: 1;
+    --z-sticky: 100;
+    --z-overlay: 1000;
+    --z-modal: 1100;
+    --z-toast: 1200;
     font-family: var(--font-sans);
   }
   
   html {
     scroll-behavior: smooth;
   }
-  
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
   * {
     box-sizing: border-box;
   }

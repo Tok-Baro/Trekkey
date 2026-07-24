@@ -14,6 +14,7 @@ import {
   TeamsPage
 } from "./pages/admin/index.js";
 import { LoginPage } from "./pages/auth/LoginPage.jsx";
+import { HomePage } from "./pages/home/HomePage.jsx";
 import { ParticipantPortal } from "./pages/participant/ParticipantPortal.jsx";
 import { ContestPublicDetailPage } from "./pages/public/ContestPublicDetailPage.jsx";
 import { ReviewerPage } from "./pages/review/ReviewerPage.jsx";
@@ -38,6 +39,7 @@ function App() {
   const { contestId: routeContestParam } = useParams();
   const isReviewRoute = location.pathname.startsWith("/review/");
   const isContestDetailRoute = location.pathname.startsWith("/contest/");
+  const isHomeRoute = location.pathname === "/home";
   const isLoginRoute = location.pathname === getLoginPath();
   const isParticipantRoute = location.pathname.startsWith(getParticipantPath());
   const activePage = isReviewRoute ? "review" : isContestDetailRoute ? "contestDetail" : getPageFromPath(location.pathname);
@@ -330,6 +332,10 @@ function App() {
       items
     };
   }, [awardRecords, judgeRecords, submissionRecords, teamRecords]);
+
+  if (isHomeRoute) {
+    return <HomePage contests={contestRecords} onOpenContest={openContestDetailPage} />;
+  }
 
   if (isLoginRoute) {
     return (

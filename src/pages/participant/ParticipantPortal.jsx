@@ -29,7 +29,9 @@ import {
 } from "lucide-react";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { TeamRosterField, TeamRosterSummary } from "../../components/forms/TeamRosterField.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
+import { getEditableRoster, sanitizeRoster } from "../../lib/roster.js";
 import {
   findParticipantApplication,
   getContestReactionKey,
@@ -858,11 +860,11 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
 }
 
 function ApplicationEditForm({ record, onSubmit, onCancel }) {
+  const isIndividual = record.contest.type === "개인전";
+  const maxMembers = isIndividual ? 1 : 5;
   const [form, setForm] = useState({
     name: record.team.name,
-    leader: record.team.leader,
-    major: record.team.major,
-    members: record.team.members,
+    roster: getEditableRoster(record.team),
     applicantEmail: record.team.applicantEmail ?? "",
     phone: record.team.phone ?? "",
     motivation: record.team.motivation ?? ""
@@ -874,7 +876,14 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
       className={styles.editForm}
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(record.team.id, form);
+        const roster = sanitizeRoster(form.roster, { maxMembers });
+        onSubmit(record.team.id, {
+          ...form,
+          roster,
+          leader: roster[0].name,
+          major: roster[0].major,
+          members: roster.length
+        });
       }}
     >
       <div className={styles.sectionHead}>
@@ -883,32 +892,16 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
       </div>
       <div className={styles.fieldRow}>
         <label>
-          <span>{record.contest.type === "개인전" ? "참가자명" : "팀명"}</span>
+          <span>{isIndividual ? "참가자명" : "팀명"}</span>
           <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
         </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
-        </label>
       </div>
-      <div className={styles.fieldRow}>
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input
-            type="number"
-            min="1"
-            max={record.contest.type === "개인전" ? 1 : 5}
-            value={form.members}
-            onChange={(event) => update("members", event.target.value)}
-            readOnly={record.contest.type === "개인전"}
-            required
-          />
-        </label>
-      </div>
+      <TeamRosterField
+        value={form.roster}
+        onChange={(roster) => update("roster", roster)}
+        maxMembers={maxMembers}
+        isIndividual={isIndividual}
+      />
       <div className={styles.fieldRow}>
         <label>
           <span>이메일</span>
@@ -1087,6 +1080,7 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
                     <dd>{record.contest.type === "개인전" ? "개인전" : "준비됨"}</dd>
                   </div>
                 </dl>
+                <TeamRosterSummary team={record.team} title="팀원 명단" />
                 <div className={styles.inviteBox}>
                   <span>{record.contest.type === "개인전" ? "개인전 대회입니다" : `초대 코드 TEAM-${record.team.id.slice(-4)}`}</span>
                   <button className={styles.secondaryButton} type="button" onClick={() => onEdit(record.id)}>

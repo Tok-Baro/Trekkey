@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { Send } from "lucide-react";
+import { TeamRosterField } from "./TeamRosterField.jsx";
+import { createInitialRoster, sanitizeRoster } from "../../lib/roster.js";
 
 export function ContestApplicationForm({ contest, session, onSubmit, onClose }) {
-  const maxMembers = contest.type === "개인전" ? 1 : 5;
+  const isIndividual = contest.type === "개인전";
+  const maxMembers = isIndividual ? 1 : 5;
   const [form, setForm] = useState({
     contestId: contest.id,
-    teamName: contest.type === "개인전" ? session.name : `${session.name} 팀`,
-    leader: session.name,
-    major: session.major,
-    members: contest.type === "개인전" ? 1 : 3,
+    teamName: isIndividual ? session.name : `${session.name} 팀`,
+    roster: createInitialRoster(session, { isIndividual }),
     email: session.email,
     phone: "010-1234-5678",
     motivation: "대회 주제에 맞는 아이디어를 구체적인 결과물로 발전시키고 싶습니다."
@@ -20,37 +21,28 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose }) 
       className="form-stack"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(form);
+        const roster = sanitizeRoster(form.roster, { maxMembers });
+        onSubmit({
+          ...form,
+          roster,
+          leader: roster[0].name,
+          major: roster[0].major,
+          members: roster.length
+        });
       }}
     >
-      <div className="field-row">
-        <label>
-          <span>{contest.type === "개인전" ? "참가자명" : "팀명"}</span>
-          <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
-        </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
-        </label>
-      </div>
-      <div className="field-row">
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input
-            type="number"
-            min="1"
-            max={maxMembers}
-            value={form.members}
-            onChange={(event) => update("members", event.target.value)}
-            readOnly={contest.type === "개인전"}
-            required
-          />
-        </label>
-      </div>
+      <label>
+        <span>{isIndividual ? "참가자명" : "팀명"}</span>
+        <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
+      </label>
+
+      <TeamRosterField
+        value={form.roster}
+        onChange={(roster) => update("roster", roster)}
+        maxMembers={maxMembers}
+        isIndividual={isIndividual}
+      />
+
       <div className="field-row">
         <label>
           <span>이메일</span>

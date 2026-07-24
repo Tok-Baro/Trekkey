@@ -24,8 +24,9 @@ import {
   normalizeEvaluationRounds
 } from "../lib/review.js";
 import { getSubmissionFileCount } from "../lib/submissionFiles.js";
+import { sanitizeRoster } from "../lib/roster.js";
 
-export const DEMO_DATA_VERSION = "evaluation-rounds-2026-07-03";
+export const DEMO_DATA_VERSION = "team-roster-2026-07-21";
 
 const LEGACY_DEMO_CONTEST_IDS = new Set(["CT-2026-014", "CT-2026-011", "CT-2026-008", "CT-2026-017"]);
 
@@ -208,13 +209,15 @@ export function applyContest(state, form, session) {
     return { state, ok: false, message: "이미 해당 대회에 참가 신청했습니다." };
   }
 
+  const roster = sanitizeRoster(form.roster ?? [], { maxMembers: contest.type === "개인전" ? 1 : 5 });
   const nextTeam = {
     id: `TM-${String(1100 + state.teamRecords.length + 1).padStart(4, "0")}`,
     contestId: form.contestId,
     name: form.teamName.trim(),
-    leader: form.leader.trim(),
-    members: Number(form.members),
-    major: form.major.trim(),
+    leader: (roster[0]?.name || form.leader || "").trim(),
+    members: roster.length,
+    major: (roster[0]?.major || form.major || "").trim(),
+    roster,
     status: "검토중",
     submitted: false,
     applicantId: getParticipantKey(session),
@@ -304,9 +307,13 @@ export function updateParticipantApplication(state, teamId, patch = {}) {
   }
 
   const nextStatus = targetTeam.status === "보완요청" ? "검토중" : targetTeam.status;
+  const roster = Array.isArray(patch.roster) && patch.roster.length ? sanitizeRoster(patch.roster) : null;
+  const rosterPatch = roster
+    ? { roster, members: roster.length, leader: roster[0].name, major: roster[0].major || patch.major || targetTeam.major }
+    : { members: patch.members == null ? targetTeam.members : Number(patch.members) };
   const nextPatch = {
     ...patch,
-    members: patch.members == null ? targetTeam.members : Number(patch.members),
+    ...rosterPatch,
     status: nextStatus,
     updatedAt: "방금 전"
   };
