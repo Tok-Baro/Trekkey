@@ -89,6 +89,11 @@ export async function getMyApplications() {
   return payload.data.map(mapTeam);
 }
 
+export async function getMyAwards() {
+  const payload = await request("/api/users/me/awards");
+  return payload.data.map(mapAward);
+}
+
 export async function toggleContestLike(contestPublicId) {
   const payload = await request(`/api/contests/${contestPublicId}/like`, { method: "POST" });
   return payload.data; // 현재 좋아요 수
@@ -108,6 +113,12 @@ const TEAM_STATUS_KO = {
   APPROVED: "승인",
   REVISION_REQUESTED: "보완요청",
   REJECTED: "반려"
+};
+
+const AWARD_STATUS_KO = {
+  CANDIDATE: "확정대기",
+  CONFIRMED: "확정",
+  HELD: "보류"
 };
 
 function toDisplayDate(isoDateTime) {
@@ -134,6 +145,22 @@ function mapSearchContest(res) {
     teams: 0,
     submissions: 0,
     judges: 0
+  };
+}
+
+// AwardRes → 목업 award shape — contestId는 스토어에서 내 신청(팀명)으로 역매칭
+function mapAward(res) {
+  return {
+    id: res.id,
+    rank: res.awardRankNo,
+    contestId: null,
+    prize: res.prize,
+    team: res.teamName,
+    workTitle: res.submissionTitle,
+    score: Number(res.finalScore),
+    status: AWARD_STATUS_KO[res.status] ?? res.status,
+    certificateNo: res.certificateNo,
+    confirmedAt: toDisplayDate(res.confirmedAt)
   };
 }
 

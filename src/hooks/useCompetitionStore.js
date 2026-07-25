@@ -25,6 +25,7 @@ import { getContestWithPublicFields } from "../lib/contest.js";
 import {
   applyContest as applyContestApi,
   getMyApplications,
+  getMyAwards,
   hasApiSession,
   searchContests
 } from "../api/backendClient.js";
@@ -48,11 +49,19 @@ export function useCompetitionStore() {
       return;
     }
     try {
-      const [apiContests, myTeams] = await Promise.all([searchContests("ALL"), getMyApplications()]);
+      const [apiContests, myTeams, myAwards] = await Promise.all([
+        searchContests("ALL"), getMyApplications(), getMyAwards()
+      ]);
+      //AwardRes에는 contest 참조가 없어 내 신청(팀명)으로 역매칭한다
+      const awardsWithContest = myAwards.map((award) => ({
+        ...award,
+        contestId: myTeams.find((team) => team.name === award.team)?.contestId ?? null
+      }));
       setState((current) => ({
         ...current,
         contestRecords: apiContests,
-        teamRecords: myTeams
+        teamRecords: myTeams,
+        awardRecords: awardsWithContest
       }));
       if (apiContests[0]) {
         setSelectedContestId(apiContests[0].id);
