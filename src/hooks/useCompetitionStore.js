@@ -22,6 +22,12 @@ import {
 } from "../api/competitionApi.js";
 import { contests } from "../data/competitionData.js";
 import { getContestWithPublicFields } from "../lib/contest.js";
+import {
+  applyContest as applyContestApi,
+  getMyApplications,
+  hasApiSession,
+  searchContests
+} from "../api/backendClient.js";
 
 export function useCompetitionStore() {
   const [state, setState] = useState(() => createInitialCompetitionState());
@@ -35,6 +41,33 @@ export function useCompetitionStore() {
   useEffect(() => {
     persistCompetitionState(state);
   }, [state]);
+
+  // 실 API 세션이면 백엔드 데이터로 대회·신청 목록을 대체한다 (연동 슬라이스)
+  const refreshFromApi = async () => {
+    if (!hasApiSession()) {
+      return;
+    }
+    try {
+      const [apiContests, myTeams] = await Promise.all([searchContests("ALL"), getMyApplications()]);
+      setState((current) => ({
+        ...current,
+        contestRecords: apiContests,
+        teamRecords: myTeams
+      }));
+      if (apiContests[0]) {
+        setSelectedContestId(apiContests[0].id);
+      }
+    } catch (error) {
+      console.warn("[trekkey] 백엔드 동기화 실패:", error.message);
+    }
+  };
+
+  useEffect(() => {
+    refreshFromApi();
+    window.addEventListener("trekkey-api-session", refreshFromApi);
+    return () => window.removeEventListener("trekkey-api-session", refreshFromApi);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const runMutation = (mutate, options = {}) => {
     const result = mutate(state);
@@ -55,6 +88,11 @@ export function useCompetitionStore() {
     setSelectedContestId,
     saveContest: (form, options) => runMutation((current) => saveContest(current, form), options),
     applyContest: (form, session, options) => runMutation((current) => applyContest(current, form, session), options),
+    applyContestApi: async (form) => {
+      const message = await applyContestApi(form.contestId, form);
+      await refreshFromApi();
+      return message;
+    },
     recordContestView: (contestId, session, options) =>
       runMutation((current) => recordContestView(current, contestId, session), options),
     toggleContestLike: (contestId, session, options) =>

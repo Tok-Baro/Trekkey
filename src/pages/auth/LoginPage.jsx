@@ -112,6 +112,16 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
           ) : (
             <div className={styles.fieldRow}>
               <label>
+                <span>비밀번호</span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  value={form.password}
+                  onChange={(event) => update("password", event.target.value)}
+                  required
+                />
+              </label>
+              <label>
                 <span>학번</span>
                 <input
                   autoComplete="username"

@@ -136,10 +136,14 @@ function App() {
   const openModal = (type, payload = {}) => setModal({ type, payload });
   const closeModal = () => setModal(null);
 
-  const handleLogin = (form) => {
-    const nextSession = login(form);
-    navigate(nextSession.role === "admin" ? getAdminPath("dashboard") : getParticipantPath());
-    notify(nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.");
+  const handleLogin = async (form) => {
+    try {
+      const nextSession = await login(form);
+      navigate(nextSession.role === "admin" ? getAdminPath("dashboard") : getParticipantPath());
+      notify(nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.");
+    } catch (error) {
+      notify(error.message ?? "로그인에 실패했습니다.");
+    }
   };
 
   const handleContinueSession = () => {
@@ -192,6 +196,14 @@ function App() {
   };
 
   const handleApplyContest = (form) => {
+    //실 API 세션이면 백엔드로 신청하고 목록을 재조회한다
+    if (session?.apiSession) {
+      competition
+        .applyContestApi(form)
+        .then((message) => notify(message))
+        .catch((error) => notify(error.message ?? "참가 신청에 실패했습니다."));
+      return true;
+    }
     const result = competition.applyContest(form, session);
     notify(result.message);
     return result.ok;
