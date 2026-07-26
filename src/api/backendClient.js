@@ -148,12 +148,13 @@ function mapSearchContest(res) {
   };
 }
 
-// AwardRes → 목업 award shape — contestId는 스토어에서 내 신청(팀명)으로 역매칭
+// AwardRes → 목업 award shape
 function mapAward(res) {
   return {
     id: res.id,
     rank: res.awardRankNo,
-    contestId: null,
+    contestId: res.contestPublicId,
+    teamId: res.teamPublicId,
     prize: res.prize,
     team: res.teamName,
     workTitle: res.submissionTitle,

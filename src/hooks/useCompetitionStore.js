@@ -52,16 +52,11 @@ export function useCompetitionStore() {
       const [apiContests, myTeams, myAwards] = await Promise.all([
         searchContests("ALL"), getMyApplications(), getMyAwards()
       ]);
-      //AwardRes에는 contest 참조가 없어 내 신청(팀명)으로 역매칭한다
-      const awardsWithContest = myAwards.map((award) => ({
-        ...award,
-        contestId: myTeams.find((team) => team.name === award.team)?.contestId ?? null
-      }));
       setState((current) => ({
         ...current,
         contestRecords: apiContests,
         teamRecords: myTeams,
-        awardRecords: awardsWithContest
+        awardRecords: myAwards
       }));
       if (apiContests[0]) {
         setSelectedContestId(apiContests[0].id);
