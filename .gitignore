@@ -6,3 +6,4 @@ output/
 
 # Local reference captures
 2026 CHAI*
+.gstack/
