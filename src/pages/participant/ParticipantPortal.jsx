@@ -15,7 +15,9 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  Pause,
   Pencil,
+  Play,
   Search,
   Send,
   Star,
@@ -27,7 +29,9 @@ import {
 } from "lucide-react";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { TeamRosterField, TeamRosterSummary } from "../../components/forms/TeamRosterField.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
+import { getEditableRoster, sanitizeRoster } from "../../lib/roster.js";
 import {
   findParticipantApplication,
   getContestReactionKey,
@@ -89,6 +93,8 @@ export function ParticipantPortal({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [editingApplicationId, setEditingApplicationId] = useState("");
   const [submissionTargetId, setSubmissionTargetId] = useState("");
@@ -158,7 +164,7 @@ export function ParticipantPortal({
   }, [activeSlide, featuredContests.length]);
 
   useEffect(() => {
-    if (featuredContests.length < 2) {
+    if (featuredContests.length < 2 || isCarouselPaused || isCarouselHovered) {
       return undefined;
     }
 
@@ -167,7 +173,7 @@ export function ParticipantPortal({
     }, 6000);
 
     return () => window.clearInterval(timer);
-  }, [featuredContests.length]);
+  }, [featuredContests.length, isCarouselPaused, isCarouselHovered]);
 
   useEffect(() => {
     if (!selectedApplicationId && applicationRecords[0]) {
@@ -267,6 +273,7 @@ export function ParticipantPortal({
         id="participant-sidebar"
         aria-label="참가자 메뉴"
         aria-hidden={!isSidebarOpen}
+        inert={!isSidebarOpen}
       >
         <div className={styles.sidebarBrand}>
           <div className={styles.brandMark}>
@@ -397,6 +404,9 @@ export function ParticipantPortal({
             onStatusFilterChange={setStatusFilter}
             onMoveSlide={moveSlide}
             onSetActiveSlide={setActiveSlide}
+            isCarouselPaused={isCarouselPaused}
+            onToggleCarouselPause={() => setIsCarouselPaused((current) => !current)}
+            onCarouselHoverChange={setIsCarouselHovered}
             onOpenPublicPage={onOpenPublicPage}
             onToggleLike={onToggleLike}
           />
@@ -462,13 +472,27 @@ function DiscoverView({
   onStatusFilterChange,
   onMoveSlide,
   onSetActiveSlide,
+  isCarouselPaused,
+  onToggleCarouselPause,
+  onCarouselHoverChange,
   onOpenPublicPage,
   onToggleLike
 }) {
   return (
     <>
       {featuredContests.length > 0 && (
-        <section className={styles.posterCarousel} aria-label="주요 대회 포스터">
+        <section
+          className={styles.posterCarousel}
+          aria-label="주요 대회 포스터"
+          onMouseEnter={() => onCarouselHoverChange(true)}
+          onMouseLeave={() => onCarouselHoverChange(false)}
+          onFocus={() => onCarouselHoverChange(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              onCarouselHoverChange(false);
+            }
+          }}
+        >
           <div className={styles.carouselViewport}>
             <div className={styles.carouselTrack} style={{ transform: `translateX(-${activeSlide * 100}%)` }}>
               {featuredContests.map((contest) => {
@@ -537,6 +561,15 @@ function DiscoverView({
                   onClick={() => onMoveSlide(1)}
                 >
                   <ChevronRight size={20} aria-hidden="true" />
+                </button>
+                <button
+                  className={styles.carouselPause}
+                  type="button"
+                  aria-label={isCarouselPaused ? "자동 넘김 재생" : "자동 넘김 일시정지"}
+                  aria-pressed={isCarouselPaused}
+                  onClick={onToggleCarouselPause}
+                >
+                  {isCarouselPaused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
                 </button>
                 <div className={styles.carouselDots} aria-label="대회 포스터 선택">
                   {featuredContests.map((contest, index) => (
@@ -827,11 +860,11 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
 }
 
 function ApplicationEditForm({ record, onSubmit, onCancel }) {
+  const isIndividual = record.contest.type === "개인전";
+  const maxMembers = isIndividual ? 1 : 5;
   const [form, setForm] = useState({
     name: record.team.name,
-    leader: record.team.leader,
-    major: record.team.major,
-    members: record.team.members,
+    roster: getEditableRoster(record.team),
     applicantEmail: record.team.applicantEmail ?? "",
     phone: record.team.phone ?? "",
     motivation: record.team.motivation ?? ""
@@ -843,7 +876,14 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
       className={styles.editForm}
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(record.team.id, form);
+        const roster = sanitizeRoster(form.roster, { maxMembers });
+        onSubmit(record.team.id, {
+          ...form,
+          roster,
+          leader: roster[0].name,
+          major: roster[0].major,
+          members: roster.length
+        });
       }}
     >
       <div className={styles.sectionHead}>
@@ -852,32 +892,16 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
       </div>
       <div className={styles.fieldRow}>
         <label>
-          <span>{record.contest.type === "개인전" ? "참가자명" : "팀명"}</span>
+          <span>{isIndividual ? "참가자명" : "팀명"}</span>
           <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
         </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
-        </label>
       </div>
-      <div className={styles.fieldRow}>
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input
-            type="number"
-            min="1"
-            max={record.contest.type === "개인전" ? 1 : 5}
-            value={form.members}
-            onChange={(event) => update("members", event.target.value)}
-            readOnly={record.contest.type === "개인전"}
-            required
-          />
-        </label>
-      </div>
+      <TeamRosterField
+        value={form.roster}
+        onChange={(roster) => update("roster", roster)}
+        maxMembers={maxMembers}
+        isIndividual={isIndividual}
+      />
       <div className={styles.fieldRow}>
         <label>
           <span>이메일</span>
@@ -1056,6 +1080,7 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
                     <dd>{record.contest.type === "개인전" ? "개인전" : "준비됨"}</dd>
                   </div>
                 </dl>
+                <TeamRosterSummary team={record.team} title="팀원 명단" />
                 <div className={styles.inviteBox}>
                   <span>{record.contest.type === "개인전" ? "개인전 대회입니다" : `초대 코드 TEAM-${record.team.id.slice(-4)}`}</span>
                   <button className={styles.secondaryButton} type="button" onClick={() => onEdit(record.id)}>

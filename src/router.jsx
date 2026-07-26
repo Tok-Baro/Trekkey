@@ -13,6 +13,7 @@ function AppRouter() {
         {participantRoutes.map((route) => (
           <Route key={route.id} path={route.path} element={<App />} />
         ))}
+        <Route path="/home" element={<App />} />
         <Route path="/login" element={<App />} />
         <Route path="/review/:contestId" element={<App />} />
         <Route path="/contest/:contestId" element={<App />} />

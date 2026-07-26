@@ -237,7 +237,7 @@ export function ContestsPage({
               <Eye size={17} />
               공개 보기
             </button>
-            <button className={styles.primaryButton} type="button" onClick={() => openModal("contest", { contest: selectedContest })}>
+            <button className={styles.secondaryButton} type="button" onClick={() => openModal("contest", { contest: selectedContest })}>
               <SquarePen size={17} />
               편집
             </button>

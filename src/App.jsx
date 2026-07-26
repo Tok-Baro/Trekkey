@@ -14,6 +14,7 @@ import {
   TeamsPage
 } from "./pages/admin/index.js";
 import { LoginPage } from "./pages/auth/LoginPage.jsx";
+import { HomePage } from "./pages/home/HomePage.jsx";
 import { ParticipantPortal } from "./pages/participant/ParticipantPortal.jsx";
 import { ContestPublicDetailPage } from "./pages/public/ContestPublicDetailPage.jsx";
 import { ReviewerPage } from "./pages/review/ReviewerPage.jsx";
@@ -38,6 +39,7 @@ function App() {
   const { contestId: routeContestParam } = useParams();
   const isReviewRoute = location.pathname.startsWith("/review/");
   const isContestDetailRoute = location.pathname.startsWith("/contest/");
+  const isHomeRoute = location.pathname === "/home";
   const isLoginRoute = location.pathname === getLoginPath();
   const isParticipantRoute = location.pathname.startsWith(getParticipantPath());
   const activePage = isReviewRoute ? "review" : isContestDetailRoute ? "contestDetail" : getPageFromPath(location.pathname);
@@ -102,9 +104,13 @@ function App() {
       return undefined;
     }
 
-    const timer = window.setTimeout(() => setToast(null), 2600);
+    const timer = window.setTimeout(() => setToast(null), toast.tone === "error" ? 6000 : 2600);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isNotificationsOpen) {
@@ -132,7 +138,8 @@ function App() {
     };
   }, [isNotificationsOpen]);
 
-  const notify = (message) => setToast({ id: Date.now(), message });
+  const notify = (message, tone = "info") => setToast({ id: Date.now(), message, tone });
+  const notifyResult = (result) => notify(result.message, result.ok === false ? "error" : "success");
   const openModal = (type, payload = {}) => setModal({ type, payload });
   const closeModal = () => setModal(null);
 
@@ -140,9 +147,12 @@ function App() {
     try {
       const nextSession = await login(form);
       navigate(nextSession.role === "admin" ? getAdminPath("dashboard") : getParticipantPath());
-      notify(nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.");
+      notify(
+        nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.",
+        "success"
+      );
     } catch (error) {
-      notify(error.message ?? "로그인에 실패했습니다.");
+      notify(error.message ?? "로그인에 실패했습니다.", "error");
     }
   };
 
@@ -191,7 +201,7 @@ function App() {
     if (result.routePage) {
       navigate(getAdminPath(result.routePage, result.selectedContestId));
     }
-    notify(result.message);
+    notifyResult(result);
     closeModal();
   };
 
@@ -205,7 +215,7 @@ function App() {
       return true;
     }
     const result = competition.applyContest(form, session);
-    notify(result.message);
+    notifyResult(result);
     return result.ok;
   };
 
@@ -215,68 +225,68 @@ function App() {
 
   const handleToggleContestLike = (contestId) => {
     const result = competition.toggleContestLike(contestId, session);
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleUpdateParticipantApplication = (teamId, patch) => {
     const result = competition.updateParticipantApplication(teamId, patch);
-    notify(result.message);
+    notifyResult(result);
     return result.ok;
   };
 
   const handleUpsertParticipantSubmission = (contestId, teamId, form) => {
     const result = competition.upsertParticipantSubmission(contestId, teamId, form);
-    notify(result.message);
+    notifyResult(result);
     return result.ok;
   };
 
   const handleUpdateTeamStatus = (teamId, status) => {
     const result = competition.updateTeamStatus(teamId, status);
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleAddSubmission = (form) => {
     const result = competition.addSubmission(form);
-    notify(result.message);
+    notifyResult(result);
     closeModal();
   };
 
   const handleGenerateHashes = () => {
     const result = competition.generateSubmissionHashes(selectedContestId);
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleAddJudge = (form) => {
     const result = competition.addJudge(form);
-    notify(result.message);
+    notifyResult(result);
     closeModal();
   };
 
   const handleUpdateJudge = (form) => {
     const result = competition.updateJudge(form);
-    notify(result.message);
+    notifyResult(result);
     closeModal();
   };
 
   const handleDeleteJudge = (judgeId) => {
     const result = competition.deleteJudge(judgeId);
-    notify(result.message);
+    notifyResult(result);
     closeModal();
   };
 
   const handleBatchAssignJudges = (roundId) => {
     const result = competition.batchAssignJudges(selectedContestId, roundId);
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleSendReminder = (roundId) => {
     const result = competition.sendReviewReminders(selectedContestId, roundId);
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleSubmitJudgeReview = ({ contestId, roundId, judgeName, reviewedCount, averageScore, records = [] }) => {
     const result = competition.submitJudgeReview({ contestId, roundId, judgeName, reviewedCount, averageScore, records });
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleCalculateResults = (roundId) => {
@@ -284,12 +294,12 @@ function App() {
     if (result.ok) {
       navigatePage(result.routePage, selectedContestId);
     }
-    notify(result.message);
+    notifyResult(result);
   };
 
   const handleConfirmAwards = () => {
     const result = competition.confirmAwards(selectedContestId);
-    notify(result.message);
+    notifyResult(result);
     if (result.ok !== false) {
       closeModal();
     }
@@ -301,7 +311,7 @@ function App() {
         contest: selectedContest,
         submissions: submissionRecords.filter((submission) => submission.contestId === selectedContestId)
       });
-      notify(result.message);
+      notifyResult(result);
       return;
     }
 
@@ -310,7 +320,7 @@ function App() {
         contest: selectedContest,
         awardCandidates: awardRecords.filter((candidate) => candidate.contestId === selectedContestId)
       });
-      notify(result.message);
+      notifyResult(result);
       return;
     }
 
@@ -338,6 +348,10 @@ function App() {
     };
   }, [awardRecords, judgeRecords, submissionRecords, teamRecords]);
 
+  if (isHomeRoute) {
+    return <HomePage contests={contestRecords} onOpenContest={openContestDetailPage} />;
+  }
+
   if (isLoginRoute) {
     return (
       <>
@@ -347,7 +361,7 @@ function App() {
           onLogin={handleLogin}
           onContinue={handleContinueSession}
         />
-        {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+        <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
   }
@@ -364,7 +378,7 @@ function App() {
           reviewScores={reviewRecords}
           onSubmitReview={handleSubmitJudgeReview}
         />
-        {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+        <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
   }
@@ -392,7 +406,7 @@ function App() {
       return (
         <>
           <LoginPage preferredRole="participant" session={session} onLogin={handleLogin} onContinue={handleContinueSession} />
-          {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+          <Toast toast={toast} onClose={() => setToast(null)} />
         </>
       );
     }
@@ -413,7 +427,7 @@ function App() {
           onSubmitSubmission={handleUpsertParticipantSubmission}
           onLogout={handleLogout}
         />
-        {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+        <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
   }
@@ -422,7 +436,7 @@ function App() {
     return (
       <>
         <LoginPage preferredRole="admin" session={session} onLogin={handleLogin} onContinue={handleContinueSession} />
-        {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+        <Toast toast={toast} onClose={() => setToast(null)} />
       </>
     );
   }
@@ -445,6 +459,7 @@ function App() {
         id="app-sidebar"
         aria-label="주요 메뉴"
         aria-hidden={!isSidebarOpen}
+        inert={!isSidebarOpen}
       >
         <div className={styles.brand}>
           <div className={styles.brandMark}>
@@ -532,13 +547,15 @@ function App() {
           </div>
 
           <div className={styles.topbarActions}>
-            <label className={styles.searchBox}>
-              <Search size={17} aria-hidden="true" />
-              <input type="search" placeholder="대회, 팀, 제출물 검색" />
-            </label>
+            <TopbarSearch
+              contests={contestRecords}
+              teams={teamRecords}
+              submissions={submissionRecords}
+              onNavigate={navigatePage}
+            />
             <div className={styles.notificationRoot} ref={notificationRef}>
               <IconButton
-                label="알림"
+                label="처리 현황"
                 aria-controls="notification-popover"
                 aria-expanded={isNotificationsOpen}
                 onClick={() => setIsNotificationsOpen((current) => !current)}
@@ -668,13 +685,173 @@ function App() {
   );
 }
 
+function Toast({ toast, onClose }) {
+  if (!toast) {
+    return null;
+  }
+
+  const toneClass = toast.tone === "error" ? styles.toastError : toast.tone === "success" ? styles.toastSuccess : "";
+
+  return (
+    <div className={`${styles.toast} ${toneClass}`} role={toast.tone === "error" ? "alert" : "status"}>
+      <span>{toast.message}</span>
+      <button className={styles.toastClose} type="button" aria-label="알림 닫기" onClick={onClose}>
+        <X size={14} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function TopbarSearch({ contests, teams, submissions, onNavigate }) {
+  const [query, setQuery] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const rootRef = useRef(null);
+  const trimmedQuery = query.trim().toLowerCase();
+
+  useEffect(() => {
+    if (!isOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (rootRef.current?.contains(event.target)) {
+        return;
+      }
+      setIsOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const results = useMemo(() => {
+    if (!trimmedQuery) {
+      return [];
+    }
+
+    const contestTitle = (contestId) => contests.find((contest) => contest.id === contestId)?.title ?? "";
+    const matched = [];
+
+    contests
+      .filter((contest) => `${contest.title} ${contest.department}`.toLowerCase().includes(trimmedQuery))
+      .slice(0, 4)
+      .forEach((contest) =>
+        matched.push({
+          key: `contest-${contest.id}`,
+          type: "대회",
+          title: contest.title,
+          meta: `${contest.department} · ${contest.status}`,
+          page: "contests",
+          contestId: contest.id
+        })
+      );
+    teams
+      .filter((team) => `${team.name} ${team.leader ?? ""}`.toLowerCase().includes(trimmedQuery))
+      .slice(0, 4)
+      .forEach((team) =>
+        matched.push({
+          key: `team-${team.id}`,
+          type: "팀",
+          title: team.name,
+          meta: `${contestTitle(team.contestId)} · ${team.status}`,
+          page: "teams",
+          contestId: team.contestId
+        })
+      );
+    submissions
+      .filter((submission) => `${submission.title} ${submission.team}`.toLowerCase().includes(trimmedQuery))
+      .slice(0, 4)
+      .forEach((submission) =>
+        matched.push({
+          key: `submission-${submission.id}`,
+          type: "제출물",
+          title: submission.title,
+          meta: `${submission.team} · ${contestTitle(submission.contestId)}`,
+          page: "submissions",
+          contestId: submission.contestId
+        })
+      );
+
+    return matched.slice(0, 9);
+  }, [contests, teams, submissions, trimmedQuery]);
+
+  const selectResult = (result) => {
+    setIsOpen(false);
+    setQuery("");
+    onNavigate(result.page, result.contestId);
+  };
+
+  return (
+    <div className={styles.searchRoot} ref={rootRef}>
+      <label className={styles.searchBox}>
+        <Search size={17} aria-hidden="true" />
+        <input
+          type="search"
+          placeholder="대회, 팀, 제출물 검색"
+          role="combobox"
+          aria-expanded={isOpen && Boolean(trimmedQuery)}
+          aria-controls="topbar-search-results"
+          aria-label="대회, 팀, 제출물 검색"
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && results[0]) {
+              event.preventDefault();
+              selectResult(results[0]);
+            }
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              rootRef.current?.querySelector(`.${styles.searchResult}`)?.focus();
+            }
+          }}
+        />
+      </label>
+      {isOpen && Boolean(trimmedQuery) && (
+        <div className={styles.searchPopover} id="topbar-search-results" role="listbox" aria-label="검색 결과">
+          {results.map((result) => (
+            <button
+              className={styles.searchResult}
+              key={result.key}
+              type="button"
+              role="option"
+              aria-selected="false"
+              onClick={() => selectResult(result)}
+            >
+              <span className={styles.searchResultType}>{result.type}</span>
+              <span className={styles.searchResultCopy}>
+                <strong>{result.title}</strong>
+                <small>{result.meta}</small>
+              </span>
+            </button>
+          ))}
+          {results.length === 0 && <p className={styles.searchEmpty}>"{query.trim()}"에 대한 결과가 없습니다.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NotificationPopover({ summary, onOpenPage }) {
   return (
-    <div className={styles.notificationPopover} id="notification-popover" role="dialog" aria-label="운영 알림">
+    <div className={styles.notificationPopover} id="notification-popover" role="dialog" aria-label="처리 현황">
       <div className={styles.notificationHeader}>
         <div>
-          <strong>운영 알림</strong>
-          <span>{summary.totalCount ? `${summary.totalCount}건의 확인 항목이 있습니다.` : "확인할 운영 알림이 없습니다."}</span>
+          <strong>처리 현황</strong>
+          <span>{summary.totalCount ? `${summary.totalCount}건의 확인 항목이 있습니다.` : "확인할 항목이 없습니다."}</span>
         </div>
         <span className={styles.notificationTotal}>{summary.totalCount ? `${summary.totalCount}건` : "정상"}</span>
       </div>

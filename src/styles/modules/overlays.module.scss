@@ -6,21 +6,21 @@
     display: grid;
     place-items: center;
     padding: 24px;
-    background: rgba(17, 19, 24, 0.44);
-    backdrop-filter: blur(10px);
+    background: rgba(25, 31, 40, 0.4);
+    backdrop-filter: blur(4px);
     animation: scrimIn var(--motion-fast) var(--ease-standard);
   }
-  
+
   .modal-panel {
     width: min(620px, 100%);
     max-height: min(780px, calc(100vh - 48px));
     overflow: auto;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 18px;
+    border: 0;
+    border-radius: var(--radius-xl);
+    padding: 24px;
     background: var(--surface);
-    box-shadow: 0 28px 80px rgba(17, 19, 24, 0.24);
-    animation: modalEnter var(--motion) var(--ease-out);
+    box-shadow: var(--shadow-float);
+    animation: modalEnter var(--motion) var(--spring);
   }
   
   .modal-panel.wide-modal {
@@ -111,8 +111,8 @@
   
   .report-section-head span {
     color: var(--ink-500);
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
   }
   
   .report-table-wrap {
@@ -153,13 +153,13 @@
   .modal-detail-list dt {
     margin: 0 0 5px;
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .modal-detail-list dd {
     margin: 0;
     overflow-wrap: anywhere;
-    font-weight: 800;
+    font-weight: 700;
   }
   
   .modal-actions {
@@ -195,7 +195,7 @@
   .file-detail-item span {
     margin-top: 4px;
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .toast {
@@ -210,7 +210,7 @@
     background: #1a2433;
     color: #fff;
     box-shadow: 0 18px 46px rgba(17, 19, 24, 0.22);
-    font-weight: 700;
+    font-weight: 600;
     animation: toastIn var(--motion) var(--ease-out);
   }
 }

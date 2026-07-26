@@ -505,6 +505,11 @@ export const teams = [
     leader: "김하린",
     members: 3,
     major: "컴퓨터공학과",
+    roster: [
+      { id: "MEMBER-1001-1", name: "김하린", studentId: "20261234", major: "컴퓨터공학과", role: "리더" },
+      { id: "MEMBER-1001-2", name: "이준호", studentId: "20261890", major: "컴퓨터공학과", role: "팀원" },
+      { id: "MEMBER-1001-3", name: "박서연", studentId: "20262045", major: "디지털콘텐츠전공", role: "팀원" }
+    ],
     status: "승인",
     submitted: false,
     applicantId: "20261234",
@@ -520,6 +525,12 @@ export const teams = [
     leader: "이도윤",
     members: 4,
     major: "문헌정보전공",
+    roster: [
+      { id: "MEMBER-1002-1", name: "이도윤", studentId: "20251123", major: "문헌정보전공", role: "리더" },
+      { id: "MEMBER-1002-2", name: "정하늘", studentId: "20251456", major: "문헌정보전공", role: "팀원" },
+      { id: "MEMBER-1002-3", name: "김도경", studentId: "20260987", major: "컴퓨터공학과", role: "팀원" },
+      { id: "MEMBER-1002-4", name: "한지민", studentId: "20262233", major: "경영학부", role: "팀원" }
+    ],
     status: "검토중",
     submitted: false
   },
@@ -600,6 +611,10 @@ export const teams = [
     leader: "강예린",
     members: 2,
     major: "크리에이티브인문학부",
+    roster: [
+      { id: "MEMBER-1010-1", name: "강예린", studentId: "20253321", major: "크리에이티브인문학부", role: "리더" },
+      { id: "MEMBER-1010-2", name: "서지우", studentId: "20261777", major: "크리에이티브인문학부", role: "팀원" }
+    ],
     status: "검토중",
     submitted: false
   },

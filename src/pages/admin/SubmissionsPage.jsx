@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Download, LockKeyhole, Search, Upload } from "lucide-react";
-import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, SortableTh, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { sortRecords, toggleSortState } from "../../lib/sort.js";
 import { downloadSubmissionFiles, getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
 
 export function SubmissionsPage({
@@ -16,12 +17,15 @@ export function SubmissionsPage({
   onNotify
 }) {
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState({ key: "", direction: "asc" });
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
-  const visibleSubmissions = contestSubmissions.filter((submission) => {
+  const filteredSubmissions = contestSubmissions.filter((submission) => {
     const attachmentNames = (submission.attachments ?? []).map((file) => file.name).join(" ");
     const searchable = `${submission.title} ${submission.team} ${submission.review} ${attachmentNames}`.toLowerCase();
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
   });
+  const visibleSubmissions = useMemo(() => sortRecords(filteredSubmissions, sort), [filteredSubmissions, sort]);
+  const toggleSort = (key) => setSort((current) => toggleSortState(current, key));
   const hashReadyCount = contestSubmissions.filter((submission) => submission.hashReady).length;
   const handleDownload = (event, submission) => {
     event.stopPropagation();
@@ -71,12 +75,12 @@ export function SubmissionsPage({
           <table>
             <thead>
               <tr>
-                <th>제출물</th>
-                <th>팀</th>
+                <SortableTh label="제출물" sortKey="title" sort={sort} onSort={toggleSort} />
+                <SortableTh label="팀" sortKey="team" sort={sort} onSort={toggleSort} />
                 <th>파일</th>
-                <th>접수시각</th>
+                <SortableTh label="접수시각" sortKey="submittedAt" sort={sort} onSort={toggleSort} />
                 <th>무결성</th>
-                <th>심사</th>
+                <SortableTh label="심사" sortKey="review" sort={sort} onSort={toggleSort} />
                 <th>다운로드</th>
               </tr>
             </thead>
@@ -142,7 +146,7 @@ export function SubmissionsPage({
           </div>
         </div>
         <div className="button-row">
-          <button className="primary-button" type="button" onClick={onGenerateHashes}>
+          <button className="secondary-button" type="button" onClick={onGenerateHashes}>
             <LockKeyhole size={17} />
             해시 생성
           </button>
