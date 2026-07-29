@@ -69,13 +69,24 @@ export async function searchContests(status = "ALL") {
 }
 
 export async function applyContest(contestPublicId, form) {
+  //팀원 명단(리더 제외)을 학번으로 검색해 userId로 해석한다 — 백엔드 계약: memberUserIds
+  const members = (form.roster ?? []).slice(1);
+  const memberUserIds = [];
+  for (const member of members) {
+    const found = await searchParticipants(member.studentId);
+    const exact = found.find((p) => p.studentId === member.studentId);
+    if (!exact) {
+      throw new Error(`팀원 "${member.name}" (학번 ${member.studentId})을 찾을 수 없습니다. 회원가입 여부와 학번을 확인해주세요.`);
+    }
+    memberUserIds.push(exact.userId);
+  }
   const payload = await request(`/api/contests/${contestPublicId}/applications`, {
     method: "POST",
     body: {
       teamName: form.teamName,
       leaderName: form.leader,
       major: form.major,
-      memberCount: Number(form.members),
+      memberUserIds,
       contactEmail: form.email,
       phone: form.phone,
       motivation: form.motivation
@@ -84,14 +95,26 @@ export async function applyContest(contestPublicId, form) {
   return payload.message;
 }
 
+// 팀원 검색 — 같은 학교 참가자만 (이름·학번 키워드)
+export async function searchParticipants(keyword) {
+  const payload = await request(`/api/participants/search?keyword=${encodeURIComponent(keyword)}`);
+  return payload.data; // [{userId, name, studentId, major}]
+}
+
 export async function getMyApplications() {
-  const payload = await request("/api/users/me/applications");
-  return payload.data.map(mapTeam);
+  const payload = await request("/api/me/applications");
+  return payload.data.map(mapApplication);
 }
 
 export async function getMyAwards() {
-  const payload = await request("/api/users/me/awards");
+  const payload = await request("/api/me/awards");
   return payload.data.map(mapAward);
+}
+
+// 내 Credential 이력 — 발급 당시 subject snapshot 기준 (팀 해체와 무관하게 보존)
+export async function getMyCredentials() {
+  const payload = await request("/api/me/credentials");
+  return payload.data.map(mapCredential);
 }
 
 export async function toggleContestLike(contestPublicId) {
@@ -120,6 +143,29 @@ const AWARD_STATUS_KO = {
   CONFIRMED: "확정",
   HELD: "보류"
 };
+
+const CREDENTIAL_STATUS_KO = {
+  READY: "등록 예정",
+  BATCHED: "등록 진행 중",
+  ANCHORED: "블록체인 등록 완료",
+  REVOKED: "폐기됨",
+  SUPERSEDED: "대체 발급됨"
+};
+
+// CredentialHistoryRes → 이력 카드 shape (+ 상장 PDF·패키지·검증 링크)
+function mapCredential(res) {
+  return {
+    id: res.credentialPublicId,
+    credentialNo: res.credentialNo,
+    type: res.credentialType,
+    chainStatus: CREDENTIAL_STATUS_KO[res.status] ?? res.status,
+    roleCode: res.roleCode,
+    contestTitle: res.contestTitle,
+    issuedAt: toDisplayDate(res.issuedAt),
+    certificateUrl: `${BASE_URL}/api/public/credentials/${res.credentialPublicId}/certificate`,
+    packageUrl: `${BASE_URL}/api/public/credentials/${res.credentialPublicId}/package`
+  };
+}
 
 function toDisplayDate(isoDateTime) {
   if (!isoDateTime) {
@@ -165,12 +211,12 @@ function mapAward(res) {
   };
 }
 
-// TeamRes → 목업 team(신청) shape — ParticipantPortal의 내 신청 매칭은 applicantEmail 기준
-function mapTeam(res) {
+// TeamApplicationRes → 목업 team(신청) shape — 팀 publicId가 없어 contestPublicId를 키로 쓴다
+function mapApplication(res) {
   return {
-    id: res.id,
-    contestId: res.contestId,
-    name: res.name,
+    id: res.contestPublicId,
+    contestId: res.contestPublicId,
+    name: res.teamName,
     leader: res.leaderName,
     members: res.memberCount,
     major: res.major,

@@ -1230,8 +1230,18 @@ function ResultsView({ records }) {
                 </div>
                 <div>
                   <dt>활동 이력</dt>
-                  <dd>{record.award.status === "확정" ? "등록 예정" : "확정 대기"}</dd>
+                  <dd>{record.award.chainStatus ?? (record.award.status === "확정" ? "등록 예정" : "확정 대기")}</dd>
                 </div>
+                {record.award.certificateUrl && (
+                  <div>
+                    <dt>상장</dt>
+                    <dd>
+                      <a href={record.award.certificateUrl} target="_blank" rel="noreferrer">PDF 보기</a>
+                      {" · "}
+                      <a href={record.award.packageUrl} target="_blank" rel="noreferrer">증빙 패키지</a>
+                    </dd>
+                  </div>
+                )}
               </dl>
             )}
           </article>

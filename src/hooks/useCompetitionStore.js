@@ -26,6 +26,7 @@ import {
   applyContest as applyContestApi,
   getMyApplications,
   getMyAwards,
+  getMyCredentials,
   hasApiSession,
   searchContests
 } from "../api/backendClient.js";
@@ -49,14 +50,22 @@ export function useCompetitionStore() {
       return;
     }
     try {
-      const [apiContests, myTeams, myAwards] = await Promise.all([
-        searchContests("ALL"), getMyApplications(), getMyAwards()
+      const [apiContests, myTeams, myAwards, myCredentials] = await Promise.all([
+        searchContests("ALL"), getMyApplications(), getMyAwards(), getMyCredentials()
       ]);
+      //수상 카드에 블록체인 등록 상태·상장 PDF 링크를 병합한다 (상장번호 = credentialNo)
+      const awardsWithCredential = myAwards.map((award) => {
+        const credential = myCredentials.find((item) => item.credentialNo === award.certificateNo);
+        return credential
+          ? { ...award, chainStatus: credential.chainStatus, certificateUrl: credential.certificateUrl, packageUrl: credential.packageUrl }
+          : award;
+      });
       setState((current) => ({
         ...current,
         contestRecords: apiContests,
         teamRecords: myTeams,
-        awardRecords: myAwards
+        awardRecords: awardsWithCredential,
+        credentialRecords: myCredentials
       }));
       if (apiContests[0]) {
         setSelectedContestId(apiContests[0].id);
