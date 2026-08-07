@@ -6,10 +6,30 @@
 
 ```bash
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 기본 개발 서버는 `http://localhost:5173/`에서 열립니다.
+
+## 환경 변수
+
+| 변수 | 설명 | 로컬 기본값 |
+| --- | --- | --- |
+| `VITE_API_BASE_URL` | Spring Boot API 서버의 base URL. 마지막 `/`는 생략합니다. | `http://localhost:8080` |
+
+Vercel에서는 프로젝트의 **Settings → Environment Variables**에 `VITE_API_BASE_URL`을 추가하고 실제 HTTPS 백엔드 주소를 입력합니다. `VITE_`로 시작하는 값은 브라우저 번들에 포함되므로 비밀번호, API 비밀키 같은 민감정보는 넣으면 안 됩니다.
+
+프론트와 백엔드가 서로 다른 도메인이라면 백엔드 CORS에 Vercel 도메인을 허용하고, 인증 쿠키는 크로스 사이트 전송이 가능하도록 설정해야 합니다.
+
+## Vercel 배포
+
+- Framework Preset: `Vite`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Environment Variable: `VITE_API_BASE_URL=https://백엔드-도메인` (`/api` 제외)
+
+`vercel.json`에는 React Router의 직접 접속과 새로고침을 위한 SPA rewrite가 포함되어 있습니다.
 
 ## 화면
 

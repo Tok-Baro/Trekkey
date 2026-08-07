@@ -1,7 +1,8 @@
-const DEFAULT_API_BASE_URL = "http://localhost:8080";
+import { appEnv } from "../config/env.js";
+
 const AUTH_EXPIRED_EVENT = "trekkey:auth-expired";
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL).replace(/\/+$/, "");
+const apiBaseUrl = appEnv.apiBaseUrl;
 
 let accessToken = null;
 let refreshPromise = null;
