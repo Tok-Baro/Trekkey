@@ -15,8 +15,10 @@ import {
   LogOut,
   Menu,
   PanelsTopLeft,
+  Pause,
   Pencil,
   Plus,
+  Play,
   Search,
   Send,
   Star,
@@ -29,7 +31,9 @@ import {
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { CredentialVerificationLink } from "../../components/credential/CredentialVerificationLink.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { TeamRosterField, TeamRosterSummary } from "../../components/forms/TeamRosterField.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
+import { getEditableRoster, sanitizeRoster } from "../../lib/roster.js";
 import {
   findParticipantApplication,
   getContestReactionKey,
@@ -95,6 +99,8 @@ export function ParticipantPortal({
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState("");
   const [editingApplicationId, setEditingApplicationId] = useState("");
   const [submissionTargetId, setSubmissionTargetId] = useState("");
@@ -168,7 +174,7 @@ export function ParticipantPortal({
   }, [activeSlide, featuredContests.length]);
 
   useEffect(() => {
-    if (featuredContests.length < 2) {
+    if (featuredContests.length < 2 || isCarouselPaused || isCarouselHovered) {
       return undefined;
     }
 
@@ -177,7 +183,7 @@ export function ParticipantPortal({
     }, 6000);
 
     return () => window.clearInterval(timer);
-  }, [featuredContests.length]);
+  }, [featuredContests.length, isCarouselPaused, isCarouselHovered]);
 
   useEffect(() => {
     if (!selectedApplicationId && applicationRecords[0]) {
@@ -277,6 +283,7 @@ export function ParticipantPortal({
         id="participant-sidebar"
         aria-label="참가자 메뉴"
         aria-hidden={!isSidebarOpen}
+        inert={!isSidebarOpen}
       >
         <div className={styles.sidebarBrand}>
           <div className={styles.brandMark}>
@@ -407,6 +414,9 @@ export function ParticipantPortal({
             onStatusFilterChange={setStatusFilter}
             onMoveSlide={moveSlide}
             onSetActiveSlide={setActiveSlide}
+            isCarouselPaused={isCarouselPaused}
+            onToggleCarouselPause={() => setIsCarouselPaused((current) => !current)}
+            onCarouselHoverChange={setIsCarouselHovered}
             onOpenPublicPage={onOpenPublicPage}
             onToggleLike={onToggleLike}
           />
@@ -482,13 +492,27 @@ function DiscoverView({
   onStatusFilterChange,
   onMoveSlide,
   onSetActiveSlide,
+  isCarouselPaused,
+  onToggleCarouselPause,
+  onCarouselHoverChange,
   onOpenPublicPage,
   onToggleLike
 }) {
   return (
     <>
       {featuredContests.length > 0 && (
-        <section className={styles.posterCarousel} aria-label="주요 대회 포스터">
+        <section
+          className={styles.posterCarousel}
+          aria-label="주요 대회 포스터"
+          onMouseEnter={() => onCarouselHoverChange(true)}
+          onMouseLeave={() => onCarouselHoverChange(false)}
+          onFocus={() => onCarouselHoverChange(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              onCarouselHoverChange(false);
+            }
+          }}
+        >
           <div className={styles.carouselViewport}>
             <div className={styles.carouselTrack} style={{ transform: `translateX(-${activeSlide * 100}%)` }}>
               {featuredContests.map((contest) => {
@@ -557,6 +581,15 @@ function DiscoverView({
                   onClick={() => onMoveSlide(1)}
                 >
                   <ChevronRight size={20} aria-hidden="true" />
+                </button>
+                <button
+                  className={styles.carouselPause}
+                  type="button"
+                  aria-label={isCarouselPaused ? "자동 넘김 재생" : "자동 넘김 일시정지"}
+                  aria-pressed={isCarouselPaused}
+                  onClick={onToggleCarouselPause}
+                >
+                  {isCarouselPaused ? <Play size={14} aria-hidden="true" /> : <Pause size={14} aria-hidden="true" />}
                 </button>
                 <div className={styles.carouselDots} aria-label="대회 포스터 선택">
                   {featuredContests.map((contest, index) => (
@@ -718,6 +751,10 @@ function ContestGrid({ contests, teams, session, onOpenPublicPage, onToggleLike 
                 {formatEngagementCount(contest.likes)}
               </button>
             </div>
+            <div className={styles.cardMeta} aria-label="대회 정보">
+              <span>{contest.department}</span>
+              <span>{contest.submissionDue}</span>
+            </div>
           </article>
         );
       })}
@@ -827,9 +864,9 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
         </div>
       </dl>
 
-      <TeamMemberRoster
+      <TeamRosterDetails
         id={`application-members-${record.id}`}
-        members={record.team.teamMembers}
+        team={record.team}
         title={record.contest.type === "개인전" ? "참가자 명단" : "팀원 명단"}
       />
 
@@ -888,11 +925,23 @@ function TeamMemberRoster({ id, members, title }) {
   );
 }
 
+function TeamRosterDetails({ id, team, title }) {
+  if (Array.isArray(team.teamMembers)) {
+    return <TeamMemberRoster id={id} members={team.teamMembers} title={title} />;
+  }
+
+  return <TeamRosterSummary team={team} title={title} />;
+}
+
 function ApplicationEditForm({ record, onSubmit, onCancel, onSearchParticipants }) {
+  const isIndividual = record.contest.type === "개인전";
+  const maxMembers = isIndividual ? 1 : 5;
+  const usesParticipantDirectory = typeof onSearchParticipants === "function";
   const [form, setForm] = useState({
     name: record.team.name,
     leader: record.team.leader,
     major: record.team.major,
+    roster: getEditableRoster(record.team),
     applicantEmail: record.team.applicantEmail ?? "",
     phone: record.team.phone ?? "",
     motivation: record.team.motivation ?? ""
@@ -903,7 +952,6 @@ function ApplicationEditForm({ record, onSubmit, onCancel, onSearchParticipants 
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
-  const isIndividual = record.contest.type === "개인전";
   const existingMembers = useMemo(
     () => Array.isArray(record.team.teamMembers) ? record.team.teamMembers : [],
     [record.team.teamMembers]
@@ -969,9 +1017,25 @@ function ApplicationEditForm({ record, onSubmit, onCancel, onSearchParticipants 
       className={styles.editForm}
       onSubmit={(event) => {
         event.preventDefault();
+        const roster = sanitizeRoster(form.roster, { maxMembers });
         onSubmit(record.team.id, {
-          ...form,
-          memberUserIds: selectedMembers.map((member) => member.userId)
+          name: form.name,
+          applicantEmail: form.applicantEmail,
+          phone: form.phone,
+          motivation: form.motivation,
+          ...(usesParticipantDirectory
+            ? {
+                leader: form.leader,
+                major: form.major,
+                members: currentMemberCount + selectedMembers.length,
+                memberUserIds: selectedMembers.map((member) => member.userId)
+              }
+            : {
+                roster,
+                leader: roster[0].name,
+                major: roster[0].major,
+                members: roster.length
+              })
         });
       }}
     >
@@ -987,87 +1051,100 @@ function ApplicationEditForm({ record, onSubmit, onCancel, onSearchParticipants 
       )}
       <div className={styles.fieldRow}>
         <label>
-          <span>{record.contest.type === "개인전" ? "참가자명" : "팀명"}</span>
+          <span>{isIndividual ? "참가자명" : "팀명"}</span>
           <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
         </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
-        </label>
-      </div>
-      <div className={styles.fieldRow}>
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input
-            type="number"
-            value={currentMemberCount + selectedMembers.length}
-            readOnly
-          />
-        </label>
-      </div>
-      {!isIndividual && (
-        <TeamMemberRoster
-          id={`current-members-${record.id}`}
-          members={existingMembers}
-          title="현재 팀원"
-        />
-      )}
-      {!isIndividual && remainingMemberSlots > 0 && (
-        <section className="member-picker" aria-labelledby={`member-picker-${record.id}`}>
-          <div className="member-picker-head">
-            <div>
-              <strong id={`member-picker-${record.id}`}>팀원 추가</strong>
-              <span>현재 팀원은 유지되며 새 팀원만 추가할 수 있습니다.</span>
-            </div>
-            <b>{selectedMembers.length}/{remainingMemberSlots}명 추가</b>
-          </div>
+        {usesParticipantDirectory && (
           <label>
-            <span>이름 또는 학번 검색</span>
-            <input
-              type="search"
-              value={memberQuery}
-              onChange={(event) => setMemberQuery(event.target.value)}
-              disabled={selectedMembers.length >= remainingMemberSlots}
-            />
+            <span>대표자</span>
+            <input value={form.leader} onChange={(event) => update("leader", event.target.value)} required />
           </label>
-          {isSearching && <p className="member-picker-message">검색 중...</p>}
-          {searchError && <p className="member-picker-error">{searchError}</p>}
-          {!isSearching && memberQuery.trim() && memberResults.length === 0 && !searchError && (
-            <p className="member-picker-message">검색 결과가 없습니다.</p>
+        )}
+      </div>
+      {usesParticipantDirectory ? (
+        <>
+          <div className={styles.fieldRow}>
+            <label>
+              <span>소속</span>
+              <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
+            </label>
+            <label>
+              <span>참가 인원</span>
+              <input
+                type="number"
+                value={currentMemberCount + selectedMembers.length}
+                readOnly
+              />
+            </label>
+          </div>
+          {!isIndividual && (
+            <TeamMemberRoster
+              id={`current-members-${record.id}`}
+              members={existingMembers}
+              title="현재 팀원"
+            />
           )}
-          {memberResults.length > 0 && (
-            <div className="member-search-results">
-              {memberResults.map((member) => (
-                <button key={member.userId} type="button" onClick={() => addMember(member)}>
-                  <span>
-                    <strong>{member.name}</strong>
-                    <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
-                  </span>
-                  <Plus size={16} aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-          )}
-          {selectedMembers.length > 0 && (
-            <div className="selected-members">
-              {selectedMembers.map((member) => (
-                <div key={member.userId}>
-                  <span>
-                    <strong>{member.name}</strong>
-                    <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
-                  </span>
-                  <button type="button" aria-label={`${member.name} 추가 취소`} onClick={() => removeMember(member.userId)}>
-                    <X size={15} aria-hidden="true" />
-                  </button>
+          {!isIndividual && remainingMemberSlots > 0 && (
+            <section className="member-picker" aria-labelledby={`member-picker-${record.id}`}>
+              <div className="member-picker-head">
+                <div>
+                  <strong id={`member-picker-${record.id}`}>팀원 추가</strong>
+                  <span>현재 팀원은 유지되며 새 팀원만 추가할 수 있습니다.</span>
                 </div>
-              ))}
-            </div>
+                <b>{selectedMembers.length}/{remainingMemberSlots}명 추가</b>
+              </div>
+              <label>
+                <span>이름 또는 학번 검색</span>
+                <input
+                  type="search"
+                  value={memberQuery}
+                  onChange={(event) => setMemberQuery(event.target.value)}
+                  disabled={selectedMembers.length >= remainingMemberSlots}
+                />
+              </label>
+              {isSearching && <p className="member-picker-message">검색 중...</p>}
+              {searchError && <p className="member-picker-error">{searchError}</p>}
+              {!isSearching && memberQuery.trim() && memberResults.length === 0 && !searchError && (
+                <p className="member-picker-message">검색 결과가 없습니다.</p>
+              )}
+              {memberResults.length > 0 && (
+                <div className="member-search-results">
+                  {memberResults.map((member) => (
+                    <button key={member.userId} type="button" onClick={() => addMember(member)}>
+                      <span>
+                        <strong>{member.name}</strong>
+                        <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
+                      </span>
+                      <Plus size={16} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedMembers.length > 0 && (
+                <div className="selected-members">
+                  {selectedMembers.map((member) => (
+                    <div key={member.userId}>
+                      <span>
+                        <strong>{member.name}</strong>
+                        <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
+                      </span>
+                      <button type="button" aria-label={`${member.name} 추가 취소`} onClick={() => removeMember(member.userId)}>
+                        <X size={15} aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           )}
-        </section>
+        </>
+      ) : (
+        <TeamRosterField
+          value={form.roster}
+          onChange={(roster) => update("roster", roster)}
+          maxMembers={maxMembers}
+          isIndividual={isIndividual}
+        />
       )}
       <div className={styles.fieldRow}>
         <label>
@@ -1275,9 +1352,9 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
                     <dd>{record.team.myRole === "LEADER" ? "대표자" : "팀원"}</dd>
                   </div>
                 </dl>
-                <TeamMemberRoster
+                <TeamRosterDetails
                   id={`team-members-${record.id}`}
-                  members={record.team.teamMembers}
+                  team={record.team}
                   title="팀원 명단"
                 />
                 <div className={styles.inviteBox}>

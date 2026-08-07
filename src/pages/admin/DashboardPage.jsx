@@ -125,12 +125,17 @@ export function DashboardPage({
             )}
             <div className={styles.queueSummary} aria-label="처리 상태 요약">
               {workQueue.map((item) => (
-                <div className={styles.queueSummaryItem} key={item.title}>
+                <button
+                  className={styles.queueSummaryItem}
+                  key={item.title}
+                  type="button"
+                  onClick={() => onNavigate(item.page)}
+                >
                   <span>{item.title}</span>
                   <strong className={item.count === 0 ? styles.queueSummaryClear : ""}>
                     {item.count === 0 ? "정상" : `${item.count}건`}
                   </strong>
-                </div>
+                </button>
               ))}
             </div>
           </div>

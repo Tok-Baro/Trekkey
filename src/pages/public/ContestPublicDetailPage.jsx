@@ -75,7 +75,7 @@ export function ContestPublicDetailPage({
       : isOpen
         ? "참가 신청"
         : "신청 마감";
-  const backLabel = isParticipant ? "참가자 화면" : "관리자 화면";
+  const backLabel = !session ? "대회 목록" : isParticipant ? "참가자 화면" : "관리자 화면";
   const handleShare = async () => {
     if (typeof window === "undefined") {
       return;

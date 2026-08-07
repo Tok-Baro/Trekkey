@@ -29,7 +29,7 @@
     gap: 8px;
     color: var(--ink-500);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .review-link-info {
@@ -81,7 +81,7 @@
   .copy-field span {
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .reviewer-shell {
@@ -126,7 +126,7 @@
   .reviewer-brand span {
     margin-top: 3px;
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .reviewer-hero h1,
@@ -177,14 +177,14 @@
   .score-input-grid label span {
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .form-message {
     margin: 0;
     color: var(--red);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .reviewer-empty {
@@ -203,7 +203,7 @@
   .contest-public-page {
     min-height: 100vh;
     background:
-      linear-gradient(180deg, #f8f9fb 0, #f1f4f7 360px),
+      linear-gradient(180deg, var(--grey-50) 0, var(--grey-100) 360px),
       var(--surface-soft);
     color: var(--ink-950);
   }
@@ -225,7 +225,7 @@
   .contest-public-topbar span {
     color: var(--ink-500);
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 600;
   }
   
   .contest-public-hero {
@@ -282,10 +282,10 @@
     border: 1px solid rgba(17, 19, 24, 0.08);
     border-radius: 999px;
     padding: 1px 12px 0;
-    background: #f7f9fc;
+    background: var(--grey-50);
     color: var(--ink-650);
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1;
     white-space: nowrap;
   }
@@ -301,17 +301,17 @@
   }
 
   .public-engagement-bar button:hover:not(:disabled) {
-    border-color: rgba(49, 87, 255, 0.2);
-    background: rgba(49, 87, 255, 0.08);
-    color: #3157ff;
-    box-shadow: 0 8px 22px rgba(49, 87, 255, 0.1);
+    border-color: rgba(15, 139, 141, 0.2);
+    background: var(--teal-soft);
+    color: var(--teal-strong);
+    box-shadow: 0 8px 22px rgba(15, 139, 141, 0.1);
     transform: translateY(-1px);
   }
 
   .public-engagement-bar button.is-active {
-    border-color: rgba(111, 91, 215, 0.24);
-    background: rgba(111, 91, 215, 0.1);
-    color: var(--purple);
+    border-color: rgba(15, 139, 141, 0.24);
+    background: var(--teal-soft);
+    color: var(--teal-strong);
   }
 
   .public-engagement-bar button:disabled {
@@ -327,13 +327,13 @@
     min-height: 26px;
     border-radius: 999px;
     padding: 1px 10px 0;
-    background: #eef2f4;
+    background: var(--grey-100);
     color: var(--ink-650);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 600;
     line-height: 1;
   }
-  
+
   .contest-public-copy h1 {
     max-width: 760px;
     margin: 0;
@@ -355,7 +355,7 @@
     overflow: hidden;
     border-left: 1px solid var(--line);
     background:
-      linear-gradient(145deg, rgba(15, 139, 141, 0.08), rgba(111, 91, 215, 0.08)),
+      linear-gradient(145deg, rgba(15, 139, 141, 0.1), rgba(15, 139, 141, 0.04)),
       var(--surface-tint);
   }
   
@@ -375,7 +375,7 @@
     gap: 8px;
     padding: 24px;
     background:
-      linear-gradient(145deg, rgba(15, 139, 141, 0.1), rgba(111, 91, 215, 0.1)),
+      linear-gradient(145deg, rgba(15, 139, 141, 0.12), rgba(15, 139, 141, 0.04)),
       var(--surface);
     color: var(--ink-500);
     text-align: center;
@@ -420,9 +420,9 @@
   .hero-info-grid dt {
     margin: 0;
     color: var(--ink-650);
-    font-size: 12px;
-    font-weight: 800;
-    background: #eef2f4;
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--grey-100);
     padding: 4px 10px;
     border-radius: 6px;
     white-space: nowrap;
@@ -431,7 +431,7 @@
   .hero-info-grid dd {
     margin: 0;
     color: var(--ink-950);
-    font-weight: 700;
+    font-weight: 600;
   }
   
   .hero-apply-button {
@@ -463,13 +463,13 @@
   
   .public-info-panel dt {
     color: var(--ink-500);
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 13px;
+    font-weight: 600;
   }
   
   .public-info-panel dd {
     margin-top: 4px;
-    font-weight: 800;
+    font-weight: 700;
   }
   
   .public-detail-article {
@@ -551,12 +551,12 @@
   .reviewer-meta dt {
     margin: 0 0 4px;
     color: var(--ink-500);
-    font-size: 12px;
+    font-size: 13px;
   }
   
   .reviewer-meta dd {
     margin: 0;
-    font-weight: 900;
+    font-weight: 700;
   }
   
   .review-main {
@@ -592,7 +592,7 @@
 
   .review-submission:focus-within,
   .review-submission:hover {
-    border-color: rgba(111, 91, 215, 0.28);
+    border-color: rgba(15, 139, 141, 0.28);
     box-shadow: var(--shadow-hover);
   }
   

@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { Award, Copy, Download, Link2, Pencil, QrCode, Trash2 } from "lucide-react";
 import { DetailList, EmptyState } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
+import { TeamRosterSummary } from "../forms/TeamRosterField.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
 import { downloadJson } from "../../lib/exportCsv.js";
 import {
@@ -487,7 +488,7 @@ function TeamDetailModal({ team, contestTitle, onClose, onFinalizeTeam }) {
       <div className="modal-info-stack">
         <DetailList
           items={[
-            ["신청번호", team.teamPublicId ?? "미발급"],
+            ["신청번호", team.teamPublicId ?? team.id ?? "미발급"],
             ["대회", contestTitle],
             ["대표자", team.leader],
             ["소속", team.major],
@@ -506,6 +507,7 @@ function TeamDetailModal({ team, contestTitle, onClose, onFinalizeTeam }) {
             ...(team.motivation ? [["지원동기", team.motivation]] : [])
           ]}
         />
+        <TeamRosterSummary team={team} title="팀원 명단" />
         {canFinalize && (
           <>
             <p className="modal-copy">명단 확정 후 참가자는 신청 정보를 수정할 수 없으며 팀원별 참여 이력이 발급됩니다.</p>

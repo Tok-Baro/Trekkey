@@ -18,6 +18,7 @@ function AppRouter() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signup/admin" element={<SignupPage preferredRole="admin" />} />
         <Route path="/verify/:credentialPublicId" element={<PublicCredentialVerificationPage />} />
+        <Route path="/home" element={<App />} />
         <Route path="/login" element={<App />} />
         <Route path="/review/:contestId" element={<App />} />
         <Route path="/judge/review" element={<App />} />

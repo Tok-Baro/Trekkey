@@ -133,7 +133,7 @@ export function JudgingPage({
                   일괄 배정
                 </button>
               )}
-              <button className="primary-button" type="button" onClick={() => openModal("judge", { roundId: activeRound.id })}>
+              <button className="secondary-button" type="button" onClick={() => openModal("judge", { roundId: activeRound.id })}>
                 <Plus size={17} />
                 심사위원
               </button>

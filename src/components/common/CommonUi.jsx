@@ -1,6 +1,9 @@
 import React from "react";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Award,
   Check,
   CheckCircle2,
@@ -176,6 +179,24 @@ export function SegmentedControl({ options, value, onChange }) {
         </button>
       ))}
     </div>
+  );
+}
+
+export function SortableTh({ label, sortKey, sort, onSort }) {
+  const active = sort.key === sortKey;
+  const SortIcon = !active ? ArrowUpDown : sort.direction === "asc" ? ArrowUp : ArrowDown;
+
+  return (
+    <th aria-sort={active ? (sort.direction === "asc" ? "ascending" : "descending") : undefined}>
+      <button
+        className={`th-sort ${active ? "th-sort-active" : ""}`}
+        type="button"
+        onClick={() => onSort(sortKey)}
+      >
+        {label}
+        <SortIcon size={13} aria-hidden="true" />
+      </button>
+    </th>
   );
 }
 

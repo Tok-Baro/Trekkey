@@ -38,10 +38,11 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
           <p>관리자는 대회 운영과 심사 흐름을 관리하고, 참가자는 공개된 대회를 조회한 뒤 참가 신청을 진행합니다.</p>
         </div>
 
-        <div className={styles.roleGrid} role="tablist" aria-label="로그인 역할">
+        <div className={styles.roleGrid} role="group" aria-label="로그인 역할">
           <button
             className={`${styles.roleCard} ${role === "admin" ? styles.selected : ""}`}
             type="button"
+            aria-pressed={role === "admin"}
             onClick={() => selectRole("admin")}
           >
             <ShieldCheck size={20} aria-hidden="true" />
@@ -51,6 +52,7 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
           <button
             className={`${styles.roleCard} ${role === "participant" ? styles.selected : ""}`}
             type="button"
+            aria-pressed={role === "participant"}
             onClick={() => selectRole("participant")}
           >
             <UsersRound size={20} aria-hidden="true" />

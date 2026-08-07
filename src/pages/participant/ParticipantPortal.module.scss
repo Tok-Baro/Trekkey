@@ -21,7 +21,7 @@
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fbfcff;
+  background: var(--grey-50);
   color: var(--ink-650);
   flex: 0 0 auto;
   transition:
@@ -52,7 +52,7 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: #1a2433;
+  background: var(--grey-900);
   color: #fff;
   box-shadow: 0 10px 24px rgba(17, 19, 24, 0.16);
 }
@@ -71,8 +71,8 @@
 .pageTitle span {
   margin-top: 3px;
   color: var(--ink-500);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .sidebarScrim {
@@ -99,7 +99,7 @@
   gap: 22px;
   padding: 20px 18px;
   border-right: 1px solid var(--line);
-  background: #fbfcfd;
+  background: var(--grey-50);
   box-shadow: 16px 0 44px rgba(17, 19, 24, 0.14);
   transform: translateX(calc(-100% - 16px));
   transition: transform var(--motion) var(--ease-out);
@@ -133,7 +133,7 @@
 .sidebarAccount span {
   margin-top: 3px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -155,33 +155,32 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  border: 0;
+  border-radius: var(--radius-md);
   padding: 0 12px;
   background: transparent;
-  color: #465264;
+  color: var(--grey-600);
   text-align: left;
   transition:
     background var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-out),
+    transform 120ms var(--ease-out),
     box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .sidebarNav button:hover {
-  border-color: rgba(15, 139, 141, 0.18);
-  background: rgba(255, 255, 255, 0.74);
+  background: var(--grey-100);
   color: var(--ink-950);
-  transform: translateX(3px);
+}
+
+.sidebarNav button:active {
+  transform: scale(0.98);
 }
 
 .sidebarNavActive {
-  border-color: rgba(15, 139, 141, 0.22) !important;
-  background: linear-gradient(90deg, rgba(15, 139, 141, 0.12), rgba(49, 87, 255, 0.06)) !important;
-  box-shadow: inset 3px 0 0 var(--teal);
+  background: var(--teal-soft) !important;
   color: var(--teal-strong) !important;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .sidebarNav span {
@@ -200,7 +199,7 @@
   padding: 0 6px;
   background: var(--red);
   color: #fff;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
 }
 
@@ -208,10 +207,10 @@
   margin-top: auto;
   display: grid;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 13px;
-  background: linear-gradient(180deg, #fff, var(--surface-tint));
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .sidebarAccount {
@@ -239,24 +238,25 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fbfcff;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--grey-100);
   color: var(--ink-650);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 600;
   transition:
     background var(--motion-fast) var(--ease-standard),
-    border-color var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    transform 120ms var(--ease-out);
 }
 
 .sidebarLogout:hover {
-  border-color: rgba(15, 139, 141, 0.28);
   background: var(--teal-soft);
   color: var(--teal-strong);
-  box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.07);
+}
+
+.sidebarLogout:active {
+  transform: scale(0.98);
 }
 
 .brand {
@@ -286,7 +286,7 @@
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 10px;
-  background: #fbfcff;
+  background: var(--grey-50);
   color: var(--ink-650);
   transition:
     background var(--motion-fast) var(--ease-standard),
@@ -316,8 +316,8 @@
   padding: 0 5px;
   background: var(--red);
   color: #fff;
-  font-size: 10px;
-  font-weight: 900;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -373,7 +373,7 @@
 .notificationPopoverHead span {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -383,8 +383,8 @@
   padding: 5px 8px 4px;
   background: var(--teal-soft);
   color: var(--teal-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .notificationPopoverList {
@@ -417,7 +417,7 @@
   overflow: hidden;
   margin-top: 3px;
   color: var(--ink-500);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -425,8 +425,8 @@
 
 .notificationPopoverItem small {
   color: var(--ink-500);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -444,7 +444,7 @@
 .notificationPopoverEmpty span {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -461,10 +461,9 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 11px;
-  background: var(--surface-tint);
+  background: var(--grey-50);
 }
 
 .profilePopoverUser strong,
@@ -480,7 +479,7 @@
 .profilePopoverUser span {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .profilePopoverStats {
@@ -491,10 +490,9 @@
 }
 
 .profilePopoverStats div {
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 10px;
-  background: #fbfcff;
+  background: var(--grey-50);
 }
 
 .profilePopoverStats dt,
@@ -505,15 +503,15 @@
 
 .profilePopoverStats dt {
   color: var(--ink-500);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .profilePopoverStats dd {
   margin-top: 4px;
   color: var(--ink-950);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .mainShell {
@@ -527,8 +525,8 @@
   justify-content: center;
   border-radius: 999px;
   padding: 1px 10px 0;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
@@ -543,7 +541,7 @@
   overflow: hidden;
   border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(49, 87, 255, 0.08), rgba(15, 139, 141, 0.08)),
+    linear-gradient(135deg, rgba(15, 139, 141, 0.1), rgba(15, 139, 141, 0.04)),
     var(--surface-tint);
 }
 
@@ -560,8 +558,8 @@
   overflow: hidden;
   border: 0;
   padding: 0;
-  background: #101828;
-  color: #fff;
+  background: var(--grey-900);
+  color: var(--surface);
   text-align: left;
   cursor: pointer;
   appearance: none;
@@ -569,7 +567,7 @@
 }
 
 .carouselSlide:focus-visible {
-  outline: 3px solid rgba(49, 87, 255, 0.24);
+  outline: 3px solid rgba(15, 139, 141, 0.28);
   outline-offset: -5px;
 }
 
@@ -628,9 +626,7 @@
   justify-items: end;
   gap: 12px;
   padding: 36px 42px 36px 46%;
-  background:
-    linear-gradient(135deg, rgba(49, 87, 255, 0.2), rgba(15, 139, 141, 0.16)),
-    linear-gradient(90deg, #eef4ff, #edf8f6);
+  background: var(--teal-soft);
   color: rgba(15, 23, 42, 0.32);
   text-align: right;
   transition: transform 680ms var(--ease-out);
@@ -650,20 +646,20 @@
 .carouselFallback span {
   color: rgba(15, 23, 42, 0.48);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .carouselFallback strong {
   color: rgba(15, 23, 42, 0.18);
   font-size: clamp(36px, 5.2vw, 72px);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.06;
 }
 
 .carouselFallback small {
   color: rgba(15, 23, 42, 0.38);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .carouselShade {
@@ -704,8 +700,8 @@
   align-items: center;
   border-radius: 999px;
   padding: 1px 10px 0;
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
@@ -736,7 +732,7 @@
   margin: 0;
   color: rgba(255, 255, 255, 0.76);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -744,8 +740,8 @@
 
 .carouselMeta {
   color: rgba(255, 255, 255, 0.82);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .carouselMeta span + span::before {
@@ -785,6 +781,28 @@
 
 .carouselNext {
   right: 16px;
+}
+
+.carouselPause {
+  position: absolute;
+  right: 22px;
+  top: 18px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+
+.carouselPause:hover {
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .carouselDots {
@@ -843,7 +861,7 @@
 .sectionHead span {
   color: var(--ink-500);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .toolbar {
@@ -891,10 +909,15 @@
   cursor: pointer;
   appearance: none;
   font: inherit;
+  transition: transform 120ms var(--ease-out);
+}
+
+.contestCardLink:active {
+  transform: scale(0.98);
 }
 
 .contestCardLink:focus-visible {
-  outline: 3px solid rgba(49, 87, 255, 0.18);
+  outline: 3px solid rgba(15, 139, 141, 0.22);
   outline-offset: 3px;
   border-radius: 14px;
 }
@@ -907,7 +930,7 @@
   overflow: hidden;
   border-radius: 14px;
   background:
-    linear-gradient(145deg, rgba(15, 139, 141, 0.08), rgba(111, 91, 215, 0.08)),
+    linear-gradient(145deg, rgba(15, 139, 141, 0.1), rgba(15, 139, 141, 0.04)),
     var(--surface-tint);
 }
 
@@ -967,26 +990,26 @@
 
 .deadlineBadge {
   flex: 0 0 auto;
-  background: var(--purple-soft);
-  color: var(--purple);
+  background: var(--grey-100);
+  color: var(--ink-650);
   transition:
     background var(--motion-fast) var(--ease-standard),
     color var(--motion-fast) var(--ease-standard);
 }
 
 .deadlineNormal {
-  background: rgba(49, 87, 255, 0.1);
-  color: #3157ff;
+  background: var(--grey-100);
+  color: var(--ink-650);
 }
 
 .deadlineWatch {
-  background: rgba(111, 91, 215, 0.12);
-  color: #5b4bd1;
+  background: var(--teal-soft);
+  color: var(--teal-strong);
 }
 
 .deadlineSoon {
-  background: rgba(15, 139, 141, 0.12);
-  color: #0f7c80;
+  background: var(--teal-soft);
+  color: var(--teal-strong);
 }
 
 .deadlineUrgent {
@@ -1001,7 +1024,7 @@
 
 .deadlineClosed,
 .deadlineUnknown {
-  background: #eef2f4;
+  background: var(--grey-100);
   color: var(--ink-600);
 }
 
@@ -1017,7 +1040,7 @@
   overflow: hidden;
   margin: 0;
   color: var(--ink-650);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -1041,10 +1064,10 @@
   border: 0;
   border-radius: 999px;
   padding: 1px 7px 0;
-  background: #f5f7fa;
+  background: var(--grey-100);
   color: var(--ink-600);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
@@ -1058,16 +1081,41 @@
 }
 
 .cardEngagement button:hover {
-  background: rgba(111, 91, 215, 0.1);
-  color: var(--purple);
+  background: var(--teal-soft);
+  color: var(--teal-strong);
   transform: translateY(-1px);
 }
 
 .cardEngagementActive {
-  background: rgba(111, 91, 215, 0.1) !important;
-  color: var(--purple) !important;
+  background: var(--teal-soft) !important;
+  color: var(--teal-strong) !important;
 }
 
+.cardMeta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+
+.cardMeta span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-600);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardMeta span + span::before {
+  margin-right: 8px;
+  color: var(--ink-300);
+  content: "/";
+}
 .posterStatus {
   position: absolute;
   top: 10px;
@@ -1090,11 +1138,11 @@
   height: 34px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(111, 91, 215, 0.18);
+  border: 1px solid rgba(15, 139, 141, 0.18);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 12px 28px rgba(25, 35, 72, 0.14);
-  color: var(--purple);
+  color: var(--teal-strong);
   pointer-events: auto;
   transform: translateZ(0);
 }
@@ -1111,8 +1159,8 @@
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.18);
   color: #fff;
   content: attr(data-tooltip);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.35;
   opacity: 0;
   pointer-events: none;
@@ -1147,10 +1195,10 @@
   border-radius: 999px;
   padding: 1px 9px 0;
   overflow: hidden;
-  background: #eef2f4;
+  background: var(--grey-100);
   color: var(--ink-650);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1283,8 +1331,7 @@
 }
 
 .quickSummary {
-  border: 1px solid rgba(15, 139, 141, 0.16);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 13px;
   background: var(--teal-soft);
 }
@@ -1296,8 +1343,8 @@
 
 .quickSummary span {
   color: var(--teal-strong);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .quickSummary strong {
@@ -1315,10 +1362,10 @@
 
 .portalPanel {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 18px;
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .recordList,
@@ -1339,23 +1386,26 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 13px;
-  background: #fbfcff;
+  background: var(--surface);
+  box-shadow: var(--shadow);
   color: var(--ink-950);
   text-align: left;
   transition:
-    border-color var(--motion-fast) var(--ease-standard),
     background var(--motion-fast) var(--ease-standard),
-    box-shadow var(--motion-fast) var(--ease-standard);
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform 120ms var(--ease-out);
 }
 
 .recordRow:hover,
 .recordRowActive {
-  border-color: rgba(15, 139, 141, 0.28);
-  background: linear-gradient(90deg, rgba(15, 139, 141, 0.06), #fff);
-  box-shadow: 0 8px 22px rgba(17, 19, 24, 0.05);
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.recordRow:active {
+  transform: scale(0.98);
 }
 
 .recordRow strong,
@@ -1369,7 +1419,7 @@
 .recordRow span {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .detailHero,
@@ -1400,8 +1450,8 @@
   display: block;
   margin-bottom: 6px;
   color: var(--teal-strong);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .detailActions,
@@ -1424,10 +1474,9 @@
 .infoGrid div,
 .submissionMeta div {
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 10px 11px;
-  background: var(--surface-soft);
+  background: var(--grey-50);
 }
 
 .infoGrid dt,
@@ -1441,8 +1490,8 @@
 .infoGrid dt,
 .submissionMeta dt {
   color: var(--ink-500);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .infoGrid dd,
@@ -1451,7 +1500,7 @@
   overflow: hidden;
   color: var(--ink-950);
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1460,10 +1509,9 @@
 .inviteBox,
 .requirementPreview,
 .uploadDrop {
-  border: 1px solid rgba(111, 91, 215, 0.16);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 13px;
-  background: linear-gradient(135deg, rgba(111, 91, 215, 0.075), rgba(49, 87, 255, 0.045));
+  background: var(--grey-50);
 }
 
 .noticeBox strong,
@@ -1496,8 +1544,8 @@
   border-radius: 999px;
   background: var(--surface);
   color: var(--ink-500);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .stepDone > span {
@@ -1514,7 +1562,7 @@
 .stepItem small {
   margin-top: 3px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .editForm label,
@@ -1527,7 +1575,7 @@
 .uploadForm label > span {
   color: var(--ink-650);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .submissionGrid,
@@ -1545,10 +1593,10 @@
   min-width: 0;
   display: grid;
   gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 15px;
-  background: #fbfcff;
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 
 .submissionHead strong,
@@ -1569,7 +1617,7 @@
 .notificationCard span {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -1578,7 +1626,7 @@
   overflow: hidden;
   color: var(--ink-650);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1608,7 +1656,7 @@
 .uploadDrop span {
   max-width: 420px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -1621,16 +1669,15 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 9px 10px;
-  background: var(--surface);
+  background: var(--grey-100);
 }
 
 .fileList strong,
 .fileList span {
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1653,8 +1700,8 @@
 
 .notificationCard small {
   color: var(--ink-500);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -1693,8 +1740,8 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: var(--purple-soft);
-  color: var(--purple);
+  background: var(--teal-soft);
+  color: var(--teal-strong);
 }
 
 .activityItem {
@@ -1740,7 +1787,7 @@
 .activityItem small {
   margin-top: 4px;
   color: var(--ink-500);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .activityAction {
@@ -1775,9 +1822,9 @@
 }
 
 .requirementPreview div {
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   padding: 12px;
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--surface);
 }
 
 .requirementPreview span,
@@ -1787,8 +1834,8 @@
 
 .requirementPreview span {
   color: var(--ink-500);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .requirementPreview strong {

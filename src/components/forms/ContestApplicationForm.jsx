@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Send, X } from "lucide-react";
+import { TeamRosterField } from "./TeamRosterField.jsx";
+import { createInitialRoster, sanitizeRoster } from "../../lib/roster.js";
 
 export function ContestApplicationForm({ contest, session, onSubmit, onClose, onSearchParticipants }) {
   const isIndividual = contest.type === "개인전";
+  const maxMembers = isIndividual ? 1 : 5;
+  const usesParticipantSearch = typeof onSearchParticipants === "function";
   const [form, setForm] = useState({
     contestId: contest.id,
     teamName: isIndividual ? session.name : `${session.name} 팀`,
     leaderName: session.name,
     major: session.major ?? "",
+    roster: createInitialRoster(session, { isIndividual }),
     contactEmail: session.email,
-    phone: "",
-    motivation: ""
+    phone: usesParticipantSearch ? "" : "010-1234-5678",
+    motivation: usesParticipantSearch ? "" : "대회 주제에 맞는 아이디어를 구체적인 결과물로 발전시키고 싶습니다."
   });
   const [memberQuery, setMemberQuery] = useState("");
   const [memberResults, setMemberResults] = useState([]);
@@ -22,7 +27,7 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
 
   useEffect(() => {
     const keyword = memberQuery.trim();
-    if (isIndividual || !keyword || !onSearchParticipants) {
+    if (isIndividual || !keyword || !usesParticipantSearch) {
       setMemberResults([]);
       setIsSearching(false);
       setSearchError("");
@@ -54,7 +59,7 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
       isActive = false;
       window.clearTimeout(timer);
     };
-  }, [isIndividual, memberQuery, onSearchParticipants, selectedMembers]);
+  }, [isIndividual, memberQuery, onSearchParticipants, selectedMembers, usesParticipantSearch]);
 
   const addMember = (member) => {
     if (selectedMembers.length >= 4 || selectedMembers.some((item) => item.userId === member.userId)) {
@@ -74,39 +79,76 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
       className="form-stack"
       onSubmit={async (event) => {
         event.preventDefault();
+        const roster = sanitizeRoster(
+          usesParticipantSearch
+            ? [
+                { ...form.roster[0], name: form.leaderName, major: form.major },
+                ...selectedMembers.map((member) => ({
+                  id: `USER-${member.userId}`,
+                  name: member.name,
+                  studentId: member.studentId ?? "",
+                  major: member.major ?? ""
+                }))
+              ]
+            : form.roster,
+          { maxMembers }
+        );
         setIsSubmitting(true);
         try {
           await onSubmit({
             ...form,
-            memberUserIds: selectedMembers.map((member) => member.userId)
+            roster,
+            leaderName: roster[0].name,
+            leader: roster[0].name,
+            major: roster[0].major,
+            members: roster.length,
+            memberUserIds: selectedMembers.map((member) => member.userId),
+            email: form.contactEmail
           });
         } finally {
           setIsSubmitting(false);
         }
       }}
     >
-      <div className="field-row">
-        <label>
-          <span>{isIndividual ? "참가자명" : "팀명"}</span>
-          <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
-        </label>
-        <label>
-          <span>대표자</span>
-          <input value={form.leaderName} onChange={(event) => update("leaderName", event.target.value)} required />
-        </label>
-      </div>
-      <div className="field-row">
-        <label>
-          <span>소속</span>
-          <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
-        </label>
-        <label>
-          <span>참가 인원</span>
-          <input type="number" value={1 + selectedMembers.length} readOnly />
-        </label>
-      </div>
+      {usesParticipantSearch ? (
+        <>
+          <div className="field-row">
+            <label>
+              <span>{isIndividual ? "참가자명" : "팀명"}</span>
+              <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
+            </label>
+            <label>
+              <span>대표자</span>
+              <input value={form.leaderName} onChange={(event) => update("leaderName", event.target.value)} required />
+            </label>
+          </div>
+          <div className="field-row">
+            <label>
+              <span>소속</span>
+              <input value={form.major} onChange={(event) => update("major", event.target.value)} required />
+            </label>
+            <label>
+              <span>참가 인원</span>
+              <input type="number" value={1 + selectedMembers.length} readOnly />
+            </label>
+          </div>
+        </>
+      ) : (
+        <>
+          <label>
+            <span>{isIndividual ? "참가자명" : "팀명"}</span>
+            <input value={form.teamName} onChange={(event) => update("teamName", event.target.value)} required />
+          </label>
+          <TeamRosterField
+            value={form.roster}
+            onChange={(roster) => update("roster", roster)}
+            maxMembers={maxMembers}
+            isIndividual={isIndividual}
+          />
+        </>
+      )}
 
-      {!isIndividual && (
+      {!isIndividual && usesParticipantSearch && (
         <section className="member-picker" aria-labelledby="member-picker-title">
           <div className="member-picker-head">
             <div>

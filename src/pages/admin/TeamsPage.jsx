@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Check, CircleAlert, Filter, MoreHorizontal, X } from "lucide-react";
 import { ContestScopeBar, EmptyState, FlowStep, IconButton, PanelHeader, RuleItem, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { TeamRosterSummary } from "../../components/forms/TeamRosterField.jsx";
 import { getContestTitle } from "../../lib/contest.js";
 
 export function TeamsPage({
@@ -75,6 +76,7 @@ export function TeamsPage({
                   <dd>{team.members}명</dd>
                 </div>
               </dl>
+              <TeamRosterSummary team={team} />
               <div className="team-card-foot">
                 <span className={team.submitted ? "inline-state ok" : "inline-state muted"}>
                   {team.submitted ? "제출 완료" : "제출 전"}
