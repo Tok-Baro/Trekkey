@@ -16,6 +16,7 @@ import {
   Menu,
   PanelsTopLeft,
   Pencil,
+  Plus,
   Search,
   Send,
   Star,
@@ -26,6 +27,7 @@ import {
   X
 } from "lucide-react";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
+import { CredentialVerificationLink } from "../../components/credential/CredentialVerificationLink.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getParticipantKey } from "../../lib/auth.js";
 import {
@@ -75,12 +77,16 @@ export function ParticipantPortal({
   teams,
   submissions = [],
   awardCandidates = [],
+  credentials = [],
+  credentialError = "",
   activeView = "discover",
   onOpenPublicPage,
   onToggleLike,
   onNavigate,
   onUpdateApplication,
+  onSearchParticipants,
   onSubmitSubmission,
+  onDownloadSubmissionFile,
   onLogout
 }) {
   const [query, setQuery] = useState("");
@@ -126,7 +132,8 @@ export function ParticipantPortal({
             contest,
             submission,
             award,
-            deadlineMeta: getDeadlineMeta(contest.submissionDue)
+            progress: team.progress,
+            deadlineMeta: getDeadlineMeta(contest.submissionDueAt ?? contest.submissionDue)
           };
         })
         .filter(Boolean),
@@ -146,7 +153,10 @@ export function ParticipantPortal({
   const selectedRecord =
     applicationRecords.find((record) => record.id === selectedApplicationId) ?? applicationRecords[0] ?? null;
   const notifications = useMemo(() => buildParticipantNotifications(applicationRecords), [applicationRecords]);
-  const activityItems = useMemo(() => buildActivityItems(applicationRecords), [applicationRecords]);
+  const activityItems = useMemo(
+    () => buildActivityItems(applicationRecords, credentials),
+    [applicationRecords, credentials]
+  );
   const summary = useMemo(() => getParticipantSummary(applicationRecords), [applicationRecords]);
   const activeTab = portalTabs.find((tab) => tab.id === activeView) ?? portalTabs[0];
   const ActiveIcon = activeTab.icon;
@@ -238,8 +248,8 @@ export function ParticipantPortal({
     }
   };
 
-  const handleSubmitFiles = (contestId, teamId, form) => {
-    if (onSubmitSubmission?.(contestId, teamId, form)) {
+  const handleSubmitFiles = async (contestId, teamId, form) => {
+    if (await onSubmitSubmission?.(contestId, teamId, form)) {
       setSubmissionTargetId("");
     }
   };
@@ -370,7 +380,7 @@ export function ParticipantPortal({
               <ProfilePopover
                 session={session}
                 summary={summary}
-                records={applicationRecords}
+                credentialCount={credentials.length}
                 notifications={notifications}
                 onClose={() => setIsProfileOpen(false)}
                 onOpenProfilePage={() => switchView("profile")}
@@ -411,6 +421,7 @@ export function ParticipantPortal({
             onEdit={setEditingApplicationId}
             onCancelEdit={() => setEditingApplicationId("")}
             onUpdateApplication={handleUpdateApplication}
+            onSearchParticipants={onSearchParticipants}
             onOpenPublicPage={onOpenPublicPage}
           />
         )}
@@ -421,6 +432,7 @@ export function ParticipantPortal({
             submissionTargetId={submissionTargetId}
             onToggleSubmission={setSubmissionTargetId}
             onSubmitFiles={handleSubmitFiles}
+            onDownloadFile={onDownloadSubmissionFile}
           />
         )}
 
@@ -431,15 +443,23 @@ export function ParticipantPortal({
             onEdit={setEditingApplicationId}
             onCancelEdit={() => setEditingApplicationId("")}
             onUpdateApplication={handleUpdateApplication}
+            onSearchParticipants={onSearchParticipants}
           />
         )}
 
         {activeView === "results" && <ResultsView records={applicationRecords} />}
 
-        {activeView === "activity" && <ActivityView items={activityItems} />}
+        {activeView === "activity" && (
+          <ActivityView items={activityItems} credentialError={credentialError} />
+        )}
 
         {activeView === "profile" && (
-          <ProfileView session={session} summary={summary} records={applicationRecords} notifications={notifications} />
+          <ProfileView
+            session={session}
+            summary={summary}
+            credentialCount={credentials.length}
+            notifications={notifications}
+          />
         )}
       </main>
       <AppFooter variant="participant" />
@@ -472,7 +492,7 @@ function DiscoverView({
           <div className={styles.carouselViewport}>
             <div className={styles.carouselTrack} style={{ transform: `translateX(-${activeSlide * 100}%)` }}>
               {featuredContests.map((contest) => {
-                const deadlineLabel = getDeadlineLabel(contest.submissionDue);
+                const deadlineLabel = getDeadlineLabel(contest.submissionDueAt ?? contest.submissionDue);
                 const tags = getContestTags(contest);
 
                 return (
@@ -635,7 +655,7 @@ function ContestGrid({ contests, teams, session, onOpenPublicPage, onToggleLike 
     <div className={styles.contestGrid}>
       {contests.map((contest) => {
         const application = findParticipantApplication(teams, contest.id, session);
-        const deadlineMeta = getDeadlineMeta(contest.submissionDue);
+        const deadlineMeta = getDeadlineMeta(contest.submissionDueAt ?? contest.submissionDue);
         const tags = getContestTags(contest);
         const isLiked = contest.likedBy?.includes(reactionKey);
 
@@ -659,7 +679,7 @@ function ContestGrid({ contests, teams, session, onOpenPublicPage, onToggleLike 
                 ) : (
                   <div>
                     <PanelsTopLeft size={24} aria-hidden="true" />
-                    <span>{contest.department}</span>
+                    <span>포스터 없음</span>
                   </div>
                 )}
                 <span className={styles.posterStatus}>
@@ -698,10 +718,6 @@ function ContestGrid({ contests, teams, session, onOpenPublicPage, onToggleLike 
                 {formatEngagementCount(contest.likes)}
               </button>
             </div>
-            <div className={styles.cardMeta} aria-label="대회 정보">
-              <span>{contest.department}</span>
-              <span>{contest.submissionDue}</span>
-            </div>
           </article>
         );
       })}
@@ -718,6 +734,7 @@ function ApplicationsView({
   onEdit,
   onCancelEdit,
   onUpdateApplication,
+  onSearchParticipants,
   onOpenPublicPage
 }) {
   return (
@@ -749,7 +766,12 @@ function ApplicationsView({
       <section className={styles.portalPanel}>
         {selectedRecord ? (
           editingApplicationId === selectedRecord.id ? (
-            <ApplicationEditForm record={selectedRecord} onSubmit={onUpdateApplication} onCancel={onCancelEdit} />
+            <ApplicationEditForm
+              record={selectedRecord}
+              onSubmit={onUpdateApplication}
+              onCancel={onCancelEdit}
+              onSearchParticipants={onSearchParticipants}
+            />
           ) : (
             <ApplicationDetail record={selectedRecord} onEdit={() => onEdit(selectedRecord.id)} onOpenPublicPage={onOpenPublicPage} />
           )
@@ -763,6 +785,7 @@ function ApplicationsView({
 
 function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
   const steps = getApplicationSteps(record);
+  const canEdit = record.team.myRole === "LEADER" && !record.team.participationFinalizedAt;
 
   return (
     <div className={styles.detailStack}>
@@ -779,7 +802,7 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
         <button className={styles.secondaryButton} type="button" onClick={() => onOpenPublicPage(record.contest.id)}>
           공고 보기
         </button>
-        <button className={styles.primaryButton} type="button" onClick={onEdit}>
+        <button className={styles.primaryButton} type="button" onClick={onEdit} disabled={!canEdit}>
           <Pencil size={17} aria-hidden="true" />
           신청 정보 수정
         </button>
@@ -804,10 +827,17 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
         </div>
       </dl>
 
+      <TeamMemberRoster
+        id={`application-members-${record.id}`}
+        members={record.team.teamMembers}
+        title={record.contest.type === "개인전" ? "참가자 명단" : "팀원 명단"}
+      />
+
       {record.team.status === "보완요청" && (
         <div className={styles.noticeBox}>
-          <strong>보완 요청</strong>
-          <span>팀 정보 또는 증빙 내용을 다시 확인해 주세요. 수정 후 저장하면 검토중으로 전환됩니다.</span>
+          <strong>보완 요청 사유</strong>
+          <span>{record.team.revisionReason || "신청 정보를 다시 확인해 주세요."}</span>
+          <span>수정 후 저장하면 검토중으로 전환됩니다.</span>
         </div>
       )}
 
@@ -826,30 +856,135 @@ function ApplicationDetail({ record, onEdit, onOpenPublicPage }) {
   );
 }
 
-function ApplicationEditForm({ record, onSubmit, onCancel }) {
+function TeamMemberRoster({ id, members, title }) {
+  const roster = Array.isArray(members) ? members : [];
+
+  return (
+    <section className="member-picker" aria-labelledby={id}>
+      <div className="member-picker-head">
+        <div>
+          <strong id={id}>{title}</strong>
+          <span>신청서에 등록된 실제 명단입니다.</span>
+        </div>
+        <b>{roster.length}명</b>
+      </div>
+      {roster.length > 0 ? (
+        <div className="selected-members">
+          {roster.map((member) => (
+            <div key={member.userId}>
+              <span>
+                <strong>{member.name}</strong>
+                <small>
+                  {member.studentId || "학번 없음"} · {member.major || "소속 없음"} · {member.role === "LEADER" ? "대표자" : "팀원"}
+                </small>
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="member-picker-message">등록된 명단 정보가 없습니다.</p>
+      )}
+    </section>
+  );
+}
+
+function ApplicationEditForm({ record, onSubmit, onCancel, onSearchParticipants }) {
   const [form, setForm] = useState({
     name: record.team.name,
     leader: record.team.leader,
     major: record.team.major,
-    members: record.team.members,
     applicantEmail: record.team.applicantEmail ?? "",
     phone: record.team.phone ?? "",
     motivation: record.team.motivation ?? ""
   });
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const isIndividual = record.contest.type === "개인전";
+  const existingMembers = useMemo(
+    () => Array.isArray(record.team.teamMembers) ? record.team.teamMembers : [],
+    [record.team.teamMembers]
+  );
+  const currentMemberCount = Math.max(Number(record.team.members || 1), existingMembers.length);
+  const remainingMemberSlots = Math.max(5 - currentMemberCount, 0);
+
+  useEffect(() => {
+    const keyword = memberQuery.trim();
+    if (isIndividual || !keyword || !onSearchParticipants) {
+      setMemberResults([]);
+      setIsSearching(false);
+      setSearchError("");
+      return undefined;
+    }
+
+    let isActive = true;
+    const timer = window.setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError("");
+      try {
+        const results = await onSearchParticipants(keyword);
+        if (isActive) {
+          setMemberResults(results.filter(
+            (result) =>
+              !existingMembers.some((member) => member.userId === result.userId) &&
+              !selectedMembers.some((member) => member.userId === result.userId)
+          ));
+        }
+      } catch (error) {
+        if (isActive) {
+          setMemberResults([]);
+          setSearchError(error?.message || "팀원을 검색하지 못했습니다.");
+        }
+      } finally {
+        if (isActive) {
+          setIsSearching(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      window.clearTimeout(timer);
+    };
+  }, [existingMembers, isIndividual, memberQuery, onSearchParticipants, selectedMembers]);
+
+  const addMember = (member) => {
+    if (selectedMembers.length >= remainingMemberSlots) {
+      return;
+    }
+    setSelectedMembers((current) => [...current, member]);
+    setMemberQuery("");
+    setMemberResults([]);
+  };
+
+  const removeMember = (userId) => {
+    setSelectedMembers((current) => current.filter((member) => member.userId !== userId));
+  };
 
   return (
     <form
       className={styles.editForm}
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(record.team.id, form);
+        onSubmit(record.team.id, {
+          ...form,
+          memberUserIds: selectedMembers.map((member) => member.userId)
+        });
       }}
     >
       <div className={styles.sectionHead}>
         <strong>신청 정보 수정</strong>
         <span>{record.contest.title}</span>
       </div>
+      {record.team.status === "보완요청" && (
+        <div className={styles.noticeBox}>
+          <strong>보완 요청 사유</strong>
+          <span>{record.team.revisionReason || "신청 정보를 다시 확인해 주세요."}</span>
+        </div>
+      )}
       <div className={styles.fieldRow}>
         <label>
           <span>{record.contest.type === "개인전" ? "참가자명" : "팀명"}</span>
@@ -869,28 +1004,84 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
           <span>참가 인원</span>
           <input
             type="number"
-            min="1"
-            max={record.contest.type === "개인전" ? 1 : 5}
-            value={form.members}
-            onChange={(event) => update("members", event.target.value)}
-            readOnly={record.contest.type === "개인전"}
-            required
+            value={currentMemberCount + selectedMembers.length}
+            readOnly
           />
         </label>
       </div>
+      {!isIndividual && (
+        <TeamMemberRoster
+          id={`current-members-${record.id}`}
+          members={existingMembers}
+          title="현재 팀원"
+        />
+      )}
+      {!isIndividual && remainingMemberSlots > 0 && (
+        <section className="member-picker" aria-labelledby={`member-picker-${record.id}`}>
+          <div className="member-picker-head">
+            <div>
+              <strong id={`member-picker-${record.id}`}>팀원 추가</strong>
+              <span>현재 팀원은 유지되며 새 팀원만 추가할 수 있습니다.</span>
+            </div>
+            <b>{selectedMembers.length}/{remainingMemberSlots}명 추가</b>
+          </div>
+          <label>
+            <span>이름 또는 학번 검색</span>
+            <input
+              type="search"
+              value={memberQuery}
+              onChange={(event) => setMemberQuery(event.target.value)}
+              disabled={selectedMembers.length >= remainingMemberSlots}
+            />
+          </label>
+          {isSearching && <p className="member-picker-message">검색 중...</p>}
+          {searchError && <p className="member-picker-error">{searchError}</p>}
+          {!isSearching && memberQuery.trim() && memberResults.length === 0 && !searchError && (
+            <p className="member-picker-message">검색 결과가 없습니다.</p>
+          )}
+          {memberResults.length > 0 && (
+            <div className="member-search-results">
+              {memberResults.map((member) => (
+                <button key={member.userId} type="button" onClick={() => addMember(member)}>
+                  <span>
+                    <strong>{member.name}</strong>
+                    <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
+                  </span>
+                  <Plus size={16} aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedMembers.length > 0 && (
+            <div className="selected-members">
+              {selectedMembers.map((member) => (
+                <div key={member.userId}>
+                  <span>
+                    <strong>{member.name}</strong>
+                    <small>{member.studentId || "학번 없음"} · {member.major || "소속 없음"}</small>
+                  </span>
+                  <button type="button" aria-label={`${member.name} 추가 취소`} onClick={() => removeMember(member.userId)}>
+                    <X size={15} aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
       <div className={styles.fieldRow}>
         <label>
           <span>이메일</span>
-          <input type="email" value={form.applicantEmail} onChange={(event) => update("applicantEmail", event.target.value)} />
+          <input type="email" value={form.applicantEmail} onChange={(event) => update("applicantEmail", event.target.value)} required />
         </label>
         <label>
           <span>연락처</span>
-          <input value={form.phone} onChange={(event) => update("phone", event.target.value)} />
+          <input value={form.phone} onChange={(event) => update("phone", event.target.value)} required />
         </label>
       </div>
       <label>
         <span>지원 동기</span>
-        <textarea value={form.motivation} onChange={(event) => update("motivation", event.target.value)} />
+        <textarea value={form.motivation} onChange={(event) => update("motivation", event.target.value)} required />
       </label>
       <div className={styles.formActions}>
         <button className={styles.secondaryButton} type="button" onClick={onCancel}>
@@ -904,7 +1095,7 @@ function ApplicationEditForm({ record, onSubmit, onCancel }) {
   );
 }
 
-function SubmissionsView({ records, submissionTargetId, onToggleSubmission, onSubmitFiles }) {
+function SubmissionsView({ records, submissionTargetId, onToggleSubmission, onSubmitFiles, onDownloadFile }) {
   return (
     <section className={styles.portalPanel}>
       <div className={styles.sectionHead}>
@@ -913,7 +1104,9 @@ function SubmissionsView({ records, submissionTargetId, onToggleSubmission, onSu
       </div>
       <div className={styles.submissionGrid}>
         {records.map((record) => {
-          const canSubmit = record.team.status === "승인" || record.team.status === "검토중";
+          const canSubmit = (record.team.status === "승인" || record.team.status === "검토중")
+            && record.team.myRole === "LEADER"
+            && !record.submission?.finalizedAt;
           const isOpen = submissionTargetId === record.id;
 
           return (
@@ -940,6 +1133,21 @@ function SubmissionsView({ records, submissionTargetId, onToggleSubmission, onSu
                 </div>
               </dl>
               {record.submission && <p className={styles.submissionSummary}>{getSubmissionFileSummary(record.submission)}</p>}
+              {record.submission?.attachments?.length > 0 && (
+                <div className={styles.fileList}>
+                  {record.submission.attachments.map((file) => (
+                    <div key={file.id}>
+                      <span>
+                        <strong>{file.name}</strong>
+                        <small>{formatFileSize(file.size)}</small>
+                      </span>
+                      <button className={styles.secondaryButton} type="button" onClick={() => onDownloadFile?.(file)}>
+                        다운로드
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <button
                 className={record.submission ? styles.secondaryButton : styles.primaryButton}
                 type="button"
@@ -968,14 +1176,20 @@ function SubmissionsView({ records, submissionTargetId, onToggleSubmission, onSu
 function ParticipantSubmissionForm({ record, onSubmit, onCancel }) {
   const [title, setTitle] = useState(record.submission?.title ?? `${record.team.name} 제출물`);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileMetas = useMemo(() => selectedFiles.map((file, index) => createSubmissionFileMeta(file, index)), [selectedFiles]);
 
   return (
     <form
       className={styles.uploadForm}
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        onSubmit({ title, attachments: fileMetas, uploadFiles: selectedFiles });
+        setIsSubmitting(true);
+        try {
+          await onSubmit({ title, attachments: fileMetas, uploadFiles: selectedFiles });
+        } finally {
+          setIsSubmitting(false);
+        }
       }}
     >
       <label>
@@ -985,12 +1199,12 @@ function ParticipantSubmissionForm({ record, onSubmit, onCancel }) {
       <label className={styles.uploadDrop}>
         <FileArchive size={20} aria-hidden="true" />
         <strong>{fileMetas.length ? `${fileMetas.length}개 파일 선택됨` : "파일 선택"}</strong>
-        <span>PDF, PPTX, ZIP, 이미지, 영상 파일 등을 여러 개 선택할 수 있습니다.</span>
+        <span>PDF, PPTX, ZIP, 이미지, 영상 파일 등을 여러 개 선택할 수 있습니다. 재제출하면 기존 파일은 전량 교체됩니다.</span>
         <input
           type="file"
           accept={SUBMISSION_FILE_ACCEPT}
           multiple
-          required={!record.submission && selectedFiles.length === 0}
+          required
           onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
         />
       </label>
@@ -1005,19 +1219,19 @@ function ParticipantSubmissionForm({ record, onSubmit, onCancel }) {
         </div>
       )}
       <div className={styles.formActions}>
-        <button className={styles.secondaryButton} type="button" onClick={onCancel}>
+        <button className={styles.secondaryButton} type="button" onClick={onCancel} disabled={isSubmitting}>
           취소
         </button>
-        <button className={styles.primaryButton} type="submit" disabled={!record.submission && fileMetas.length === 0}>
+        <button className={styles.primaryButton} type="submit" disabled={isSubmitting || fileMetas.length === 0}>
           <Send size={17} aria-hidden="true" />
-          접수
+          {isSubmitting ? "접수 중..." : "접수"}
         </button>
       </div>
     </form>
   );
 }
 
-function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpdateApplication }) {
+function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpdateApplication, onSearchParticipants }) {
   return (
     <section className={styles.portalPanel}>
       <div className={styles.sectionHead}>
@@ -1028,7 +1242,12 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
         {records.map((record) => (
           <article className={styles.teamCard} key={record.id}>
             {editingApplicationId === record.id ? (
-              <ApplicationEditForm record={record} onSubmit={onUpdateApplication} onCancel={onCancelEdit} />
+              <ApplicationEditForm
+                record={record}
+                onSubmit={onUpdateApplication}
+                onCancel={onCancelEdit}
+                onSearchParticipants={onSearchParticipants}
+              />
             ) : (
               <>
                 <div className={styles.teamHead}>
@@ -1052,13 +1271,23 @@ function TeamsView({ records, editingApplicationId, onEdit, onCancelEdit, onUpda
                     <dd>{record.team.phone ?? "-"}</dd>
                   </div>
                   <div>
-                    <dt>초대 링크</dt>
-                    <dd>{record.contest.type === "개인전" ? "개인전" : "준비됨"}</dd>
+                    <dt>내 역할</dt>
+                    <dd>{record.team.myRole === "LEADER" ? "대표자" : "팀원"}</dd>
                   </div>
                 </dl>
+                <TeamMemberRoster
+                  id={`team-members-${record.id}`}
+                  members={record.team.teamMembers}
+                  title="팀원 명단"
+                />
                 <div className={styles.inviteBox}>
-                  <span>{record.contest.type === "개인전" ? "개인전 대회입니다" : `초대 코드 TEAM-${record.team.id.slice(-4)}`}</span>
-                  <button className={styles.secondaryButton} type="button" onClick={() => onEdit(record.id)}>
+                  <span>{record.team.myRole === "LEADER" ? "대표자는 신청 정보를 수정할 수 있습니다." : "팀원으로 참여 중입니다."}</span>
+                  <button
+                    className={styles.secondaryButton}
+                    type="button"
+                    onClick={() => onEdit(record.id)}
+                    disabled={record.team.myRole !== "LEADER" || Boolean(record.team.participationFinalizedAt)}
+                  >
                     <Pencil size={17} aria-hidden="true" />
                     수정
                   </button>
@@ -1106,9 +1335,7 @@ function NotificationPopover({ notifications, onClose }) {
   );
 }
 
-function ProfilePopover({ session, summary, records, notifications, onClose, onOpenProfilePage }) {
-  const verifiedCount = records.filter((record) => record.submission || record.award).length;
-
+function ProfilePopover({ session, summary, credentialCount, notifications, onClose, onOpenProfilePage }) {
   return (
     <div className={`${styles.notificationPopover} ${styles.profilePopover}`} role="dialog" aria-label="마이페이지 요약">
       <div className={styles.notificationPopoverHead}>
@@ -1141,7 +1368,7 @@ function ProfilePopover({ session, summary, records, notifications, onClose, onO
           </div>
           <div>
             <dt>검증 이력</dt>
-            <dd>{verifiedCount}건</dd>
+            <dd>{credentialCount}건</dd>
           </div>
           <div>
             <dt>수상/후보</dt>
@@ -1217,13 +1444,16 @@ function ResultsView({ records }) {
   );
 }
 
-function ActivityView({ items }) {
+function ActivityView({ items, credentialError }) {
   return (
     <section className={styles.portalPanel}>
       <div className={styles.sectionHead}>
         <strong>내 활동 이력</strong>
         <span>{items.length}개 기록</span>
       </div>
+      {credentialError && (
+        <p className={styles.credentialWarning} role="alert">{credentialError}</p>
+      )}
       <div className={styles.activityTimeline}>
         {items.map((item) => (
           <article className={styles.activityItem} key={item.id}>
@@ -1234,6 +1464,14 @@ function ActivityView({ items }) {
               <strong>{item.title}</strong>
               <p>{item.description}</p>
               <small>{item.meta}</small>
+              {item.credentialPublicId && (
+                <CredentialVerificationLink
+                  className={styles.activityAction}
+                  credentialPublicId={item.credentialPublicId}
+                >
+                  공개 검증 화면
+                </CredentialVerificationLink>
+              )}
             </div>
           </article>
         ))}
@@ -1243,7 +1481,7 @@ function ActivityView({ items }) {
   );
 }
 
-function ProfileView({ session, summary, records, notifications }) {
+function ProfileView({ session, summary, credentialCount, notifications }) {
   return (
     <div className={styles.profilePageGrid}>
       <section className={styles.portalPanel}>
@@ -1278,19 +1516,19 @@ function ProfileView({ session, summary, records, notifications }) {
       </section>
       <section className={styles.portalPanel}>
         <div className={styles.sectionHead}>
-          <strong>졸업요건 연계 준비</strong>
-          <span>UI 목업</span>
+          <strong>검증 가능한 활동 증명</strong>
+          <span>Credential</span>
         </div>
         <div className={styles.requirementPreview}>
           <div>
             <span>검증 가능한 비교과</span>
-            <strong>{records.filter((record) => record.submission || record.award).length}건</strong>
+            <strong>{credentialCount}건</strong>
           </div>
           <div>
             <span>수상/인증 후보</span>
             <strong>{summary.awards}건</strong>
           </div>
-          <p>추후 블록체인 검증 이력과 졸업요건 매칭 기능이 연결될 영역입니다.</p>
+          <p>활동 이력에서 발급된 Credential의 공개 검증 결과와 증명서 파일을 확인할 수 있습니다.</p>
         </div>
       </section>
     </div>
@@ -1358,8 +1596,8 @@ function buildParticipantNotifications(records) {
   });
 }
 
-function buildActivityItems(records) {
-  return records.flatMap((record) => {
+function buildActivityItems(records, credentials) {
+  const recordItems = records.flatMap((record) => {
     const items = [
       {
         id: `${record.id}-apply`,
@@ -1389,9 +1627,29 @@ function buildActivityItems(records) {
 
     return items;
   });
+
+  const credentialItems = credentials.map((credential) => ({
+    id: `${credential.id}-credential`,
+    credentialPublicId: credential.credentialPublicId ?? credential.id,
+    title: `${credential.typeLabel} 발급`,
+    description: `${credential.contestTitle ?? "대회"} · ${credential.displayName}`,
+    meta: `${credential.issuedAt} · ${credential.statusLabel} · ${credential.credentialNo}`
+  }));
+
+  return [...credentialItems, ...recordItems];
 }
 
 function getApplicationSteps(record) {
+  const progressSteps = record.progress?.steps;
+  if (progressSteps?.length) {
+    return progressSteps.map((step, index) => ({
+      index: index + 1,
+      label: step.label ?? step.type,
+      description: [step.description, step.occurredAt].filter(Boolean).join(" · ") || step.status,
+      done: step.status === "COMPLETED"
+    }));
+  }
+
   const isReviewed = Boolean(record.submission && !["미배정", "대기", "접수완료"].includes(record.submission.review));
 
   return [
@@ -1404,6 +1662,11 @@ function getApplicationSteps(record) {
 }
 
 function getResultWaitingText(record) {
+  const resultStep = record.progress?.steps?.find((step) => step.type === "RESULT");
+  if (resultStep && resultStep.status !== "WAITING") {
+    return resultStep.description;
+  }
+
   if (!record.submission) {
     return "제출 전입니다";
   }
@@ -1488,15 +1751,17 @@ function getApplicationTooltip(status) {
 }
 
 function getDaysUntilDeadline(submissionDue) {
-  const match = /^(\d{1,2})\.(\d{1,2})$/.exec(submissionDue ?? "");
-
-  if (!match) {
+  const fullDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(submissionDue ?? "");
+  const shortDate = /^(\d{1,2})\.(\d{1,2})$/.exec(submissionDue ?? "");
+  if (!fullDate && !shortDate) {
     return null;
   }
 
-  const [, month, day] = match;
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const deadline = new Date(today.getFullYear(), Number(month) - 1, Number(day));
+  const year = fullDate ? Number(fullDate[1]) : today.getFullYear();
+  const month = Number(fullDate?.[2] ?? shortDate[1]);
+  const day = Number(fullDate?.[3] ?? shortDate[2]);
+  const deadline = new Date(year, month - 1, day);
   return Math.ceil((deadline.getTime() - startOfToday.getTime()) / 86400000);
 }

@@ -18,6 +18,7 @@ export function AwardsPage({
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
   });
   const topCandidate = contestAwards[0];
+  const pendingAwardCount = contestAwards.filter((candidate) => candidate.status === "확정대기").length;
 
   return (
     <div className="page-grid split-grid">
@@ -41,8 +42,8 @@ export function AwardsPage({
               <button
                 className="primary-button"
                 type="button"
-                disabled={contestAwards.length === 0}
-                onClick={() => openModal("confirmAwards", { count: contestAwards.length })}
+                disabled={pendingAwardCount === 0}
+                onClick={() => openModal("confirmAwards", { count: pendingAwardCount })}
               >
                 <Award size={17} />
                 확정

@@ -19,10 +19,17 @@ export function DashboardPage({
   submissions,
   judgingAssignments,
   awardCandidates,
+  selectedContestId,
   onNavigate,
   openModal
 }) {
   const activeContests = contests.filter((contest) => contest.status !== "수상확정");
+  const scopeContest = selectedContestId
+    ? contests.find((contest) => contest.id === selectedContestId)
+    : null;
+  const managedContests = scopeContest
+    ? activeContests.filter((contest) => contest.id === scopeContest.id)
+    : activeContests;
   const statusCounts = contests.reduce(
     (acc, contest) => ({
       ...acc,
@@ -89,6 +96,7 @@ export function DashboardPage({
       <section className={styles.topRow} aria-label="운영 처리 및 신규 등록">
         <section className={styles.workQueue} aria-label="오늘 처리할 일">
           <PanelHeader
+            eyebrow={scopeContest?.title}
             title="오늘 처리할 일"
             action={
               <button className={styles.textAction} type="button" onClick={() => onNavigate("contests")}>
@@ -152,7 +160,11 @@ export function DashboardPage({
                 <ChevronRight size={16} />
               </button>
             </div>
-            <p>접수, 제출, 심사, 수상 확정까지 현재 움직이는 대회를 기준으로 운영합니다.</p>
+            <p>
+              {scopeContest
+                ? `${scopeContest.title}의 접수, 제출, 심사, 수상 확정 현황입니다.`
+                : "접수, 제출, 심사, 수상 확정까지 현재 움직이는 대회를 기준으로 운영합니다."}
+            </p>
           </div>
           <dl className="operation-stats">
             <div>
@@ -174,7 +186,7 @@ export function DashboardPage({
           </dl>
         </div>
         <div className="contest-management-grid">
-          {activeContests.map((contest) => (
+          {managedContests.map((contest) => (
             <ContestManagementCard
               key={contest.id}
               contest={contest}

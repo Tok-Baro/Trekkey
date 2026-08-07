@@ -15,7 +15,7 @@ import {
   UsersRound
 } from "lucide-react";
 import { EmptyState, IconButton, PanelHeader, ProgressBar, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
-import { getAverage, getReviewTotal } from "../../lib/review.js";
+import { getAverage, getReviewTotal, isRecordInRound, normalizeEvaluationRounds } from "../../lib/review.js";
 import { getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import styles from "./ContestsPage.module.scss";
 
@@ -61,6 +61,7 @@ export function ContestsPage({
   judgingAssignments = [],
   awardCandidates = [],
   reviewScores = [],
+  reviewScoresError,
   selectedContestId,
   setSelectedContestId,
   selectedContest,
@@ -96,17 +97,42 @@ export function ContestsPage({
     () => submissions.filter((submission) => submission.contestId === selectedContestId),
     [selectedContestId, submissions]
   );
-  const contestJudges = useMemo(
-    () => judgingAssignments.filter((judge) => judge.contestId === selectedContestId),
-    [judgingAssignments, selectedContestId]
-  );
+  const summaryRound = useMemo(() => {
+    if (!selectedContest?.evaluationRounds?.length) {
+      return null;
+    }
+    const rounds = normalizeEvaluationRounds(selectedContest.evaluationRounds, selectedContestId);
+    return rounds.find((round) => round.status === "평가중") ?? rounds.at(-1);
+  }, [selectedContest?.evaluationRounds, selectedContestId]);
+  const contestJudges = useMemo(() => {
+    const judgesById = new Map();
+    judgingAssignments
+      .filter((judge) => (
+        judge.contestId === selectedContestId
+        && (!summaryRound || isRecordInRound(judge, summaryRound, selectedContest))
+      ))
+      .forEach((judge) => {
+        const previous = judgesById.get(judge.id);
+        judgesById.set(judge.id, previous
+          ? {
+              ...previous,
+              assigned: previous.assigned + judge.assigned,
+              completed: previous.completed + judge.completed
+            }
+          : judge);
+      });
+    return [...judgesById.values()];
+  }, [judgingAssignments, selectedContest, selectedContestId, summaryRound]);
   const contestAwards = useMemo(
     () => awardCandidates.filter((candidate) => candidate.contestId === selectedContestId),
     [awardCandidates, selectedContestId]
   );
   const contestReviewScores = useMemo(
-    () => reviewScores.filter((record) => record.contestId === selectedContestId),
-    [reviewScores, selectedContestId]
+    () => reviewScores.filter((record) => (
+      record.contestId === selectedContestId
+      && (!summaryRound || isRecordInRound(record, summaryRound, selectedContest))
+    )),
+    [reviewScores, selectedContest, selectedContestId, summaryRound]
   );
   const reviewAverage = getAverage(contestReviewScores.map(getReviewTotal));
   const assignedReviews = contestJudges.reduce((sum, judge) => sum + Number(judge.assigned || 0), 0);
@@ -229,6 +255,10 @@ export function ContestsPage({
           </div>
 
           <div className={styles.detailActions}>
+            <button className={styles.secondaryButton} type="button" onClick={() => openModal("stageStatus", { contest: selectedContest })}>
+              <SlidersHorizontal size={17} />
+              단계 운영
+            </button>
             <button className={styles.secondaryButton} type="button" onClick={() => openModal("contestRules", { contest: selectedContest })}>
               <SlidersHorizontal size={17} />
               조건
@@ -391,19 +421,20 @@ function ContestDetailTab({
   if (activeTab === "judging") {
     return (
       <div className={styles.tabPanel}>
+        {reviewScoresError && <p className="form-message" role="alert">{reviewScoresError}</p>}
         <DetailSectionTitle
           icon={Gavel}
           title="심사 진행"
-          meta={`완료율 ${reviewProgress}% · 평균 ${reviewAverage ? reviewAverage.toFixed(1) : "-"}점`}
+          meta={`${summaryRound?.name ?? "심사"} · 완료율 ${reviewProgress}% · 평균 ${reviewAverage ? reviewAverage.toFixed(1) : "-"}점`}
           actionLabel="심사 관리"
           onAction={() => onNavigate("judging", selectedContest.id)}
         />
         <div className={styles.workflowGrid}>
-          <button className={styles.secondaryButton} type="button" onClick={() => openModal("reviewLink", { contest: selectedContest })}>
+          <button className={styles.secondaryButton} type="button" onClick={() => onNavigate("judging", selectedContest.id)}>
             <QrCode size={17} />
-            심사 링크
+            심사 링크 관리
           </button>
-          <button className={styles.secondaryButton} type="button" onClick={() => openModal("reviewReport")}>
+          <button className={styles.secondaryButton} type="button" onClick={() => openModal("reviewReport", { round: summaryRound })}>
             <ClipboardList size={17} />
             평가 현황
           </button>
@@ -442,7 +473,7 @@ function ContestDetailTab({
           onAction={() => onNavigate("awards", selectedContest.id)}
         />
         <div className={styles.ctaStrip}>
-          <button className={styles.secondaryButton} type="button" onClick={onCalculateResults}>
+          <button className={styles.secondaryButton} type="button" onClick={() => onCalculateResults()}>
             <ClipboardList size={17} />
             결과 산출
           </button>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Download, LockKeyhole, Search, Upload } from "lucide-react";
 import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
-import { downloadSubmissionFiles, getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
+import { getSubmissionFileCount, getSubmissionFileSummary } from "../../lib/submissionFiles.js";
 
 export function SubmissionsPage({
   contests,
@@ -13,7 +13,7 @@ export function SubmissionsPage({
   openModal,
   onExport,
   onGenerateHashes,
-  onNotify
+  onDownloadSubmission
 }) {
   const [query, setQuery] = useState("");
   const contestSubmissions = submissions.filter((submission) => submission.contestId === selectedContestId);
@@ -25,8 +25,7 @@ export function SubmissionsPage({
   const hashReadyCount = contestSubmissions.filter((submission) => submission.hashReady).length;
   const handleDownload = (event, submission) => {
     event.stopPropagation();
-    const result = downloadSubmissionFiles(submission);
-    onNotify?.(result.message);
+    onDownloadSubmission?.(submission);
   };
 
   return (

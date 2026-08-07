@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { ClipboardCheck, IdCard, Layers3, LogIn, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getLoginFormDefaults } from "../../lib/auth.js";
 import styles from "./LoginPage.module.scss";
 
-export function LoginPage({ preferredRole = "admin", session, onLogin, onContinue }) {
+export function LoginPage({ preferredRole = "admin", session, onLogin, onContinue, isSubmitting = false }) {
   const [role, setRole] = useState(preferredRole);
   const [form, setForm] = useState(() => getLoginFormDefaults(preferredRole));
 
@@ -67,15 +68,6 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
         >
           <div className={styles.fieldRow}>
             <label>
-              <span>이름</span>
-              <input
-                autoComplete="name"
-                value={form.name}
-                onChange={(event) => update("name", event.target.value)}
-                required
-              />
-            </label>
-            <label>
               <span>이메일</span>
               <input
                 type="email"
@@ -85,52 +77,17 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
                 required
               />
             </label>
+            <label>
+              <span>비밀번호</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={form.password}
+                onChange={(event) => update("password", event.target.value)}
+                required
+              />
+            </label>
           </div>
-
-          {role === "admin" ? (
-            <div className={styles.fieldRow}>
-              <label>
-                <span>관리자 번호</span>
-                <input
-                  autoComplete="username"
-                  value={form.employeeId}
-                  onChange={(event) => update("employeeId", event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                <span>비밀번호</span>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={form.password}
-                  onChange={(event) => update("password", event.target.value)}
-                  required
-                />
-              </label>
-            </div>
-          ) : (
-            <div className={styles.fieldRow}>
-              <label>
-                <span>학번</span>
-                <input
-                  autoComplete="username"
-                  value={form.studentId}
-                  onChange={(event) => update("studentId", event.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                <span>소속 학과</span>
-                <input
-                  autoComplete="organization-title"
-                  value={form.major}
-                  onChange={(event) => update("major", event.target.value)}
-                  required
-                />
-              </label>
-            </div>
-          )}
 
           <div className={styles.actions}>
             {session && (
@@ -139,10 +96,15 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
                 {session.name} 계정 계속
               </button>
             )}
-            <button className={styles.primaryButton} type="submit">
+            <button className={styles.primaryButton} type="submit" disabled={isSubmitting}>
               <LogIn size={17} aria-hidden="true" />
-              {role === "admin" ? "관리자 콘솔로 로그인" : "참가자 페이지로 로그인"}
+              {isSubmitting ? "로그인 중..." : role === "admin" ? "관리자 콘솔로 로그인" : "참가자 페이지로 로그인"}
             </button>
+          </div>
+          <div className={styles.signupLinks}>
+            <span>계정이 없다면</span>
+            <Link to="/signup">참가자 회원가입</Link>
+            <Link to="/signup/admin">관리자 가입 신청</Link>
           </div>
         </form>
       </section>
@@ -160,8 +122,8 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
         </div>
         <div>
           <Mail size={22} aria-hidden="true" />
-          <strong>시연 계정</strong>
-          <span>입력값은 테스트용으로 자동 채워지며, 원하는 값으로 바꿔 로그인할 수 있습니다.</span>
+          <strong>계정 안내</strong>
+          <span>참가자와 관리자는 백엔드에 등록된 이메일과 비밀번호로 로그인합니다.</span>
         </div>
       </aside>
     </main>

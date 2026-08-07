@@ -44,6 +44,38 @@
   .team-card-head > div > span {
     margin-top: 2px;
   }
+
+  .team-revision-form {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-soft);
+  }
+
+  .team-revision-form label {
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .team-revision-form textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  .team-revision-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .team-revision-actions span {
+    margin-right: auto;
+    color: var(--ink-500);
+    font-size: 12px;
+  }
   
   .compact-list {
     display: grid;

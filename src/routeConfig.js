@@ -4,7 +4,9 @@ export const adminRoutes = [
   { id: "teams", path: "/teams", label: "신청/팀", heading: "참가 신청과 팀 관리" },
   { id: "submissions", path: "/submissions", label: "제출물", heading: "제출물 접수" },
   { id: "judging", path: "/judging", label: "심사", heading: "심사 배정 및 점수 관리" },
-  { id: "awards", path: "/awards", label: "수상 확정", heading: "수상자 확정" }
+  { id: "awards", path: "/awards", label: "수상 확정", heading: "수상자 확정" },
+  { id: "credentials", path: "/credentials", label: "검증 원장", heading: "Credential 발급 및 블록체인 기록" },
+  { id: "root", path: "/root", label: "관리자 계정", heading: "관리자 초대 및 가입 승인" }
 ];
 
 export const routeByPage = adminRoutes.reduce((acc, route) => {
@@ -41,7 +43,7 @@ export function getPageHeading(page) {
 
 export function getAdminPath(page, contestId) {
   const path = routeByPage[page]?.path ?? routeByPage.dashboard.path;
-  if (!contestId || page === "dashboard") {
+  if (!contestId || page === "dashboard" || page === "root") {
     return path;
   }
 

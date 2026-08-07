@@ -1,0 +1,191 @@
+.shell {
+  composes: login-shell from global;
+}
+
+.panel {
+  composes: login-panel from global;
+}
+
+.brand {
+  composes: login-brand from global;
+}
+
+.brandMark {
+  composes: brand-mark from global;
+}
+
+.copy {
+  composes: login-copy from global;
+}
+
+.roleGrid {
+  composes: login-role-grid from global;
+}
+
+.roleCard {
+  composes: login-role-card from global;
+}
+
+.selected {
+  composes: selected from global;
+}
+
+.form {
+  composes: form-stack login-form from global;
+}
+
+.fieldRow {
+  composes: field-row from global;
+}
+
+.actions {
+  composes: login-actions from global;
+  margin-top: 4px;
+}
+
+.sidePanel {
+  composes: login-side-panel from global;
+}
+
+.primaryButton {
+  composes: primary-button from global;
+}
+
+.secondaryButton {
+  composes: secondary-button from global;
+}
+
+.searchField {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+
+.inputWithIcon {
+  position: relative;
+}
+
+.inputWithIcon > svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 12px;
+  color: var(--ink-500);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.inputWithIcon > input {
+  width: 100%;
+  padding-left: 38px;
+}
+
+.searchResults {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 5px;
+  background: var(--surface);
+  box-shadow: var(--shadow-float);
+}
+
+.searchResults button {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: transparent;
+  color: var(--ink-800);
+  text-align: left;
+}
+
+.searchResults button:hover,
+.searchResults button:focus-visible {
+  background: var(--teal-soft);
+  color: var(--teal-strong);
+}
+
+.searchMessage,
+.searchError {
+  display: block;
+  padding: 10px;
+  color: var(--ink-500);
+  font-size: 13px;
+}
+
+.searchError,
+.submitError {
+  color: var(--red);
+}
+
+.selectedOrganization {
+  color: var(--teal-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fieldHint,
+.submitError {
+  margin: -4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fieldHint {
+  color: var(--ink-500);
+}
+
+.submitError {
+  border: 1px solid rgba(211, 47, 47, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--red-soft);
+  font-weight: 700;
+}
+
+.form small {
+  color: var(--ink-500);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.successPanel {
+  grid-column: 1 / -1;
+  width: min(620px, 100%);
+  max-width: 620px;
+  align-content: center;
+  justify-items: center;
+  justify-self: center;
+  text-align: center;
+}
+
+.successIcon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal-strong);
+}
+
+@media (max-width: 720px) {
+  .fieldRow {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

@@ -991,5 +991,11 @@ export const statusTone = {
   대기: "neutral",
   확정대기: "warning",
   확정: "success",
-  보류: "danger"
+  보류: "danger",
+  "발급 준비": "warning",
+  "배치 포함": "info",
+  "블록체인 기록 완료": "success",
+  폐기: "danger",
+  취소: "danger",
+  대체: "warning"
 };

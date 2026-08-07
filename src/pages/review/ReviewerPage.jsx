@@ -114,7 +114,7 @@ export function ReviewerPage({ contestId, roundId, contests, judgingAssignments,
       submittedAt: "방금 전"
     }));
 
-    onSubmitReview({
+    const wasAccepted = onSubmitReview({
       contestId,
       roundId: activeRound.id,
       judgeName: activeJudge.name,
@@ -122,6 +122,9 @@ export function ReviewerPage({ contestId, roundId, contests, judgingAssignments,
       averageScore,
       records
     });
+    if (wasAccepted === false) {
+      return;
+    }
     setIsSubmitted(true);
     setMessage("");
   };

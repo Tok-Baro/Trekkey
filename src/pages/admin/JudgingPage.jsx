@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Bell, ClipboardCheck, FileCheck2, ListChecks, Plus, QrCode, Settings2 } from "lucide-react";
+import { CalendarClock, ClipboardCheck, FileCheck2, ListChecks, Play, Plus, QrCode, RotateCcw, Settings2 } from "lucide-react";
 import { ContestScopeBar, EmptyState, PanelHeader, ProgressBar, ProgressRing } from "../../components/common/CommonUi.jsx";
 import {
   getRoundScoreCriteria,
@@ -14,18 +14,25 @@ export function JudgingPage({
   judgingAssignments,
   submissions = [],
   reviewScores = [],
+  reviewScoresError,
   selectedContest,
   selectedContestId,
   setSelectedContestId,
   openModal,
+  onPrepareEntries,
+  onResetEntries,
+  onOpenRound,
   onBatchAssign,
-  onSendReminder,
+  onIssueReviewLink,
+  onExtendDeadline,
   onCalculateResults
 }) {
-  const rounds = useMemo(
-    () => normalizeEvaluationRounds(selectedContest.evaluationRounds, selectedContestId),
-    [selectedContest.evaluationRounds, selectedContestId]
-  );
+  const rounds = useMemo(() => {
+    if (!selectedContest.id || !selectedContest.evaluationRounds?.length) {
+      return [];
+    }
+    return normalizeEvaluationRounds(selectedContest.evaluationRounds, selectedContestId);
+  }, [selectedContest.evaluationRounds, selectedContest.id, selectedContestId]);
   const [activeRoundId, setActiveRoundId] = useState(rounds[0]?.id);
   const activeRound = rounds.find((round) => round.id === activeRoundId) ?? rounds[0];
   const scoreCriteria = useMemo(() => getRoundScoreCriteria(activeRound), [activeRound]);
@@ -43,6 +50,28 @@ export function JudgingPage({
   useEffect(() => {
     setActiveRoundId(rounds[0]?.id);
   }, [rounds[0]?.id, selectedContestId]);
+
+  if (!activeRound) {
+    return (
+      <div className="page-grid split-grid">
+        <ContestScopeBar
+          contests={contests}
+          selectedContest={selectedContest}
+          selectedContestId={selectedContestId}
+          setSelectedContestId={setSelectedContestId}
+        />
+        <section className="panel wide">
+          <PanelHeader eyebrow="평가 방식" title="평가 라운드" />
+          <EmptyState title="등록된 심사 라운드가 없습니다" description="심사 라운드를 등록한 뒤 심사위원과 평가 진행률을 확인할 수 있습니다." />
+        </section>
+      </div>
+    );
+  }
+
+  const isPreparing = activeRound.status === "준비중";
+  const isOpen = activeRound.status === "평가중";
+  const isFinalized = activeRound.status === "완료";
+  const isLastRound = activeRound.order === rounds.length;
 
   return (
     <div className="page-grid split-grid">
@@ -64,6 +93,7 @@ export function JudgingPage({
             </button>
           }
         />
+        {reviewScoresError && <p className="form-message" role="alert">{reviewScoresError}</p>}
         <div className="round-tabs" role="tablist" aria-label="평가 라운드 선택">
           {rounds.map((round) => (
             <button
@@ -97,14 +127,12 @@ export function JudgingPage({
                 <ClipboardCheck size={17} />
                 평가 현황
               </button>
-              <button className="secondary-button" type="button" onClick={() => openModal("reviewLink", { contest: selectedContest, round: activeRound })}>
-                <QrCode size={17} />
-                링크/QR
-              </button>
-              <button className="secondary-button" type="button" onClick={() => onBatchAssign(activeRound.id)}>
-                <ListChecks size={17} />
-                일괄 배정
-              </button>
+              {isPreparing && (
+                <button className="secondary-button" type="button" onClick={() => onBatchAssign(activeRound)}>
+                  <ListChecks size={17} />
+                  일괄 배정
+                </button>
+              )}
               <button className="primary-button" type="button" onClick={() => openModal("judge", { roundId: activeRound.id })}>
                 <Plus size={17} />
                 심사위원
@@ -119,7 +147,6 @@ export function JudgingPage({
               <div className="judge-main">
                 <strong>{judge.name}</strong>
                 <span>{judge.role}</span>
-                {judge.reminderSentAt && <small>독촉 {judge.reminderSentAt}</small>}
               </div>
               <div className="judge-stats">
                 <ProgressRing value={judge.assigned ? Math.round((judge.completed / judge.assigned) * 100) : 0} />
@@ -127,8 +154,20 @@ export function JudgingPage({
                   <b>
                     {judge.completed}/{judge.assigned}
                   </b>
-                  <span>평균 {judge.avgScore}</span>
+                  <span>{judge.avgScore == null ? "평균 산출 전" : `평균 ${judge.avgScore}`}</span>
                 </div>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label={`${judge.name} 심사 링크 발급`}
+                  title="심사 링크 발급"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onIssueReviewLink(judge, activeRound);
+                  }}
+                >
+                  <QrCode size={17} />
+                </button>
               </div>
             </article>
           ))}
@@ -153,14 +192,40 @@ export function JudgingPage({
           <ProgressBar value={completionRate} />
         </div>
         <div className="button-row">
-          <button className="secondary-button" type="button" onClick={() => onSendReminder(activeRound.id)}>
-            <Bell size={17} />
-            독촉 발송
-          </button>
-          <button className="primary-button" type="button" onClick={() => onCalculateResults(activeRound.id)}>
-            <FileCheck2 size={17} />
-            결과 산출
-          </button>
+          {isPreparing && (
+            <>
+              <button className="secondary-button" type="button" onClick={() => onPrepareEntries(activeRound)}>
+                <ListChecks size={17} />
+                대상 준비
+              </button>
+              <button className="secondary-button" type="button" onClick={() => onResetEntries(activeRound)}>
+                <RotateCcw size={17} />
+                대상 초기화
+              </button>
+              <button className="primary-button" type="button" onClick={() => onOpenRound(activeRound)}>
+                <Play size={17} />
+                라운드 시작
+              </button>
+            </>
+          )}
+          {isOpen && (
+            <>
+              <button className="secondary-button" type="button" onClick={() => onExtendDeadline(activeRound)}>
+                <CalendarClock size={17} />
+                마감 연장
+              </button>
+              <button className="primary-button" type="button" onClick={() => onCalculateResults(activeRound)}>
+                <FileCheck2 size={17} />
+                결과 산출
+              </button>
+            </>
+          )}
+          {isFinalized && isLastRound && (
+            <button className="primary-button" type="button" onClick={() => onCalculateResults(activeRound)}>
+              <FileCheck2 size={17} />
+              수상 후보 산출
+            </button>
+          )}
         </div>
       </section>
     </div>

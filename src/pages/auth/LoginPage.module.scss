@@ -53,3 +53,29 @@
 .secondaryButton {
   composes: secondary-button from global;
 }
+
+.signupLinks {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  color: var(--ink-500);
+  font-size: 12px;
+}
+
+.signupLinks a {
+  color: var(--teal-strong);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.signupLinks a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .signupLinks {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}

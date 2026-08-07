@@ -1068,32 +1068,6 @@
   color: var(--purple) !important;
 }
 
-.cardMeta {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 14px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-
-.cardMeta span {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ink-600);
-  font-size: 12px;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cardMeta span + span::before {
-  margin-right: 8px;
-  color: var(--ink-300);
-  content: "/";
-}
-
 .posterStatus {
   position: absolute;
   top: 10px;
@@ -1730,6 +1704,17 @@
   align-items: start;
 }
 
+.credentialWarning {
+  margin: 0 0 14px;
+  border: 1px solid rgba(183, 121, 31, 0.22);
+  border-radius: 9px;
+  padding: 10px 12px;
+  background: rgba(183, 121, 31, 0.07);
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .activityItem > span {
   width: 34px;
   height: 34px;
@@ -1756,6 +1741,26 @@
   margin-top: 4px;
   color: var(--ink-500);
   font-size: 12px;
+}
+
+.activityAction {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 8px;
+  border: 1px solid rgba(15, 139, 141, 0.25);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: var(--teal-soft);
+  color: var(--teal-strong);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.activityAction:hover {
+  border-color: rgba(15, 139, 141, 0.45);
+  background: rgba(15, 139, 141, 0.14);
 }
 
 .profileHero {

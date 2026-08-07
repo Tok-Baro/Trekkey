@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, CircleAlert, Filter, MoreHorizontal } from "lucide-react";
+import { Check, CircleAlert, Filter, MoreHorizontal, X } from "lucide-react";
 import { ContestScopeBar, EmptyState, FlowStep, IconButton, PanelHeader, RuleItem, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { getContestTitle } from "../../lib/contest.js";
 
@@ -13,6 +13,9 @@ export function TeamsPage({
   onUpdateTeamStatus
 }) {
   const [selectedStatus, setSelectedStatus] = useState("전체");
+  const [revisionTargetId, setRevisionTargetId] = useState("");
+  const [revisionReason, setRevisionReason] = useState("");
+  const [updatingTeamId, setUpdatingTeamId] = useState("");
   const contestTeams = teams.filter((team) => team.contestId === selectedContestId);
   const visibleTeams =
     selectedStatus === "전체" ? contestTeams : contestTeams.filter((team) => team.status === selectedStatus);
@@ -33,7 +36,7 @@ export function TeamsPage({
           action={
             <div className="action-group">
               <SegmentedControl
-                options={["전체", "검토중", "승인", "보완요청"]}
+                options={["전체", "검토중", "승인", "보완요청", "반려"]}
                 value={selectedStatus}
                 onChange={setSelectedStatus}
               />
@@ -50,7 +53,7 @@ export function TeamsPage({
               <div className="team-card-head">
                 <div>
                   <strong>{team.name}</strong>
-                  <span>{team.id}</span>
+                  <span>{team.teamPublicId ?? "공개 ID 미발급"}</span>
                 </div>
                 <StatusBadge status={team.status} />
               </div>
@@ -77,17 +80,107 @@ export function TeamsPage({
                   {team.submitted ? "제출 완료" : "제출 전"}
                 </span>
                 <div className="icon-row">
-                  <IconButton label="승인" onClick={() => onUpdateTeamStatus(team.id, "승인")}>
+                  <IconButton
+                    label="승인"
+                    disabled={!team.teamPublicId || Boolean(team.participationFinalizedAt) || Boolean(updatingTeamId)}
+                    onClick={async () => {
+                      setUpdatingTeamId(team.id);
+                      try {
+                        if (await onUpdateTeamStatus(team.teamPublicId, "승인")) {
+                          setRevisionTargetId("");
+                          setRevisionReason("");
+                        }
+                      } finally {
+                        setUpdatingTeamId("");
+                      }
+                    }}
+                  >
                     <Check size={17} />
                   </IconButton>
-                  <IconButton label="보완 요청" onClick={() => onUpdateTeamStatus(team.id, "보완요청")}>
+                  <IconButton
+                    label="보완 요청"
+                    disabled={!team.teamPublicId || Boolean(team.participationFinalizedAt) || Boolean(updatingTeamId)}
+                    onClick={() => {
+                      setRevisionTargetId(team.id);
+                      setRevisionReason(team.revisionReason ?? "");
+                    }}
+                  >
                     <CircleAlert size={17} />
+                  </IconButton>
+                  <IconButton
+                    label="반려"
+                    disabled={!team.teamPublicId || Boolean(team.participationFinalizedAt) || Boolean(updatingTeamId)}
+                    onClick={async () => {
+                      setUpdatingTeamId(team.id);
+                      try {
+                        if (await onUpdateTeamStatus(team.teamPublicId, "반려")) {
+                          setRevisionTargetId("");
+                          setRevisionReason("");
+                        }
+                      } finally {
+                        setUpdatingTeamId("");
+                      }
+                    }}
+                  >
+                    <X size={17} />
                   </IconButton>
                   <IconButton label="더 보기" onClick={() => openModal("teamDetail", { team, contest: selectedContest })}>
                     <MoreHorizontal size={17} />
                   </IconButton>
                 </div>
               </div>
+              {team.teamPublicId && revisionTargetId === team.id && (
+                <form
+                  className="team-revision-form"
+                  onSubmit={async (event) => {
+                    event.preventDefault();
+                    const reason = revisionReason.trim();
+                    if (!reason) {
+                      return;
+                    }
+                    setUpdatingTeamId(team.id);
+                    try {
+                      if (await onUpdateTeamStatus(team.teamPublicId, "보완요청", reason)) {
+                        setRevisionTargetId("");
+                        setRevisionReason("");
+                      }
+                    } finally {
+                      setUpdatingTeamId("");
+                    }
+                  }}
+                >
+                  <label htmlFor={`revision-reason-${team.id}`}>보완 요청 사유</label>
+                  <textarea
+                    id={`revision-reason-${team.id}`}
+                    value={revisionReason}
+                    onChange={(event) => setRevisionReason(event.target.value)}
+                    maxLength={500}
+                    placeholder="참가자가 확인할 수 있도록 수정할 내용을 적어주세요."
+                    required
+                  />
+                  <div className="team-revision-actions">
+                    <span>{revisionReason.length}/500</span>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => {
+                        setRevisionTargetId("");
+                        setRevisionReason("");
+                      }}
+                      disabled={updatingTeamId === team.id}
+                    >
+                      취소
+                    </button>
+                    <button
+                      className="primary-button"
+                      type="submit"
+                      disabled={!revisionReason.trim() || updatingTeamId === team.id}
+                    >
+                      {updatingTeamId === team.id ? "처리 중..." : "보완 요청"}
+                    </button>
+                  </div>
+                </form>
+              )}
             </article>
           ))}
           {visibleTeams.length === 0 && (

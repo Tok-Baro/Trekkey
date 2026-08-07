@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, UserRound, X } from "lucide-react";
+import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, ShieldCheck, UserRound, X } from "lucide-react";
 import { navItems } from "./constants/navigation.js";
 import { ModalRoot } from "./components/modals/ModalRoot.jsx";
 import { AppFooter } from "./components/common/AppFooter.jsx";
@@ -8,18 +8,25 @@ import { IconButton } from "./components/common/CommonUi.jsx";
 import {
   AwardsPage,
   ContestsPage,
+  CredentialsPage,
   DashboardPage,
   JudgingPage,
   SubmissionsPage,
   TeamsPage
 } from "./pages/admin/index.js";
+import { RootAdminPage } from "./pages/root/index.js";
 import { LoginPage } from "./pages/auth/LoginPage.jsx";
 import { ParticipantPortal } from "./pages/participant/ParticipantPortal.jsx";
 import { ContestPublicDetailPage } from "./pages/public/ContestPublicDetailPage.jsx";
 import { ReviewerPage } from "./pages/review/ReviewerPage.jsx";
+import { ServerReviewerPage } from "./pages/review/ServerReviewerPage.jsx";
+import { getApiErrorMessage } from "./api/backendApi.js";
 import { getContestWithPublicFields } from "./lib/contest.js";
+import { getCredentialVerificationPath } from "./components/credential/CredentialVerificationLink.jsx";
 import { exportAwardsCsv, exportSubmissionsCsv } from "./lib/exportCsv.js";
 import { useCompetitionStore } from "./hooks/useCompetitionStore.js";
+import { useAdminData } from "./hooks/useAdminData.js";
+import { useParticipantData } from "./hooks/useParticipantData.js";
 import { useSessionStore } from "./hooks/useSessionStore.js";
 import {
   getAdminPath,
@@ -32,10 +39,26 @@ import {
 } from "./routeConfig.js";
 import styles from "./styles/App.module.scss";
 
+function saveDownloadedFile(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName || "submission-file";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const rootNavItems = [
+  { id: "root", label: "관리자 계정", icon: ShieldCheck }
+];
+
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const { contestId: routeContestParam } = useParams();
+  const isServerReviewRoute = location.pathname === "/judge/review";
   const isReviewRoute = location.pathname.startsWith("/review/");
   const isContestDetailRoute = location.pathname.startsWith("/contest/");
   const isLoginRoute = location.pathname === getLoginPath();
@@ -47,24 +70,43 @@ function App() {
     return routeContestParam ?? params.get("contest");
   }, [location.search, routeContestParam]);
   const routeRoundId = useMemo(() => new URLSearchParams(location.search).get("round"), [location.search]);
-  const { session, login, logout } = useSessionStore();
+  const { session, isReady: isAuthReady, login, logout } = useSessionStore();
   const competition = useCompetitionStore();
+  const isRootAdmin = isAuthReady && session?.serverRole === "ROOT_ADMIN" && session?.authSource === "server";
+  const isServerAdmin =
+    isAuthReady &&
+    ["ADMIN", "ROOT_ADMIN"].includes(session?.serverRole) &&
+    session?.authSource === "server";
+  const admin = useAdminData({
+    enabled: isServerAdmin && activePage !== "root",
+    loadScope: activePage !== "credentials"
+  });
+  const participant = useParticipantData({
+    session,
+    enabled: isAuthReady && session?.role === "participant" && session?.authSource === "server"
+  });
   const {
     contestRecords,
     teamRecords,
     submissionRecords,
     judgeRecords,
     reviewRecords,
+    reviewRecordsError,
     awardRecords,
     selectedContest,
     selectedContestId,
     setSelectedContestId
-  } = competition;
+  } = isServerAdmin ? admin : competition;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
+  const [participantPortalVersion, setParticipantPortalVersion] = useState(0);
   const notificationRef = useRef(null);
+  const participantApplicationUpdateRef = useRef(null);
+  const visibleNavItems = isRootAdmin ? [...navItems, ...rootNavItems] : navItems;
+  const displayedAdminPage = activePage;
 
   useEffect(() => {
     if (routeContestId && contestRecords.some((contest) => contest.id === routeContestId)) {
@@ -132,14 +174,81 @@ function App() {
     };
   }, [isNotificationsOpen]);
 
+  useEffect(() => {
+    if (
+      !isAuthReady ||
+      session?.role !== "participant" ||
+      !isContestDetailRoute ||
+      !routeContestParam
+    ) {
+      return;
+    }
+
+    participant.loadContestDetail(routeContestParam, { trackView: true }).catch(() => undefined);
+  }, [isAuthReady, isContestDetailRoute, participant.loadContestDetail, routeContestParam, session?.role]);
+
+  useEffect(() => {
+    if (
+      !isAuthReady ||
+      !["ADMIN", "ROOT_ADMIN"].includes(session?.serverRole) ||
+      session?.authSource !== "server" ||
+      !isContestDetailRoute ||
+      !routeContestParam
+    ) {
+      return;
+    }
+    admin.setSelectedContestId(routeContestParam);
+  }, [admin.setSelectedContestId, isAuthReady, isContestDetailRoute, routeContestParam, session?.authSource, session?.serverRole]);
+
   const notify = (message) => setToast({ id: Date.now(), message });
-  const openModal = (type, payload = {}) => setModal({ type, payload });
+  const openModal = (type, payload = {}) => {
+    if (isServerAdmin && type === "contest" && payload.contest && !payload.contest.isDetailLoaded) {
+      const contestId = payload.contest.id;
+      admin.loadSelectedContest(contestId)
+        .then((result) => {
+          admin.setSelectedContestId(contestId);
+          setModal({ type, payload: { ...payload, contest: result.contest } });
+        })
+        .catch((error) => notify(getApiErrorMessage(error, "대회 상세 정보를 불러오지 못했습니다.")));
+      return;
+    }
+    if (isServerAdmin && type === "submission") {
+      notify("관리자 수동 제출물 접수 API는 develop에 구현되어 있지 않습니다.");
+      return;
+    }
+    if (isServerAdmin && type === "reviewLink" && !payload.judge) {
+      notify("심사 링크는 심사 화면의 심사위원 카드에서 개별 발급해 주세요.");
+      return;
+    }
+    if (isServerAdmin && type === "settings") {
+      notify("현재 운영 설정 화면은 로컬 데모용이라 실제 관리자 데이터에서는 사용할 수 없습니다.");
+      return;
+    }
+    if (isServerAdmin && type === "judge" && payload.judge) {
+      notify("심사위원 수정 API는 develop에 구현되어 있지 않습니다.");
+      return;
+    }
+    setModal({ type, payload });
+  };
   const closeModal = () => setModal(null);
 
-  const handleLogin = (form) => {
-    const nextSession = login(form);
-    navigate(nextSession.role === "admin" ? getAdminPath("dashboard") : getParticipantPath());
-    notify(nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.");
+  const handleLogin = async (form) => {
+    setIsLoginSubmitting(true);
+    try {
+      const nextSession = await login(form);
+      navigate(
+        nextSession.serverRole === "ROOT_ADMIN"
+          ? getAdminPath("root")
+          : nextSession.role === "admin"
+            ? getAdminPath("dashboard")
+            : getParticipantPath()
+      );
+      notify(nextSession.role === "admin" ? "관리자 계정으로 로그인했습니다." : "참가자 계정으로 로그인했습니다.");
+    } catch (error) {
+      notify(getApiErrorMessage(error, "로그인하지 못했습니다."));
+    } finally {
+      setIsLoginSubmitting(false);
+    }
   };
 
   const handleContinueSession = () => {
@@ -147,11 +256,17 @@ function App() {
       return;
     }
 
-    navigate(session.role === "admin" ? getAdminPath("dashboard") : getParticipantPath());
+    navigate(
+      session.serverRole === "ROOT_ADMIN"
+        ? getAdminPath("root")
+        : session.role === "admin"
+          ? getAdminPath("dashboard")
+          : getParticipantPath()
+    );
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setModal(null);
     setIsSidebarOpen(false);
     navigate(getLoginPath());
@@ -182,104 +297,391 @@ function App() {
     }
   };
 
-  const handleSaveContest = (form) => {
+  const handleSaveContest = async (form) => {
+    if (isServerAdmin) {
+      try {
+        const result = await admin.saveContest(form);
+        notify(result.message);
+        closeModal();
+        navigate(getAdminPath("contests", result.contestId));
+        return true;
+      } catch (error) {
+        notify(getApiErrorMessage(error, "대회 설정을 저장하지 못했습니다."));
+        return false;
+      }
+    }
     const result = competition.saveContest(form);
     if (result.routePage) {
       navigate(getAdminPath(result.routePage, result.selectedContestId));
     }
     notify(result.message);
     closeModal();
+    return true;
   };
 
-  const handleApplyContest = (form) => {
-    const result = competition.applyContest(form, session);
-    notify(result.message);
-    return result.ok;
+  const handleApplyContest = async (form) => {
+    if (session?.role === "participant") {
+      const { contestId, ...request } = form;
+      try {
+        await participant.applyToContest(contestId, request);
+        notify("참가 신청을 접수했습니다.");
+        return true;
+      } catch (error) {
+        notify(getApiErrorMessage(error, "참가 신청을 접수하지 못했습니다."));
+        return false;
+      }
+    }
+
+    notify("관리자 계정에서는 참가 신청을 할 수 없습니다.");
+    return false;
   };
 
   const handleRecordContestView = (contestId) => {
-    competition.recordContestView(contestId, session);
+    if (!isServerAdmin) {
+      competition.recordContestView(contestId, session);
+    }
   };
 
-  const handleToggleContestLike = (contestId) => {
-    const result = competition.toggleContestLike(contestId, session);
-    notify(result.message);
+  const handleToggleContestLike = async (contestId) => {
+    if (session?.role === "participant") {
+      try {
+        const result = await participant.toggleLike(contestId);
+        notify(result.likedByMe ? "관심 대회에 추가했습니다." : "관심 대회에서 제외했습니다.");
+      } catch (error) {
+        notify(getApiErrorMessage(error, "좋아요를 변경하지 못했습니다."));
+      }
+      return;
+    }
+
+    notify("좋아요는 참가자 계정에서 사용할 수 있습니다.");
   };
 
-  const handleUpdateParticipantApplication = (teamId, patch) => {
-    const result = competition.updateParticipantApplication(teamId, patch);
-    notify(result.message);
-    return result.ok;
+  const handleUpdateParticipantApplication = (contestPublicId, patch) => {
+    const applicationTeam = participant.teams.find(
+      (team) => team.contestId === contestPublicId || team.id === contestPublicId
+    );
+    if (applicationTeam?.myRole !== "LEADER") {
+      notify("대표자만 신청 정보를 수정할 수 있습니다.");
+      return false;
+    }
+    if (applicationTeam.participationFinalizedAt) {
+      notify("참가 명단이 확정되어 신청 정보를 수정할 수 없습니다.");
+      return false;
+    }
+    if (participantApplicationUpdateRef.current) {
+      return false;
+    }
+    const request = participant.updateMyApplication(contestPublicId, {
+      teamName: patch.name,
+      leaderName: patch.leader,
+      major: patch.major,
+      memberUserIds: patch.memberUserIds ?? [],
+      contactEmail: patch.applicantEmail,
+      phone: patch.phone,
+      motivation: patch.motivation
+    })
+      .then(() => {
+        notify("신청 정보를 수정했습니다.");
+        setParticipantPortalVersion((current) => current + 1);
+      })
+      .catch((error) => {
+        notify(getApiErrorMessage(error, "신청 정보를 수정하지 못했습니다."));
+      })
+      .finally(() => {
+        if (participantApplicationUpdateRef.current === request) {
+          participantApplicationUpdateRef.current = null;
+        }
+      });
+    participantApplicationUpdateRef.current = request;
+    return false;
   };
 
-  const handleUpsertParticipantSubmission = (contestId, teamId, form) => {
-    const result = competition.upsertParticipantSubmission(contestId, teamId, form);
-    notify(result.message);
-    return result.ok;
+  const handleParticipantSubmission = async (contestId, _teamId, form) => {
+    try {
+      await participant.submitSubmission(contestId, form);
+      notify("제출물을 접수했습니다.");
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "제출물을 접수하지 못했습니다."));
+      return false;
+    }
   };
 
-  const handleUpdateTeamStatus = (teamId, status) => {
-    const result = competition.updateTeamStatus(teamId, status);
-    notify(result.message);
+  const handleParticipantSubmissionDownload = async (file) => {
+    try {
+      await participant.downloadSubmissionAttachment(file);
+      notify("파일 다운로드를 시작했습니다.");
+    } catch (error) {
+      notify(getApiErrorMessage(error, "파일을 다운로드하지 못했습니다."));
+    }
   };
 
-  const handleAddSubmission = (form) => {
-    const result = competition.addSubmission(form);
-    notify(result.message);
-    closeModal();
+  const handleUpdateTeamStatus = async (teamId, status, revisionReason) => {
+    try {
+      const result = await admin.updateTeamStatus(teamId, status, revisionReason);
+      notify(result.message);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "신청 상태를 변경하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleFinalizeTeam = async (teamId) => {
+    try {
+      const result = await admin.finalizeTeam(teamId);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "참가 명단을 확정하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleAddSubmission = () => {
+    notify("관리자 수동 제출물 접수 API는 develop에 구현되어 있지 않습니다.");
   };
 
   const handleGenerateHashes = () => {
-    const result = competition.generateSubmissionHashes(selectedContestId);
-    notify(result.message);
+    notify("파일 해시는 제출 시 서버에서 생성되며 별도 생성 API는 없습니다.");
   };
 
-  const handleAddJudge = (form) => {
-    const result = competition.addJudge(form);
-    notify(result.message);
-    closeModal();
+  const handleAddJudge = async (form) => {
+    try {
+      const result = await admin.addJudge(form);
+      notify(result.message);
+      closeModal();
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사위원을 추가하지 못했습니다."));
+    }
   };
 
-  const handleUpdateJudge = (form) => {
-    const result = competition.updateJudge(form);
-    notify(result.message);
-    closeModal();
+  const handleUpdateJudge = () => {
+    notify("심사위원 수정 API는 develop에 구현되어 있지 않습니다.");
   };
 
-  const handleDeleteJudge = (judgeId) => {
-    const result = competition.deleteJudge(judgeId);
-    notify(result.message);
-    closeModal();
+  const handleDeleteJudge = async (judgeId) => {
+    try {
+      const result = await admin.deleteJudge(judgeId);
+      notify(result.message);
+      closeModal();
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사위원을 삭제하지 못했습니다."));
+    }
   };
 
-  const handleBatchAssignJudges = (roundId) => {
-    const result = competition.batchAssignJudges(selectedContestId, roundId);
-    notify(result.message);
+  const handlePrepareReviewEntries = async (round, submissionPublicIds = []) => {
+    if (round.targetType === "manual" && submissionPublicIds.length === 0) {
+      openModal("prepareReviewEntries", { round });
+      return false;
+    }
+    try {
+      const result = await admin.prepareReviewEntries(round, submissionPublicIds);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "평가 대상을 준비하지 못했습니다."));
+      return false;
+    }
   };
 
-  const handleSendReminder = (roundId) => {
-    const result = competition.sendReviewReminders(selectedContestId, roundId);
-    notify(result.message);
+  const handleResetReviewEntries = (round) => {
+    openModal("resetReviewEntries", { round });
+  };
+
+  const handleConfirmResetReviewEntries = async (round) => {
+    try {
+      const result = await admin.resetReviewEntries(round);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "평가 대상을 초기화하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleBatchAssignJudges = async (round) => {
+    try {
+      const result = await admin.prepareReviewAssignments(round);
+      notify(result.message);
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 대상을 배정하지 못했습니다."));
+    }
+  };
+
+  const handleIssueReviewLink = (judge, round) => {
+    openModal("reviewLink", { judge, round, contest: selectedContest });
+  };
+
+  const handleCreateReviewLink = async (judgeId, expiresAt) => {
+    try {
+      const result = await admin.issueReviewLink(judgeId, expiresAt);
+      notify(result.message);
+      return result.link;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 링크를 발급하지 못했습니다."));
+      return null;
+    }
+  };
+
+  const handleRevokeReviewLink = async (judgeId) => {
+    try {
+      const result = await admin.revokeReviewLink(judgeId);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 링크를 폐기하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleOpenReviewRound = (round) => {
+    openModal("openReviewRound", { round });
+  };
+
+  const handleConfirmOpenReviewRound = async (round) => {
+    try {
+      const result = await admin.openReviewRound(round);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 라운드를 시작하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleExtendReviewRound = (round) => {
+    openModal("extendReviewRound", { round });
+  };
+
+  const handleConfirmExtendReviewRound = async (round, endsAt) => {
+    try {
+      const result = await admin.extendReviewRoundDeadline(round, endsAt);
+      notify(result.message);
+      closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 마감 시각을 연장하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleUpdateStageStatus = async (stageId, status) => {
+    try {
+      const result = await admin.updateStageStatus(stageId, status);
+      notify(result.message);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "대회 단계 상태를 변경하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleListReviewAssignments = (round, judgeId) => admin.listReviewAssignments(round, judgeId);
+
+  const handleCancelReviewAssignment = async (round, judgeId, assignmentId) => {
+    try {
+      const result = await admin.cancelReviewAssignment(round, judgeId, assignmentId);
+      notify(result.message);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 배정을 취소하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleReassignReviewAssignment = async (round, judgeId, assignmentId, dueAt) => {
+    try {
+      const result = await admin.reassignReviewAssignment(round, judgeId, assignmentId, dueAt);
+      notify(result.message);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 대상을 다시 배정하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleUpdateReviewAssignmentDueAt = async (round, judgeId, assignmentId, dueAt) => {
+    try {
+      const result = await admin.updateReviewAssignmentDueAt(round, judgeId, assignmentId, dueAt);
+      notify(result.message);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 배정 마감 시각을 변경하지 못했습니다."));
+      return false;
+    }
   };
 
   const handleSubmitJudgeReview = ({ contestId, roundId, judgeName, reviewedCount, averageScore, records = [] }) => {
+    if (session?.authSource === "server") {
+      notify("실제 심사는 심사위원별 접근 토큰 화면을 연결한 뒤 제출할 수 있습니다.");
+      return false;
+    }
     const result = competition.submitJudgeReview({ contestId, roundId, judgeName, reviewedCount, averageScore, records });
     notify(result.message);
+    return true;
   };
 
-  const handleCalculateResults = (roundId) => {
-    const result = competition.calculateResults(selectedContestId, roundId);
-    if (result.ok) {
-      navigatePage(result.routePage, selectedContestId);
+  const handleCalculateResults = (round) => {
+    if (!isServerAdmin) {
+      notify("결과 산출은 관리자 서버 계정에서 사용할 수 있습니다.");
+      return;
     }
-    notify(result.message);
+    const targetRound = round?.serverId
+      ? round
+      : selectedContest.evaluationRounds?.[selectedContest.evaluationRounds.length - 1];
+    if (!targetRound) {
+      notify("결과를 산출할 심사 라운드가 없습니다.");
+      return;
+    }
+    openModal("finalizeReviewRound", {
+      round: targetRound,
+      entries: admin.reviewEntriesByRoundId[targetRound.id] ?? []
+    });
   };
 
-  const handleConfirmAwards = () => {
-    const result = competition.confirmAwards(selectedContestId);
-    notify(result.message);
-    if (result.ok !== false) {
+  const handleConfirmReviewResults = async (round, manualDecisions = []) => {
+    try {
+      const result = await admin.finalizeReviewRound(round, manualDecisions);
+      notify(result.message);
       closeModal();
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사 결과를 산출하지 못했습니다."));
+      return false;
+    }
+  };
+
+  const handleConfirmAwards = async () => {
+    try {
+      const result = await admin.confirmAwards(selectedContestId);
+      notify(result.message);
+      closeModal();
+    } catch (error) {
+      notify(getApiErrorMessage(error, "수상 결과를 확정하지 못했습니다."));
+    }
+  };
+
+  const handleAdminSubmissionDownload = async (submission) => {
+    const attachments = submission?.attachments ?? [];
+    if (attachments.length === 0) {
+      notify("다운로드할 파일이 없습니다.");
+      return;
+    }
+
+    try {
+      for (const file of attachments) {
+        const download = await admin.downloadSubmissionFile(file);
+        saveDownloadedFile(download.blob, download.fileName);
+      }
+      notify(attachments.length === 1 ? "파일 다운로드를 시작했습니다." : `${attachments.length}개 파일 다운로드를 시작했습니다.`);
+    } catch (error) {
+      notify(getApiErrorMessage(error, "제출물을 다운로드하지 못했습니다."));
     }
   };
 
@@ -334,10 +736,15 @@ function App() {
           session={session}
           onLogin={handleLogin}
           onContinue={handleContinueSession}
+          isSubmitting={isLoginSubmitting}
         />
         {toast && <div className={styles.toast} role="status">{toast.message}</div>}
       </>
     );
+  }
+
+  if (isServerReviewRoute) {
+    return <ServerReviewerPage />;
   }
 
   if (isReviewRoute) {
@@ -358,15 +765,44 @@ function App() {
   }
 
   if (isContestDetailRoute) {
-    const publicContest = contestRecords.find((contest) => contest.id === routeContestParam);
+    if (!isAuthReady) {
+      return <AuthLoadingScreen />;
+    }
+
+    if (!session) {
+      return (
+        <>
+          <LoginPage
+            preferredRole="participant"
+            session={session}
+            onLogin={handleLogin}
+            onContinue={handleContinueSession}
+            isSubmitting={isLoginSubmitting}
+          />
+          {toast && <div className={styles.toast} role="status">{toast.message}</div>}
+        </>
+      );
+    }
+
+    const isParticipant = session.role === "participant";
+    const sourceContest = isParticipant
+      ? participant.detailById[routeContestParam]
+      : contestRecords.find((contest) => contest.id === routeContestParam);
     return (
       <ContestPublicDetailPage
-        contest={publicContest ? getContestWithPublicFields(publicContest) : null}
+        contest={sourceContest ? getContestWithPublicFields(sourceContest) : null}
         session={session}
-        teams={teamRecords}
+        teams={isParticipant ? participant.teams : teamRecords}
         onApplyContest={handleApplyContest}
-        onRecordView={handleRecordContestView}
+        onRecordView={isParticipant ? undefined : handleRecordContestView}
         onToggleLike={handleToggleContestLike}
+        onSearchParticipants={participant.searchParticipants}
+        isLoading={isParticipant
+          ? participant.detailLoadingById[routeContestParam] ||
+            (!sourceContest && !participant.detailErrorById[routeContestParam])
+          : !admin.error && (admin.isLoading || !sourceContest?.isDetailLoaded)}
+        isApplicationDataLoading={isParticipant && participant.isLoading}
+        loadError={isParticipant ? participant.detailErrorById[routeContestParam] : admin.error}
         onNotify={notify}
         onBack={() =>
           navigate(session?.role === "participant" ? getParticipantPath() : getAdminPath("contests", routeContestParam))
@@ -376,29 +812,58 @@ function App() {
   }
 
   if (isParticipantRoute) {
+    if (!isAuthReady) {
+      return <AuthLoadingScreen />;
+    }
+
     if (session?.role !== "participant") {
       return (
         <>
-          <LoginPage preferredRole="participant" session={session} onLogin={handleLogin} onContinue={handleContinueSession} />
+          <LoginPage
+            preferredRole="participant"
+            session={session}
+            onLogin={handleLogin}
+            onContinue={handleContinueSession}
+            isSubmitting={isLoginSubmitting}
+          />
           {toast && <div className={styles.toast} role="status">{toast.message}</div>}
         </>
+      );
+    }
+
+    if (participant.isLoading && participant.contests.length === 0 && participant.teams.length === 0) {
+      return <ParticipantDataScreen />;
+    }
+
+    if (participant.error && participant.contests.length === 0 && participant.teams.length === 0) {
+      return (
+        <ParticipantDataScreen
+          error={participant.error}
+          onRetry={participant.loadOverview}
+          onLogout={handleLogout}
+        />
       );
     }
 
     return (
       <>
         <ParticipantPortal
+          key={`${session.id}:${participantPortalVersion}`}
           session={session}
-          contests={contestRecords}
-          teams={teamRecords}
-          submissions={submissionRecords}
-          awardCandidates={awardRecords}
+          contests={participant.contests}
+          teams={participant.teams}
+          submissions={participant.submissions}
+          awardCandidates={participant.awardCandidates}
+          credentials={participant.credentials}
+          credentialError={participant.credentialError}
           activeView={activeParticipantPage}
           onOpenPublicPage={openContestDetailPage}
           onToggleLike={handleToggleContestLike}
           onNavigate={navigateParticipantPage}
           onUpdateApplication={handleUpdateParticipantApplication}
-          onSubmitSubmission={handleUpsertParticipantSubmission}
+          onSearchParticipants={participant.searchParticipants}
+          onSubmitSubmission={handleParticipantSubmission}
+          onDownloadSubmissionFile={handleParticipantSubmissionDownload}
           onLogout={handleLogout}
         />
         {toast && <div className={styles.toast} role="status">{toast.message}</div>}
@@ -406,16 +871,42 @@ function App() {
     );
   }
 
-  if (session?.role !== "admin") {
+  if (!isAuthReady) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (session?.role !== "admin" || session.authSource !== "server") {
     return (
       <>
-        <LoginPage preferredRole="admin" session={session} onLogin={handleLogin} onContinue={handleContinueSession} />
+        <LoginPage
+          preferredRole="admin"
+          session={session}
+          onLogin={handleLogin}
+          onContinue={handleContinueSession}
+          isSubmitting={isLoginSubmitting}
+        />
         {toast && <div className={styles.toast} role="status">{toast.message}</div>}
       </>
     );
   }
 
-  const ActiveIcon = navItems.find((item) => item.id === activePage)?.icon ?? Home;
+  if (displayedAdminPage !== "root" && admin.isLoading) {
+    return <AdminDataScreen />;
+  }
+
+  if (displayedAdminPage !== "root" && admin.error) {
+    return (
+      <AdminDataScreen
+        error={admin.error}
+        onRetry={contestRecords.length > 0
+          ? () => admin.loadSelectedContest(selectedContestId)
+          : admin.loadOverview}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  const ActiveIcon = visibleNavItems.find((item) => item.id === displayedAdminPage)?.icon ?? Home;
 
   return (
     <div className={`${styles.appRoot} ${styles.appShell}`}>
@@ -440,7 +931,7 @@ function App() {
           </div>
           <div>
             <strong>Trekkey</strong>
-            <span>대회관리 콘솔</span>
+            <span>{isRootAdmin ? "통합 관리자 콘솔" : "대회관리 콘솔"}</span>
           </div>
           <button className={styles.sidebarClose} type="button" aria-label="메뉴 닫기" onClick={() => setIsSidebarOpen(false)}>
             <X size={18} aria-hidden="true" />
@@ -448,12 +939,12 @@ function App() {
         </div>
 
         <nav className={styles.navList}>
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.id}
-                className={`${styles.navItem} ${activePage === item.id ? styles.navItemActive : ""}`}
+                className={`${styles.navItem} ${displayedAdminPage === item.id ? styles.navItemActive : ""}`}
                 onClick={() => {
                   navigatePage(item.id);
                 }}
@@ -473,7 +964,7 @@ function App() {
             </div>
             <div>
               <strong>{session.name}</strong>
-              <span>{session.role === "admin" ? "관리자 계정" : "참가자 계정"}</span>
+              <span>{isRootAdmin ? "최고 관리자 계정" : "관리자 계정"}</span>
             </div>
           </div>
           <div className={styles.sidebarFooterActions}>
@@ -514,51 +1005,59 @@ function App() {
                 <ActiveIcon size={20} aria-hidden="true" />
               </div>
               <div>
-                <h1>{getPageHeading(activePage)}</h1>
+                <h1>{getPageHeading(displayedAdminPage)}</h1>
               </div>
             </div>
           </div>
 
           <div className={styles.topbarActions}>
-            <label className={styles.searchBox}>
-              <Search size={17} aria-hidden="true" />
-              <input type="search" placeholder="대회, 팀, 제출물 검색" />
-            </label>
-            <div className={styles.notificationRoot} ref={notificationRef}>
-              <IconButton
-                label="알림"
-                aria-controls="notification-popover"
-                aria-expanded={isNotificationsOpen}
-                onClick={() => setIsNotificationsOpen((current) => !current)}
-              >
-                <Bell size={18} />
-                {notificationSummary.totalCount > 0 && <span className={styles.notificationIndicator}>{notificationSummary.totalCount}</span>}
-              </IconButton>
-              {isNotificationsOpen && (
-                <NotificationPopover
-                  summary={notificationSummary}
-                  onOpenPage={(page) => {
-                    navigatePage(page);
-                  }}
-                />
-              )}
-            </div>
+            {displayedAdminPage !== "root" && (
+              <>
+                <label className={styles.searchBox}>
+                  <Search size={17} aria-hidden="true" />
+                  <input type="search" placeholder="대회, 팀, 제출물 검색" />
+                </label>
+                <div className={styles.notificationRoot} ref={notificationRef}>
+                  <IconButton
+                    label="알림"
+                    aria-controls="notification-popover"
+                    aria-expanded={isNotificationsOpen}
+                    onClick={() => setIsNotificationsOpen((current) => !current)}
+                  >
+                    <Bell size={18} />
+                    {notificationSummary.totalCount > 0 && <span className={styles.notificationIndicator}>{notificationSummary.totalCount}</span>}
+                  </IconButton>
+                  {isNotificationsOpen && (
+                    <NotificationPopover
+                      summary={notificationSummary}
+                      onOpenPage={(page) => {
+                        navigatePage(page);
+                      }}
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </header>
 
-        <main className={styles.contentArea} data-page={activePage} key={activePage}>
-          {activePage === "dashboard" && (
+        <main className={styles.contentArea} data-page={displayedAdminPage} key={displayedAdminPage}>
+          {displayedAdminPage === "root" && (
+            <RootAdminPage session={session} onNotify={notify} />
+          )}
+          {displayedAdminPage === "dashboard" && (
             <DashboardPage
               contests={contestRecords}
               teams={teamRecords}
               submissions={submissionRecords}
               judgingAssignments={judgeRecords}
               awardCandidates={awardRecords}
+              selectedContestId={isServerAdmin ? selectedContestId : null}
               onNavigate={navigatePage}
               openModal={openModal}
             />
           )}
-          {activePage === "contests" && (
+          {displayedAdminPage === "contests" && (
             <ContestsPage
               contests={contestRecords}
               teams={teamRecords}
@@ -566,6 +1065,7 @@ function App() {
               judgingAssignments={judgeRecords}
               awardCandidates={awardRecords}
               reviewScores={reviewRecords}
+              reviewScoresError={reviewRecordsError}
               selectedContestId={selectedContestId}
               setSelectedContestId={selectContest}
               selectedContest={selectedContest}
@@ -576,7 +1076,7 @@ function App() {
               onCalculateResults={handleCalculateResults}
             />
           )}
-          {activePage === "teams" && (
+          {displayedAdminPage === "teams" && (
             <TeamsPage
               contests={contestRecords}
               teams={teamRecords}
@@ -587,7 +1087,7 @@ function App() {
               onUpdateTeamStatus={handleUpdateTeamStatus}
             />
           )}
-          {activePage === "submissions" && (
+          {displayedAdminPage === "submissions" && (
             <SubmissionsPage
               contests={contestRecords}
               submissions={submissionRecords}
@@ -598,25 +1098,30 @@ function App() {
               openModal={openModal}
               onExport={handleExport}
               onGenerateHashes={handleGenerateHashes}
-              onNotify={notify}
+              onDownloadSubmission={handleAdminSubmissionDownload}
             />
           )}
-          {activePage === "judging" && (
+          {displayedAdminPage === "judging" && (
             <JudgingPage
               contests={contestRecords}
               judgingAssignments={judgeRecords}
               submissions={submissionRecords}
               reviewScores={reviewRecords}
+              reviewScoresError={reviewRecordsError}
               selectedContest={selectedContest}
               selectedContestId={selectedContestId}
               setSelectedContestId={selectContest}
               openModal={openModal}
+              onPrepareEntries={handlePrepareReviewEntries}
+              onResetEntries={handleResetReviewEntries}
+              onOpenRound={handleOpenReviewRound}
               onBatchAssign={handleBatchAssignJudges}
-              onSendReminder={handleSendReminder}
+              onIssueReviewLink={handleIssueReviewLink}
+              onExtendDeadline={handleExtendReviewRound}
               onCalculateResults={handleCalculateResults}
             />
           )}
-          {activePage === "awards" && (
+          {displayedAdminPage === "awards" && (
             <AwardsPage
               contests={contestRecords}
               awardCandidates={awardRecords}
@@ -625,6 +1130,18 @@ function App() {
               setSelectedContestId={selectContest}
               openModal={openModal}
               onExport={handleExport}
+            />
+          )}
+          {displayedAdminPage === "credentials" && (
+            <CredentialsPage
+              contests={contestRecords}
+              selectedContest={selectedContest}
+              selectedContestId={selectedContestId}
+              setSelectedContestId={selectContest}
+              onOpenCredential={(credentialPublicId) =>
+                navigate(getCredentialVerificationPath(credentialPublicId))
+              }
+              onNotify={notify}
             />
           )}
         </main>
@@ -644,15 +1161,85 @@ function App() {
         openModal={openModal}
         onClose={closeModal}
         onSaveContest={handleSaveContest}
+        onFinalizeTeam={handleFinalizeTeam}
         onAddSubmission={handleAddSubmission}
         onAddJudge={handleAddJudge}
         onUpdateJudge={handleUpdateJudge}
         onDeleteJudge={handleDeleteJudge}
         onConfirmAwards={handleConfirmAwards}
+        onDownloadSubmission={handleAdminSubmissionDownload}
         onNotify={notify}
+        serverBacked={isServerAdmin}
+        onPrepareReviewEntries={handlePrepareReviewEntries}
+        onResetReviewEntries={handleConfirmResetReviewEntries}
+        onOpenReviewRound={handleConfirmOpenReviewRound}
+        onIssueReviewLink={handleCreateReviewLink}
+        onRevokeReviewLink={handleRevokeReviewLink}
+        onFinalizeReviewRound={handleConfirmReviewResults}
+        onExtendReviewRoundDeadline={handleConfirmExtendReviewRound}
+        onUpdateStageStatus={handleUpdateStageStatus}
+        onListReviewAssignments={handleListReviewAssignments}
+        onCancelReviewAssignment={handleCancelReviewAssignment}
+        onReassignReviewAssignment={handleReassignReviewAssignment}
+        onUpdateReviewAssignmentDueAt={handleUpdateReviewAssignmentDueAt}
       />
       {toast && <div className={styles.toast} role="status">{toast.message}</div>}
     </div>
+  );
+}
+
+function AuthLoadingScreen() {
+  return (
+    <main className="contest-public-page">
+      <section className="public-empty" aria-live="polite">
+        <Layers3 size={34} aria-hidden="true" />
+        <h1>로그인 정보를 확인하는 중입니다</h1>
+      </section>
+    </main>
+  );
+}
+
+function ParticipantDataScreen({ error = "", onRetry, onLogout }) {
+  return (
+    <main className="contest-public-page">
+      <section className="public-empty" aria-live="polite">
+        <Layers3 size={34} aria-hidden="true" />
+        <h1>{error ? "참가자 정보를 불러오지 못했습니다" : "참가자 정보를 불러오는 중입니다"}</h1>
+        {error && <p>{error}</p>}
+        {error && (
+          <div className="modal-actions">
+            <button className="secondary-button" type="button" onClick={onLogout}>
+              로그아웃
+            </button>
+            <button className="primary-button" type="button" onClick={() => onRetry?.().catch(() => undefined)}>
+              다시 시도
+            </button>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function AdminDataScreen({ error = "", onRetry, onLogout }) {
+  return (
+    <main className="contest-public-page">
+      <section className="public-empty" aria-live="polite">
+        <Layers3 size={34} aria-hidden="true" />
+        <h1>{error ? "관리자 정보를 불러오지 못했습니다" : "관리자 정보를 불러오는 중입니다"}</h1>
+        {error && <p>{error}</p>}
+        {error && (
+          <div className="modal-actions">
+            <button className="secondary-button" type="button" onClick={onLogout}>
+              로그아웃
+            </button>
+            <button className="primary-button" type="button" onClick={() => onRetry?.().catch(() => undefined)}>
+              다시 시도
+            </button>
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
 

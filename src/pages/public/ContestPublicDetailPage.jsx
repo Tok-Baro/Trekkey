@@ -19,6 +19,10 @@ export function ContestPublicDetailPage({
   onApplyContest,
   onRecordView,
   onToggleLike,
+  onSearchParticipants,
+  isLoading = false,
+  isApplicationDataLoading = false,
+  loadError = "",
   onNotify
 }) {
   const [isApplyOpen, setIsApplyOpen] = useState(false);
@@ -31,7 +35,7 @@ export function ContestPublicDetailPage({
   const reactionKey = useMemo(() => getContestReactionKey(session), [session]);
 
   useEffect(() => {
-    if (!contest?.id) {
+    if (!contest?.id || !onRecordView) {
       return;
     }
 
@@ -41,7 +45,7 @@ export function ContestPublicDetailPage({
     }
 
     viewedKeyRef.current = viewedKey;
-    onRecordView?.(contest.id);
+    onRecordView(contest.id);
   }, [contest?.id, onRecordView, reactionKey]);
 
   if (!contest) {
@@ -49,10 +53,11 @@ export function ContestPublicDetailPage({
       <main className="contest-public-page">
         <section className="public-empty">
           <ShieldCheck size={34} aria-hidden="true" />
-          <h1>공개할 대회를 찾을 수 없습니다</h1>
+          <h1>{isLoading ? "대회 정보를 불러오는 중입니다" : "공개할 대회를 찾을 수 없습니다"}</h1>
+          {loadError && <p>{loadError}</p>}
           <button className="secondary-button" type="button" onClick={onBack}>
             <ArrowLeft size={17} />
-            관리자 화면
+            이전 화면
           </button>
         </section>
         <AppFooter variant="public" />
@@ -62,8 +67,14 @@ export function ContestPublicDetailPage({
 
   const isParticipant = session?.role === "participant";
   const isOpen = isContestApplyOpen(contest);
-  const canApply = isParticipant && isOpen && !application;
-  const applyLabel = application ? "신청 완료" : isOpen ? "참가 신청" : "신청 마감";
+  const canApply = isParticipant && isOpen && !application && !isApplicationDataLoading;
+  const applyLabel = isApplicationDataLoading
+    ? "신청 정보 확인 중"
+    : application
+      ? "신청 완료"
+      : isOpen
+        ? "참가 신청"
+        : "신청 마감";
   const backLabel = isParticipant ? "참가자 화면" : "관리자 화면";
   const handleShare = async () => {
     if (typeof window === "undefined") {
@@ -114,7 +125,7 @@ export function ContestPublicDetailPage({
         applyDisabled={!canApply}
         engagement={engagement}
         canReact={isParticipant}
-        isLiked={engagement?.likedBy.includes(reactionKey)}
+        isLiked={contest.likedByMe ?? engagement?.likedBy.includes(reactionKey)}
         onLike={() => onToggleLike?.(contest.id)}
         onShare={handleShare}
         onApply={() => {
@@ -130,8 +141,9 @@ export function ContestPublicDetailPage({
             contest={contest}
             session={session}
             onClose={() => setIsApplyOpen(false)}
-            onSubmit={(form) => {
-              if (onApplyContest?.(form)) {
+            onSearchParticipants={onSearchParticipants}
+            onSubmit={async (form) => {
+              if (await onApplyContest?.(form)) {
                 setIsApplyOpen(false);
               }
             }}
