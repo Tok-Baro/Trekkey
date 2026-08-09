@@ -172,6 +172,7 @@ export function SegmentedControl({ options, value, onChange }) {
         <button
           key={option}
           className={option === value ? "active" : ""}
+          aria-pressed={option === value}
           onClick={() => onChange(option)}
           type="button"
         >

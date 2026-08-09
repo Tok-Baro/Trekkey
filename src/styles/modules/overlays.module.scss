@@ -73,6 +73,29 @@
     display: grid;
     gap: 16px;
   }
+
+  .award-editor {
+    display: grid;
+    gap: 16px;
+  }
+
+  .award-status-field {
+    display: grid;
+    gap: 8px;
+  }
+
+  .award-status-field > span {
+    color: var(--ink-650);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .award-editor-error {
+    margin: 0;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 700;
+  }
   
   .review-report-modal {
     display: grid;
