@@ -125,8 +125,15 @@ export function ParticipantPortal({
       myApplications
         .map((team) => {
           const contest = allContests.find((item) => item.id === team.contestId);
-          const submission = submissions.find((item) => item.contestId === team.contestId && item.team === team.name);
-          const award = awardCandidates.find((item) => item.contestId === team.contestId && item.team === team.name);
+          const teamPublicId = team.teamPublicId ?? team.id;
+          const submission = submissions.find((item) =>
+            item.contestId === team.contestId
+            && item.teamId === teamPublicId
+          );
+          const award = awardCandidates.find((item) =>
+            item.contestId === team.contestId
+            && item.teamId === teamPublicId
+          );
 
           if (!contest) {
             return null;
@@ -457,7 +464,9 @@ export function ParticipantPortal({
           />
         )}
 
-        {activeView === "results" && <ResultsView records={applicationRecords} />}
+        {activeView === "results" && (
+          <ResultsView records={applicationRecords} credentials={credentials} />
+        )}
 
         {activeView === "activity" && (
           <ActivityView items={activityItems} credentialError={credentialError} />
@@ -1483,7 +1492,7 @@ function NotificationsView({ notifications }) {
   );
 }
 
-function ResultsView({ records }) {
+function ResultsView({ records, credentials }) {
   return (
     <section className={styles.portalPanel}>
       <div className={styles.sectionHead}>
@@ -1491,30 +1500,59 @@ function ResultsView({ records }) {
         <span>{records.length}건</span>
       </div>
       <div className={styles.resultGrid}>
-        {records.map((record) => (
-          <article className={styles.resultCard} key={record.id}>
-            <div className={styles.resultIcon}>
-              <Trophy size={20} aria-hidden="true" />
-            </div>
-            <div>
-              <strong>{record.contest.title}</strong>
-              <span>{record.award ? `${record.award.prize} · ${record.award.score}점` : getResultWaitingText(record)}</span>
-            </div>
-            <StatusBadge status={record.award?.status ?? record.contest.status} />
-            {record.award && (
-              <dl className={styles.infoGrid}>
-                <div>
-                  <dt>상장번호</dt>
-                  <dd>{record.award.certificateNo}</dd>
-                </div>
-                <div>
-                  <dt>활동 이력</dt>
-                  <dd>{record.award.status === "확정" ? "등록 예정" : "확정 대기"}</dd>
-                </div>
-              </dl>
-            )}
-          </article>
-        ))}
+        {records.map((record) => {
+          const credential = record.award
+            ? credentials.find((item) =>
+                item.credentialType === "AWARD"
+                && item.credentialNo === record.award.certificateNo
+              )
+            : null;
+          const credentialInvalid = ["REVOKED", "SUPERSEDED"].includes(credential?.status);
+          return (
+            <article className={styles.resultCard} key={record.id}>
+              <div className={styles.resultIcon}>
+                <Trophy size={20} aria-hidden="true" />
+              </div>
+              <div>
+                <strong>{record.contest.title}</strong>
+                <span>
+                  {record.award
+                    ? `${record.award.prize} · ${record.award.jointRank ? "공동 " : ""}${record.award.rank}위 · ${record.award.score}점`
+                    : getResultWaitingText(record)}
+                </span>
+              </div>
+              <StatusBadge
+                status={credentialInvalid
+                  ? credential.statusLabel
+                  : record.award?.status ?? record.contest.status}
+              />
+              {record.award && (
+                <dl className={styles.infoGrid}>
+                  <div>
+                    <dt>상장번호</dt>
+                    <dd>{record.award.certificateNo}</dd>
+                  </div>
+                  <div>
+                    <dt>수상 결과</dt>
+                    <dd>{record.award.status}</dd>
+                  </div>
+                  <div>
+                    <dt>Credential</dt>
+                    <dd>{credential?.statusLabel ?? (record.award.status === "확정" ? "발급 처리 중" : "확정 대기")}</dd>
+                  </div>
+                </dl>
+              )}
+              {credential?.credentialPublicId && (
+                <CredentialVerificationLink
+                  className={`${styles.activityAction} ${styles.resultAction}`}
+                  credentialPublicId={credential.credentialPublicId}
+                >
+                  Credential 검증
+                </CredentialVerificationLink>
+              )}
+            </article>
+          );
+        })}
         {records.length === 0 && <EmptyState title="확인할 결과가 없습니다" description="참가 신청 후 결과 상태를 확인할 수 있습니다." />}
       </div>
     </section>

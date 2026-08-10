@@ -921,9 +921,12 @@ export const reviewScores = [
 
 export const awardCandidates = [
   {
+    id: "AW-HS-0001",
     rank: 1,
     contestId: "CT-HS-13870",
-    prize: "HS 인재상 후보",
+    awardType: "SPECIAL",
+    prize: "특별상",
+    teamId: "TM-HS-1007",
     team: "BeyondMe",
     score: 93.8,
     members: 1,
@@ -931,19 +934,25 @@ export const awardCandidates = [
     certificateNo: "2026-HS-001"
   },
   {
+    id: "AW-HS-0002",
     rank: 2,
     contestId: "CT-HS-13870",
-    prize: "HS 도전상 후보",
+    awardType: "PRESIDENT_AWARD",
+    prize: "총장상",
+    teamId: "TM-HS-1008",
     team: "RetryStory",
     score: 85.4,
     members: 1,
-    status: "검토중",
+    status: "확정대기",
     certificateNo: "2026-HS-002"
   },
   {
+    id: "AW-HS-0003",
     rank: 1,
     contestId: "CT-HS-13721",
-    prize: "최우수 프로젝트",
+    awardType: "EXCELLENCE",
+    prize: "최우수상",
+    teamId: "TM-HS-1009",
     team: "SuccessNote",
     score: 91.9,
     members: 1,
@@ -951,9 +960,12 @@ export const awardCandidates = [
     certificateNo: "2026-HSP-001"
   },
   {
+    id: "AW-HS-0004",
     rank: 1,
     contestId: "CT-HS-13841",
-    prize: "우수 실천 계획",
+    awardType: "MERIT",
+    prize: "우수상",
+    teamId: "TM-HS-1011",
     team: "DigitalReset",
     score: 92.1,
     members: 1,
@@ -961,9 +973,13 @@ export const awardCandidates = [
     certificateNo: "2026-CC-001"
   },
   {
+    id: "AW-HS-0005",
     rank: 1,
     contestId: "CT-HS-13869",
+    awardType: "CUSTOM",
+    customPrize: "우수 보고서",
     prize: "우수 보고서",
+    teamId: "TM-HS-1012",
     team: "FinanceRoute",
     score: 89.4,
     members: 1,
@@ -971,9 +987,12 @@ export const awardCandidates = [
     certificateNo: "2026-JOB-001"
   },
   {
+    id: "AW-HS-0006",
     rank: 1,
     contestId: "CT-HS-13949",
-    prize: "대상 후보",
+    awardType: "GRAND_PRIZE",
+    prize: "대상",
+    teamId: "TM-HS-1002",
     team: "MajorLoop",
     score: 84.6,
     members: 4,

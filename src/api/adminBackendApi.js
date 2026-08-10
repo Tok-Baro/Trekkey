@@ -259,3 +259,10 @@ export function confirmAdminAwards(contestPublicId) {
     { method: "POST" }
   );
 }
+
+export function updateAdminAward(awardPublicId, request) {
+  return apiRequest(`/api/admin/awards/${encodePath(awardPublicId)}`, {
+    method: "PATCH",
+    body: request
+  });
+}

@@ -681,12 +681,38 @@ function App() {
   };
 
   const handleConfirmAwards = async () => {
+    if (!isServerAdmin) {
+      const result = competition.confirmAwards(selectedContestId);
+      notifyResult(result);
+      if (result.ok !== false) {
+        closeModal();
+      }
+      return;
+    }
+
     try {
       const result = await admin.confirmAwards(selectedContestId);
       notify(result.message, "success");
       closeModal();
     } catch (error) {
       notify(getApiErrorMessage(error, "수상 결과를 확정하지 못했습니다."), "error");
+    }
+  };
+
+  const handleUpdateAwardCandidate = async (candidate, request) => {
+    if (!isServerAdmin) {
+      const result = competition.updateAwardCandidate(candidate, request);
+      notifyResult(result);
+      return result.ok !== false;
+    }
+
+    try {
+      const result = await admin.updateAwardCandidate(candidate.id, request);
+      notify(result.message, "success");
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "수상 후보를 변경하지 못했습니다."), "error");
+      return false;
     }
   };
 
@@ -1193,6 +1219,7 @@ function App() {
         onAddJudge={handleAddJudge}
         onUpdateJudge={handleUpdateJudge}
         onDeleteJudge={handleDeleteJudge}
+        onUpdateAward={handleUpdateAwardCandidate}
         onConfirmAwards={handleConfirmAwards}
         onDownloadSubmission={handleAdminSubmissionDownload}
         onNotify={notify}

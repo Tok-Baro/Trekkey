@@ -15,6 +15,7 @@ import {
   toggleContestLike,
   updateApplication
 } from "../api/backendApi.js";
+import { inferAwardType, markJointRanks } from "../constants/awards.js";
 
 const detailRequests = new Map();
 const progressRequests = new Map();
@@ -194,6 +195,7 @@ function progressSubmission(team, progress) {
   return {
     id: `PROGRESS-SUBMISSION-${team.contestId}`,
     contestId: team.contestId,
+    teamId: team.teamPublicId ?? team.id,
     team: team.name,
     title: `${team.name} 제출물`,
     attachments: [],
@@ -228,13 +230,21 @@ function mapSubmission(submission, team, progress) {
 }
 
 function mapAward(award) {
+  const statusLabels = {
+    CANDIDATE: "확정대기",
+    HELD: "보류",
+    CONFIRMED: "확정"
+  };
   return {
     ...award,
+    id: award.id ?? award.publicId,
     contestId: award.contestPublicId,
     teamId: award.teamPublicId,
+    rank: Number(award.awardRankNo),
     team: award.teamName,
     score: award.finalScore,
-    status: award.status === "CONFIRMED" ? "확정" : award.status,
+    awardType: award.awardType ?? inferAwardType(award.prize),
+    status: statusLabels[award.status] ?? award.status,
     confirmedAt: shortDateTime(award.confirmedAt)
   };
 }
@@ -383,7 +393,10 @@ export function useParticipantData({ session, enabled }) {
     return submission ? mapSubmission(submission, team, progress) : progressSubmission(team, progress);
   }).filter(Boolean), [overview.progress, overview.submissions, teams]);
 
-  const awardCandidates = useMemo(() => overview.awards.map(mapAward), [overview.awards]);
+  const awardCandidates = useMemo(
+    () => markJointRanks(overview.awards.map(mapAward)),
+    [overview.awards]
+  );
 
   const credentials = useMemo(() => overview.credentials.map(mapCredential), [overview.credentials]);
 

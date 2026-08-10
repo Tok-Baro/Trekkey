@@ -15,6 +15,7 @@ import {
   sendReviewReminders,
   submitJudgeReview,
   toggleContestLike,
+  updateAwardCandidate,
   updateJudge,
   updateParticipantApplication,
   upsertParticipantSubmission,
@@ -76,6 +77,8 @@ export function useCompetitionStore() {
       runMutation((current) => sendReviewReminders(current, contestId, roundId), options),
     submitJudgeReview: (payload, options) => runMutation((current) => submitJudgeReview(current, payload), options),
     calculateResults: (contestId, roundId, options) => runMutation((current) => calculateResults(current, contestId, roundId), options),
+    updateAwardCandidate: (candidate, request, options) =>
+      runMutation((current) => updateAwardCandidate(current, candidate, request), options),
     confirmAwards: (contestId, options) => runMutation((current) => confirmAwards(current, contestId), options)
   };
 }
