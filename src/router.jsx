@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import { adminRoutes, participantRoutes } from "./routeConfig.js";
 import { SignupPage } from "./pages/auth/SignupPage.jsx";
 import { PublicCredentialVerificationPage } from "./pages/public/PublicCredentialVerificationPage.jsx";
+import { PublicActivityProfilePage } from "./pages/public/PublicActivityProfilePage.jsx";
 
 function AppRouter() {
   return (
@@ -18,6 +19,7 @@ function AppRouter() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signup/admin" element={<SignupPage preferredRole="admin" />} />
         <Route path="/verify/:credentialPublicId" element={<PublicCredentialVerificationPage />} />
+        <Route path="/activity/:publicProfileId" element={<PublicActivityProfilePage />} />
         <Route path="/home" element={<App />} />
         <Route path="/login" element={<App />} />
         <Route path="/review/:contestId" element={<App />} />

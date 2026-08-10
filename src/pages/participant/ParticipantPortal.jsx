@@ -6,12 +6,15 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Copy,
+  ExternalLink,
   FileArchive,
   History,
   Eye,
   Heart,
   IdCard,
   Layers3,
+  Link2,
   LogOut,
   Menu,
   PanelsTopLeft,
@@ -19,8 +22,10 @@ import {
   Pencil,
   Plus,
   Play,
+  RefreshCw,
   Search,
   Send,
+  ShieldCheck,
   Star,
   Trophy,
   Upload,
@@ -29,6 +34,12 @@ import {
   X
 } from "lucide-react";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
+import { getApiErrorMessage } from "../../api/backendApi.js";
+import {
+  getMyPublicActivityProfile,
+  rotateMyPublicActivityProfile,
+  updateMyPublicActivityProfile
+} from "../../api/publicActivityApi.js";
 import { CredentialVerificationLink } from "../../components/credential/CredentialVerificationLink.jsx";
 import { EmptyState, SegmentedControl, StatusBadge } from "../../components/common/CommonUi.jsx";
 import { TeamRosterField, TeamRosterSummary } from "../../components/forms/TeamRosterField.jsx";
@@ -1646,7 +1657,151 @@ function ProfileView({ session, summary, credentialCount, notifications }) {
           <p>활동 이력에서 발급된 Credential의 공개 검증 결과와 증명서 파일을 확인할 수 있습니다.</p>
         </div>
       </section>
+      <PublicActivitySharingCard />
     </div>
+  );
+}
+
+function PublicActivitySharingCard() {
+  const [settings, setSettings] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pendingAction, setPendingAction] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    getMyPublicActivityProfile()
+      .then((result) => active && setSettings(result))
+      .catch((nextError) => active && setError(getApiErrorMessage(
+        nextError,
+        "공개 활동 프로필 설정을 불러오지 못했습니다."
+      )))
+      .finally(() => active && setIsLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const shareUrl = settings?.enabled && settings.publicId
+    ? `${window.location.origin}/activity/${encodeURIComponent(settings.publicId)}`
+    : "";
+
+  const runAction = async (action, request, successMessage) => {
+    setPendingAction(action);
+    setError("");
+    setMessage("");
+    try {
+      const result = await request();
+      setSettings(result);
+      setMessage(successMessage);
+    } catch (nextError) {
+      setError(getApiErrorMessage(nextError, "설정을 변경하지 못했습니다."));
+    } finally {
+      setPendingAction("");
+    }
+  };
+
+  const copyShareUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setMessage("공개 활동 링크를 복사했습니다.");
+      setError("");
+    } catch {
+      setError("링크를 복사하지 못했습니다. 브라우저 권한을 확인해 주세요.");
+    }
+  };
+
+  const rotateLink = () => {
+    if (!window.confirm("기존 공유 링크는 즉시 사용할 수 없게 됩니다. 새 링크로 교체할까요?")) {
+      return;
+    }
+    runAction("rotate", rotateMyPublicActivityProfile, "새 공개 링크를 발급했습니다.");
+  };
+
+  return (
+    <section className={`${styles.portalPanel} ${styles.publicProfilePanel}`}>
+      <div className={styles.sectionHead}>
+        <strong>외부 온체인 활동 조회</strong>
+        <span>{settings?.enabled ? "공개 중" : "비공개"}</span>
+      </div>
+
+      {isLoading ? (
+        <div className={styles.publicProfileLoading}>
+          <RefreshCw size={17} /> 공개 설정을 확인하고 있습니다.
+        </div>
+      ) : (
+        <div className={styles.publicProfileBody}>
+          <div className={styles.publicProfileIntro}>
+            <div><ShieldCheck size={24} aria-hidden="true" /></div>
+            <div>
+              <strong>내 이름으로 검증 가능한 활동을 공유합니다</strong>
+              <p>
+                공개하면 이름·학교·전공과 공개 동의된 온체인 Credential
+                {settings ? ` ${settings.publicCredentialCount}건` : ""}이 링크에 표시됩니다.
+                이메일과 학번은 표시되지 않습니다.
+              </p>
+            </div>
+          </div>
+
+          {settings?.enabled && shareUrl && (
+            <div className={styles.publicProfileLink}>
+              <Link2 size={16} aria-hidden="true" />
+              <span title={shareUrl}>{shareUrl}</span>
+              <button type="button" onClick={copyShareUrl} aria-label="공개 활동 링크 복사">
+                <Copy size={15} /> 복사
+              </button>
+            </div>
+          )}
+
+          <div className={styles.publicProfileActions}>
+            {settings?.enabled ? (
+              <>
+                <a href={shareUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={15} /> 공개 화면 열기
+                </a>
+                <button
+                  type="button"
+                  disabled={Boolean(pendingAction)}
+                  onClick={rotateLink}
+                >
+                  <RefreshCw size={15} /> 링크 교체
+                </button>
+                <button
+                  className={styles.dangerAction}
+                  type="button"
+                  disabled={Boolean(pendingAction)}
+                  onClick={() => runAction(
+                    "disable",
+                    () => updateMyPublicActivityProfile(false),
+                    "외부 활동 조회를 비공개로 전환했습니다."
+                  )}
+                >
+                  공유 끄기
+                </button>
+              </>
+            ) : (
+              <button
+                className={styles.enablePublicProfile}
+                type="button"
+                disabled={Boolean(pendingAction)}
+                onClick={() => runAction(
+                  "enable",
+                  () => updateMyPublicActivityProfile(true),
+                  "외부 활동 조회 링크를 만들었습니다."
+                )}
+              >
+                <ShieldCheck size={16} /> 공개 링크 만들기
+              </button>
+            )}
+          </div>
+
+          {message && <p className={styles.publicProfileMessage}>{message}</p>}
+          {error && <p className={styles.credentialWarning} role="alert">{error}</p>}
+        </div>
+      )}
+    </section>
   );
 }
 
