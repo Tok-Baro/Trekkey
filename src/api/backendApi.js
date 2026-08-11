@@ -3,6 +3,7 @@ import { appEnv } from "../config/env.js";
 const AUTH_EXPIRED_EVENT = "trekkey:auth-expired";
 
 const apiBaseUrl = appEnv.apiBaseUrl;
+const authApiBaseUrl = appEnv.authApiBaseUrl;
 
 let accessToken = null;
 let refreshPromise = null;
@@ -37,9 +38,9 @@ function dispatchAuthExpired(error) {
   window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { error } }));
 }
 
-function buildUrl(path, query) {
+function buildUrl(path, query, baseUrl = apiBaseUrl) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const url = new URL(`${apiBaseUrl}${normalizedPath}`);
+  const url = new URL(`${baseUrl}${normalizedPath}`);
 
   Object.entries(query ?? {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
@@ -76,7 +77,11 @@ function toApiError(response, body) {
   );
 }
 
-async function requestOnce(path, options = {}, { auth = true, query, responseType = "json" } = {}) {
+async function requestOnce(
+  path,
+  options = {},
+  { auth = true, baseUrl = apiBaseUrl, credentials = "omit", query, responseType = "json" } = {}
+) {
   const headers = new Headers(options.headers);
   let body = options.body;
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
@@ -94,11 +99,11 @@ async function requestOnce(path, options = {}, { auth = true, query, responseTyp
 
   let response;
   try {
-    response = await fetch(buildUrl(path, query), {
+    response = await fetch(buildUrl(path, query, baseUrl), {
       ...options,
       headers,
       body,
-      credentials: "include"
+      credentials
     });
   } catch (error) {
     throw new ApiError("서버에 연결할 수 없습니다.", {
@@ -173,7 +178,12 @@ export async function signIn({ email, password }) {
       method: "POST",
       body: { email, password }
     },
-    { auth: false, retryOnUnauthorized: false }
+    {
+      auth: false,
+      baseUrl: authApiBaseUrl,
+      credentials: "include",
+      retryOnUnauthorized: false
+    }
   );
 
   setAccessToken(data?.accessToken);
@@ -185,7 +195,11 @@ export function refreshSession() {
     refreshPromise = requestOnce(
       "/api/auth/refresh",
       { method: "POST" },
-      { auth: false }
+      {
+        auth: false,
+        baseUrl: authApiBaseUrl,
+        credentials: "include"
+      }
     )
       .then((data) => {
         setAccessToken(data?.accessToken);
@@ -208,7 +222,12 @@ export async function signOut() {
     return await request(
       "/api/auth/logout",
       { method: "POST" },
-      { auth: false, retryOnUnauthorized: false }
+      {
+        auth: false,
+        baseUrl: authApiBaseUrl,
+        credentials: "include",
+        retryOnUnauthorized: false
+      }
     );
   } finally {
     setAccessToken(null);

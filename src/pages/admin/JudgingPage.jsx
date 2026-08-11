@@ -159,8 +159,8 @@ export function JudgingPage({
                 <button
                   className="icon-button"
                   type="button"
-                  aria-label={`${judge.name} 심사 링크 발급`}
-                  title="심사 링크 발급"
+                  aria-label={`${judge.name} 평가위원 1회용 로그인 링크 발급`}
+                  title="1회용 로그인 링크 발급"
                   onClick={(event) => {
                     event.stopPropagation();
                     onIssueReviewLink(judge, activeRound);

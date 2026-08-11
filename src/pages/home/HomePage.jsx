@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  BadgeCheck,
   CalendarClock,
   CheckCircle2,
   ChevronRight,
@@ -260,6 +261,7 @@ export function HomePage({ contests = [], onOpenContest }) {
   }, []);
 
   const goToLogin = () => navigate(getLoginPath());
+  const goToVerify = () => navigate("/verify");
   const goToTop = () => {
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
   };
@@ -298,6 +300,9 @@ export function HomePage({ contests = [], onOpenContest }) {
             <span className={styles.brandName}>Trekkey</span>
           </button>
           <div className={styles.navActions}>
+            <button className={styles.navLink} type="button" onClick={goToVerify}>
+              <BadgeCheck size={16} aria-hidden="true" /> 증명서 확인
+            </button>
             <button className={styles.navLink} type="button" onClick={goToContests}>
               대회 둘러보기
             </button>
