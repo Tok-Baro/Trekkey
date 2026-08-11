@@ -10,6 +10,11 @@ import {
 import { getApiErrorMessage } from "../../api/backendApi.js";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState } from "../../components/common/CommonUi.jsx";
+import {
+  getReviewAccessTokenFromHash,
+  getReviewUrlWithoutToken,
+  REVIEW_ACCESS_SESSION_KEY
+} from "../../lib/reviewerAccess.js";
 
 function formatDateTime(value) {
   if (!value) {
@@ -46,12 +51,39 @@ function isPendingAssignment(status) {
   return status === "ASSIGNED" || status === "PENDING";
 }
 
+function readSessionToken() {
+  try {
+    return window.sessionStorage.getItem(REVIEW_ACCESS_SESSION_KEY)?.trim() ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function storeSessionToken(token) {
+  try {
+    window.sessionStorage.setItem(REVIEW_ACCESS_SESSION_KEY, token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearSessionToken() {
+  try {
+    window.sessionStorage.removeItem(REVIEW_ACCESS_SESSION_KEY);
+  } catch {
+    // 저장소를 사용할 수 없는 브라우저에서도 현재 화면의 오류 처리는 계속한다.
+  }
+}
+
 export function ServerReviewerPage() {
   const location = useLocation();
-  const token = useMemo(
-    () => new URLSearchParams(location.hash.replace(/^#/, "")).get("token")?.trim() ?? "",
+  const linkToken = useMemo(
+    () => getReviewAccessTokenFromHash(location.hash),
     [location.hash]
   );
+  const [sessionToken, setSessionToken] = useState(readSessionToken);
+  const token = linkToken || sessionToken;
   const [access, setAccess] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [scores, setScores] = useState({});
@@ -61,6 +93,19 @@ export function ServerReviewerPage() {
   const [downloadingById, setDownloadingById] = useState({});
   const [isLoading, setIsLoading] = useState(Boolean(token));
   const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    if (!linkToken || !storeSessionToken(linkToken)) {
+      return;
+    }
+
+    setSessionToken(linkToken);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      getReviewUrlWithoutToken(location.pathname, location.search)
+    );
+  }, [linkToken, location.pathname, location.search]);
 
   useEffect(() => {
     let isActive = true;
@@ -74,7 +119,7 @@ export function ServerReviewerPage() {
 
     if (!token) {
       setIsLoading(false);
-      setLoadError("심사 링크에 접근 토큰이 없습니다.");
+      setLoadError("평가위원 1회용 로그인 링크에 접근 코드가 없습니다.");
       return undefined;
     }
 
@@ -89,7 +134,11 @@ export function ServerReviewerPage() {
         }
       } catch (error) {
         if (isActive) {
-          setLoadError(getApiErrorMessage(error, "심사 링크를 확인하지 못했습니다."));
+          if (error?.status === 401 || error?.code === "REVIEW_LINK_INVALID") {
+            clearSessionToken();
+            setSessionToken("");
+          }
+          setLoadError(getApiErrorMessage(error, "1회용 로그인 링크를 확인하지 못했습니다."));
         }
       } finally {
         if (isActive) {
@@ -212,8 +261,8 @@ export function ServerReviewerPage() {
       <main className="reviewer-shell">
         <section className="reviewer-card reviewer-empty">
           <ShieldCheck size={34} aria-hidden="true" />
-          <h1>심사 링크를 확인할 수 없습니다</h1>
-          <p>{loadError || "관리자가 전달한 최신 링크를 다시 확인해 주세요."}</p>
+          <h1>1회용 로그인 링크를 확인할 수 없습니다</h1>
+          <p>{loadError || "관리자가 전달한 최신 평가위원 링크를 다시 확인해 주세요."}</p>
         </section>
         <AppFooter variant="review" />
       </main>
@@ -231,7 +280,7 @@ export function ServerReviewerPage() {
           </div>
           <div>
             <strong>Trekkey Review</strong>
-            <span>심사위원 전용 페이지</span>
+            <span>계정 없는 평가위원 전용 페이지</span>
           </div>
         </div>
         <div>

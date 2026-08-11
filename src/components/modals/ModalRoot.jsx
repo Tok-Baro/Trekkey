@@ -951,7 +951,7 @@ function ReviewLinkModal({ contest, round, judge, onClose, onNotify, onIssue, on
       return;
     }
     await navigator.clipboard.writeText(reviewUrl);
-    onNotify?.("심사 링크를 복사했습니다.");
+    onNotify?.("평가위원 1회용 로그인 링크를 복사했습니다.");
   };
 
   const issueReviewUrl = async () => {
@@ -996,7 +996,7 @@ function ReviewLinkModal({ contest, round, judge, onClose, onNotify, onIssue, on
 
   return (
     <ModalFrame
-      title="심사 링크/QR 생성"
+      title="평가위원 1회용 로그인/QR"
       description={`${contest.title} · ${judge?.name ?? round?.name ?? "심사"}`}
       onClose={onClose}
     >
@@ -1015,13 +1015,13 @@ function ReviewLinkModal({ contest, round, judge, onClose, onNotify, onIssue, on
           <div className="review-link-summary">
             <Link2 size={18} aria-hidden="true" />
             <div>
-              <strong>심사위원 전용 링크</strong>
-              <span>{judge ? `${judge.name} 심사위원에게만 전달합니다.` : `${round?.name ?? "선택 심사"} 라운드에 전달합니다.`}</span>
+              <strong>회원가입 없는 1회용 로그인 링크</strong>
+              <span>{judge ? `${judge.name} 평가위원에게만 전달합니다.` : `${round?.name ?? "선택 심사"} 라운드에 전달합니다.`}</span>
             </div>
           </div>
           {onIssue && (
             <label>
-              <span>링크 만료 시각</span>
+              <span>로그인 링크 만료 시각</span>
               <input
                 type="datetime-local"
                 value={expiresAt}
@@ -1032,13 +1032,13 @@ function ReviewLinkModal({ contest, round, judge, onClose, onNotify, onIssue, on
           )}
           <label className="copy-field">
             <span>전달 URL</span>
-            <input value={reviewUrl} readOnly placeholder="링크를 발급해 주세요." onFocus={(event) => event.currentTarget.select()} />
+            <input value={reviewUrl} readOnly placeholder="1회용 로그인 링크를 발급해 주세요." onFocus={(event) => event.currentTarget.select()} />
           </label>
           <div className="modal-actions">
             {onIssue && (
               <button className="primary-button" type="button" disabled={isIssuing || !expiresAt} onClick={issueReviewUrl}>
                 <Link2 size={17} />
-                {isIssuing ? "발급 중..." : reviewUrl ? "새 링크 발급" : "링크 발급"}
+                {isIssuing ? "발급 중..." : reviewUrl ? "새 로그인 링크 발급" : "로그인 링크 발급"}
               </button>
             )}
             <button className="secondary-button" type="button" disabled={!reviewUrl} onClick={copyReviewUrl}>

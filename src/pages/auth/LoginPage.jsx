@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ClipboardCheck, IdCard, Layers3, LogIn, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { BadgeCheck, ClipboardCheck, Gavel, IdCard, Layers3, LogIn, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getLoginFormDefaults } from "../../lib/auth.js";
 import styles from "./LoginPage.module.scss";
@@ -108,6 +108,10 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
             <Link to="/signup">참가자 회원가입</Link>
             <Link to="/signup/admin">관리자 가입 신청</Link>
           </div>
+          <Link className={styles.verifyEntry} to="/verify">
+            <BadgeCheck size={17} aria-hidden="true" />
+            로그인 없이 증명서 확인
+          </Link>
         </form>
       </section>
 
@@ -126,6 +130,11 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
           <Mail size={22} aria-hidden="true" />
           <strong>계정 안내</strong>
           <span>참가자와 관리자는 백엔드에 등록된 이메일과 비밀번호로 로그인합니다.</span>
+        </div>
+        <div>
+          <Gavel size={22} aria-hidden="true" />
+          <strong>평가위원</strong>
+          <span>회원가입 없이 관리자가 전달한 1회용 로그인 링크로 평가 화면에 접속합니다.</span>
         </div>
       </aside>
     </main>

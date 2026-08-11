@@ -1,22 +1,29 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
   BadgeCheck,
   Check,
   CheckCircle2,
+  ChevronDown,
+  Clock3,
   Copy,
   Download,
+  ExternalLink,
   FileArchive,
   FileText,
   Fingerprint,
+  Layers3,
+  Link2,
   LoaderCircle,
+  LockKeyhole,
   RefreshCw,
+  Search,
+  Share2,
   ShieldAlert,
   ShieldCheck,
   UserRound,
-  X
+  XCircle
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   downloadPublicCredentialCertificate,
   downloadPublicCredentialPackage,
@@ -25,76 +32,13 @@ import {
 import { getApiErrorMessage } from "../../api/backendApi.js";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { getCredentialVerificationPath } from "../../components/credential/CredentialVerificationLink.jsx";
+import {
+  buildExplorerUrl,
+  getVerificationPresentation,
+  normalizeCredentialInput,
+  verificationSummary
+} from "../../lib/credentialVerification.js";
 import styles from "./PublicCredentialVerificationPage.module.scss";
-
-const verificationStatus = {
-  VALID: {
-    label: "유효한 증명서",
-    description: "발급 정보와 블록체인 기록이 일치하며 현재 유효합니다.",
-    tone: "success",
-    icon: ShieldCheck
-  },
-  PENDING: {
-    label: "블록체인 기록 대기",
-    description: "발급 정보는 확인됐으며 블록체인 기록이 완료되기를 기다리고 있습니다.",
-    tone: "pending",
-    icon: RefreshCw
-  },
-  REVOKED: {
-    label: "취소된 증명서",
-    description: "발급기관이 효력을 취소한 증명서입니다.",
-    tone: "danger",
-    icon: ShieldAlert
-  },
-  SUPERSEDED: {
-    label: "대체된 증명서",
-    description: "새 증명서로 대체되어 더 이상 최신 증명서가 아닙니다.",
-    tone: "warning",
-    icon: RefreshCw
-  },
-  EXPIRED: {
-    label: "만료된 증명서",
-    description: "발급 정보는 확인됐지만 유효기간이 지났습니다.",
-    tone: "warning",
-    icon: ShieldAlert
-  },
-  TAMPERED: {
-    label: "위변조 의심",
-    description: "저장된 발급 정보와 검증 증빙이 일치하지 않습니다.",
-    tone: "danger",
-    icon: ShieldAlert
-  },
-  ANCHOR_NOT_FOUND: {
-    label: "블록체인 기록 없음",
-    description: "증명서에 대응하는 블록체인 기록을 찾지 못했습니다.",
-    tone: "danger",
-    icon: ShieldAlert
-  },
-  ISSUER_INVALID: {
-    label: "발급기관 확인 실패",
-    description: "발급 당시 기관의 유효한 키를 확인하지 못했습니다.",
-    tone: "danger",
-    icon: ShieldAlert
-  },
-  RPC_UNAVAILABLE: {
-    label: "블록체인 확인 지연",
-    description: "현재 블록체인 네트워크에 연결할 수 없어 잠시 후 재확인이 필요합니다.",
-    tone: "pending",
-    icon: RefreshCw
-  },
-  BLOCKCHAIN_CONFIGURATION_ERROR: {
-    label: "검증 환경 오류",
-    description: "블록체인 검증 환경을 확인할 수 없습니다. 서비스 관리자에게 문의해 주세요.",
-    tone: "danger",
-    icon: ShieldAlert
-  },
-  SCHEMA_UNSUPPORTED: {
-    label: "지원하지 않는 형식",
-    description: "현재 검증 서비스가 지원하지 않는 증명서 형식입니다.",
-    tone: "warning",
-    icon: ShieldAlert
-  }
-};
 
 const credentialType = {
   PARTICIPATION: "대회 참가 증명",
@@ -116,29 +60,38 @@ const roleCode = {
   PARTICIPANT: "참가자"
 };
 
-const evidenceChecks = [
-  ["canonicalPayloadMatches", "원본 데이터"],
-  ["contentHashMatches", "내용 해시"],
-  ["fileManifestHashMatches", "파일 목록"],
-  ["credentialClaimsMatch", "발급 정보"],
-  ["credentialIdMatches", "증명서 식별자"],
-  ["merkleProofMatches", "머클 증명"]
+const technicalEvidence = [
+  ["credentialIdHash", "증명서 식별 해시"],
+  ["contentHash", "발급 내용 해시"],
+  ["fileManifestHash", "첨부 파일 해시"],
+  ["merkleRoot", "배치 검증 루트"]
 ];
 
 function formatDateTime(value) {
   if (!value) {
     return "-";
   }
-
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString("ko-KR");
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function compactHash(value) {
   if (!value) {
     return "-";
   }
-  return value.length > 26 ? `${value.slice(0, 14)}…${value.slice(-10)}` : value;
+  return value.length > 30 ? `${value.slice(0, 16)}...${value.slice(-10)}` : value;
+}
+
+function networkLabel(chainId) {
+  if (Number(chainId) === 1001) {
+    return "Kaia Kairos 테스트넷";
+  }
+  if (Number(chainId) === 8217) {
+    return "Kaia 메인넷";
+  }
+  return chainId ? `공개 네트워크 ${chainId}` : "-";
 }
 
 function saveBlob(blob, fileName) {
@@ -152,24 +105,95 @@ function saveBlob(blob, fileName) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function PublicHeader() {
+  return (
+    <header className={styles.topbar}>
+      <div className={styles.topbarInner}>
+        <Link className={styles.brand} to="/" aria-label="Trekkey 홈">
+          <span className={styles.brandMark}><Layers3 size={18} aria-hidden="true" /></span>
+          <span><strong>Trekkey</strong><small>공식 증명서 확인</small></span>
+        </Link>
+        <nav className={styles.topbarActions} aria-label="공개 메뉴">
+          <Link to="/verify"><BadgeCheck size={16} /> 증명서 확인</Link>
+          <Link to="/login">서비스 로그인</Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+function LookupView({ initialValue = "", error = "" }) {
+  const navigate = useNavigate();
+  const [value, setValue] = useState(initialValue);
+  const [inputError, setInputError] = useState("");
+
+  const submit = (event) => {
+    event.preventDefault();
+    const credentialId = normalizeCredentialInput(value);
+    if (!credentialId) {
+      setInputError("증명서의 검증 코드나 QR 링크를 입력해 주세요.");
+      return;
+    }
+    setInputError("");
+    navigate(getCredentialVerificationPath(credentialId));
+  };
+
+  return (
+    <>
+      <PublicHeader />
+      <section className={styles.lookupBand}>
+        <div className={styles.lookupInner}>
+          <div className={styles.lookupCopy}>
+            <span><LockKeyhole size={15} /> 로그인 없이 이용 가능</span>
+            <h1>{error ? "증명서를 확인할 수 없습니다" : "증명서 진위 확인"}</h1>
+            <p>{error || "증명서의 QR 링크나 검증 코드를 입력하면 현재 효력을 바로 확인할 수 있습니다."}</p>
+          </div>
+
+          <form className={styles.lookupTool} onSubmit={submit}>
+            <label htmlFor="credential-lookup">검증 코드 또는 링크</label>
+            <div className={styles.lookupControl}>
+              <Link2 size={19} aria-hidden="true" />
+              <input
+                id="credential-lookup"
+                value={value}
+                onChange={(event) => setValue(event.target.value)}
+                placeholder="QR 링크 또는 검증 코드"
+                autoComplete="off"
+                spellCheck="false"
+                autoFocus
+              />
+              <button type="submit"><Search size={17} /> 확인</button>
+            </div>
+            {inputError && <p className={styles.formError} role="alert">{inputError}</p>}
+            <small>지갑, 별도 앱, 개인정보 입력이 필요하지 않습니다.</small>
+          </form>
+        </div>
+      </section>
+
+      <section className={styles.lookupOutcomes} aria-label="확인 항목">
+        <div><ShieldCheck size={21} /><span><strong>발급기관</strong><small>학교가 발급했는지 확인</small></span></div>
+        <div><Fingerprint size={21} /><span><strong>내용 무결성</strong><small>발급 후 변경 여부 확인</small></span></div>
+        <div><BadgeCheck size={21} /><span><strong>현재 효력</strong><small>취소·대체 여부 확인</small></span></div>
+      </section>
+    </>
+  );
+}
+
 function DetailItem({ label, children }) {
   return (
     <div className={styles.detailItem}>
       <dt>{label}</dt>
-      <dd>{children ?? "-"}</dd>
+      <dd>{children || "-"}</dd>
     </div>
   );
 }
 
-function HashItem({ label, value, onCopy, copied }) {
+function TechnicalItem({ label, value, onCopy, copied }) {
   return (
-    <div className={styles.hashItem}>
-      <div>
-        <span>{label}</span>
-        <code title={value || undefined}>{compactHash(value)}</code>
-      </div>
+    <div className={styles.technicalItem}>
+      <span><small>{label}</small><code title={value || undefined}>{compactHash(value)}</code></span>
       {value && (
-        <button type="button" onClick={() => onCopy(label, value)} aria-label={`${label} 복사`}>
+        <button type="button" onClick={() => onCopy(label, value)} title={`${label} 복사`} aria-label={`${label} 복사`}>
           {copied ? <Check size={15} /> : <Copy size={15} />}
         </button>
       )}
@@ -177,11 +201,11 @@ function HashItem({ label, value, onCopy, copied }) {
   );
 }
 
-export function PublicCredentialVerificationPage({ credentialPublicId: credentialPublicIdProp, onBack }) {
+export function PublicCredentialVerificationPage({ credentialPublicId: credentialPublicIdProp }) {
   const params = useParams();
   const credentialPublicId = credentialPublicIdProp ?? params.credentialPublicId ?? "";
   const [credential, setCredential] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(Boolean(credentialPublicId));
   const [loadError, setLoadError] = useState("");
   const [downloading, setDownloading] = useState("");
   const [downloadError, setDownloadError] = useState("");
@@ -196,7 +220,6 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
 
     if (!credentialPublicId) {
       setIsLoading(false);
-      setLoadError("검증할 Credential 식별자가 없습니다.");
       return undefined;
     }
 
@@ -209,7 +232,7 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
       })
       .catch((error) => {
         if (isActive) {
-          setLoadError(getApiErrorMessage(error, "Credential을 확인하지 못했습니다."));
+          setLoadError(getApiErrorMessage(error, "검증 코드와 일치하는 증명서를 찾지 못했습니다."));
         }
       })
       .finally(() => {
@@ -223,14 +246,9 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
     };
   }, [credentialPublicId, reloadKey]);
 
-  const status = useMemo(
-    () => verificationStatus[credential?.verificationStatus] ?? {
-      label: credential?.verificationStatus ?? "검증 상태 미확인",
-      description: "현재 증명서의 검증 상태를 해석할 수 없습니다.",
-      tone: "pending",
-      icon: ShieldAlert
-    },
-    [credential?.verificationStatus]
+  const presentation = useMemo(
+    () => getVerificationPresentation(credential?.verificationStatus, credential?.issuerName),
+    [credential?.issuerName, credential?.verificationStatus]
   );
 
   const download = async (kind) => {
@@ -252,31 +270,39 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
     try {
       await navigator.clipboard.writeText(value);
       setCopiedLabel(label);
-      window.setTimeout(() => setCopiedLabel(""), 1400);
+      window.setTimeout(() => setCopiedLabel(""), 1500);
     } catch {
       setCopiedLabel("");
     }
   };
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-      return;
-    }
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.location.assign("/");
+  const shareResult = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Trekkey 증명서 검증 결과", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopiedLabel("공유 링크");
+        window.setTimeout(() => setCopiedLabel(""), 1500);
+      }
+    } catch {
+      setCopiedLabel("");
     }
   };
+
+  if (!credentialPublicId) {
+    return <main className={styles.page}><LookupView /><AppFooter variant="public" /></main>;
+  }
 
   if (isLoading) {
     return (
       <main className={styles.page}>
-        <section className={styles.stateCard} aria-live="polite">
+        <PublicHeader />
+        <section className={styles.loadingState} aria-live="polite">
           <LoaderCircle className={styles.spinner} size={34} aria-hidden="true" />
-          <h1>Credential을 검증하고 있습니다</h1>
-          <p>발급 정보와 블록체인 증빙을 확인하는 중입니다.</p>
+          <h1>증명서를 확인하고 있습니다</h1>
+          <p>발급기관, 발급 내용, 외부 등록 기록을 대조하는 중입니다.</p>
         </section>
         <AppFooter variant="public" />
       </main>
@@ -286,174 +312,166 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
   if (loadError || !credential) {
     return (
       <main className={styles.page}>
-        <header className={styles.topbar}>
-          <button type="button" onClick={handleBack}><ArrowLeft size={17} /> 이전 화면</button>
-          <span>Trekkey 공개 검증</span>
-        </header>
-        <section className={styles.stateCard}>
-          <ShieldAlert size={36} aria-hidden="true" />
-          <h1>Credential을 확인할 수 없습니다</h1>
-          <p>{loadError || "검증 링크를 다시 확인해 주세요."}</p>
-          <button className={styles.primaryButton} type="button" onClick={() => setReloadKey((key) => key + 1)}>
-            <RefreshCw size={16} /> 다시 확인
-          </button>
-        </section>
+        <LookupView initialValue={credentialPublicId} error={loadError || "검증 링크를 다시 확인해 주세요."} />
+        <div className={styles.retryRow}>
+          <button type="button" onClick={() => setReloadKey((key) => key + 1)}><RefreshCw size={16} /> 다시 확인</button>
+        </div>
         <AppFooter variant="public" />
       </main>
     );
   }
 
-  const StatusIcon = status.icon;
   const evidence = credential.evidence ?? {};
-  const hasBlockchainEvidence = Boolean(
-    evidence.transactionHash || evidence.contractAddress || evidence.merkleRoot || evidence.blockNumber
-  );
+  const details = credential.publicDetails ?? {};
+  const subjects = credential.publicSubjects ?? [];
+  const team = subjects.find((subject) => subject.subjectType === "TEAM");
+  const checks = verificationSummary(evidence);
+  const explorerUrl = buildExplorerUrl(evidence.chainId, evidence.transactionHash);
+  const StatusIcon = presentation.tone === "success" ? ShieldCheck : presentation.tone === "pending" ? Clock3 : ShieldAlert;
+  const recordTitle = details.prize || details.submissionTitle || credentialType[credential.credentialType] || "공식 증명서";
 
   return (
     <main className={styles.page}>
-      <header className={styles.topbar}>
-        <button type="button" onClick={handleBack}><ArrowLeft size={17} /> 이전 화면</button>
-        <span>Trekkey 공개 검증</span>
-      </header>
+      <PublicHeader />
 
-      <section className={styles.hero}>
-        <div className={`${styles.statusIcon} ${styles[status.tone]}`}>
-          <StatusIcon size={30} aria-hidden="true" />
-        </div>
-        <div className={styles.heroCopy}>
-          <span className={styles.eyebrow}>Credential 검증 결과</span>
-          <h1>{status.label}</h1>
-          <p>{status.description}</p>
-        </div>
-        <div className={`${styles.statusBadge} ${styles[status.tone]}`}>
-          <StatusIcon size={15} aria-hidden="true" />
-          {credential.verificationStatus}
+      <section className={`${styles.statusBand} ${styles[presentation.tone]}`}>
+        <div className={styles.statusInner}>
+          <span className={styles.statusIcon}><StatusIcon size={30} aria-hidden="true" /></span>
+          <div className={styles.statusCopy}>
+            <span>{presentation.label}</span>
+            <h1>{presentation.headline}</h1>
+            <p>{presentation.description}</p>
+          </div>
+          <div className={styles.resultActions}>
+            <span><LockKeyhole size={14} /> 로그인 없이 확인됨</span>
+            <button type="button" onClick={shareResult} title="검증 결과 공유" aria-label="검증 결과 공유">
+              {copiedLabel === "공유 링크" ? <Check size={18} /> : <Share2 size={18} />}
+            </button>
+          </div>
         </div>
       </section>
 
-      <div className={styles.contentGrid}>
+      <div className={styles.resultLayout}>
         <div className={styles.mainColumn}>
-          <section className={styles.card}>
-            <div className={styles.sectionHead}>
-              <div className={styles.sectionIcon}><BadgeCheck size={19} /></div>
-              <div><span>발급 정보</span><h2>{credentialType[credential.credentialType] ?? credential.credentialType}</h2></div>
+          <section className={styles.recordSection}>
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionIcon}><BadgeCheck size={19} /></span>
+              <div><small>발급 내용</small><h2>{credentialType[credential.credentialType] ?? credential.credentialType}</h2></div>
+            </div>
+            <div className={styles.recordLead}>
+              <span>{details.awardRankNo ? `${details.awardRankNo}위` : credentialType[credential.credentialType]}</span>
+              <h3>{recordTitle}</h3>
+              <p>{details.contestTitle || "발급 대회 정보"}</p>
             </div>
             <dl className={styles.detailGrid}>
-              <DetailItem label="Credential 번호">{credential.credentialNo}</DetailItem>
-              <DetailItem label="발급기관">{credential.issuerName}</DetailItem>
-              <DetailItem label="발급일시">{formatDateTime(credential.issuedAt)}</DetailItem>
-              <DetailItem label="만료일시">{formatDateTime(credential.expiresAt)}</DetailItem>
-              <DetailItem label="발급기관 ID">{credential.issuerPublicId}</DetailItem>
-              <DetailItem label="스키마">{credential.schemaProfileId}</DetailItem>
+              <DetailItem label="증서 번호">{credential.credentialNo}</DetailItem>
+              <DetailItem label="팀">{details.teamName || team?.displayName}</DetailItem>
+              <DetailItem label="작품">{details.submissionTitle}</DetailItem>
+              <DetailItem label="발급일">{formatDateTime(credential.issuedAt)}</DetailItem>
             </dl>
           </section>
 
-          <section className={styles.card}>
-            <div className={styles.sectionHead}>
-              <div className={styles.sectionIcon}><UserRound size={19} /></div>
-              <div><span>공개 대상자</span><h2>증명 대상 정보</h2></div>
+          <section className={styles.subjectSection}>
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionIcon}><UserRound size={19} /></span>
+              <div><small>증명 대상</small><h2>공개된 수상·참여자</h2></div>
             </div>
-            {credential.publicSubjects?.length ? (
+            {subjects.length ? (
               <div className={styles.subjectList}>
-                {credential.publicSubjects.map((subject) => (
+                {subjects.map((subject) => (
                   <article className={styles.subjectCard} key={`${subject.subjectType}-${subject.subjectRef}`}>
-                    <div><strong>{subject.displayName}</strong><span>{subjectType[subject.subjectType] ?? subject.subjectType}</span></div>
-                    <dl>
-                      <DetailItem label="전공">{subject.major}</DetailItem>
-                      <DetailItem label="역할">{roleCode[subject.roleCode] ?? subject.roleCode}</DetailItem>
-                    </dl>
+                    <span className={styles.subjectAvatar}>{subject.subjectType === "TEAM" ? <BadgeCheck size={18} /> : <UserRound size={18} />}</span>
+                    <div><strong>{subject.displayName}</strong><small>{subject.major || subjectType[subject.subjectType]}</small></div>
+                    <span>{roleCode[subject.roleCode] ?? subject.roleCode}</span>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className={styles.emptyCopy}>공개 범위로 설정된 대상자 정보가 없습니다.</p>
+              <p className={styles.emptyCopy}>외부 공개에 동의된 대상자 정보가 없습니다.</p>
             )}
           </section>
 
-          <section className={styles.card}>
-            <div className={styles.sectionHead}>
-              <div className={styles.sectionIcon}><Fingerprint size={19} /></div>
-              <div><span>무결성 검사</span><h2>검증 항목</h2></div>
+          <section className={styles.evidenceSection}>
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionIcon}><ShieldCheck size={19} /></span>
+              <div><small>검증 결과</small><h2>세 가지 항목을 확인했습니다</h2></div>
             </div>
-            <div className={styles.checkGrid}>
-              {evidenceChecks.map(([key, label]) => (
-                <div className={evidence[key] ? styles.checkPass : styles.checkFail} key={key}>
-                  {evidence[key] ? <CheckCircle2 size={18} /> : <X size={18} />}
-                  <span>{label}</span>
-                  <strong>{evidence[key] ? "일치" : "불일치"}</strong>
-                </div>
-              ))}
-            </div>
-            <div className={styles.hashList}>
-              <HashItem label="Credential ID Hash" value={evidence.credentialIdHash} onCopy={copyValue} copied={copiedLabel === "Credential ID Hash"} />
-              <HashItem label="Content Hash" value={evidence.contentHash} onCopy={copyValue} copied={copiedLabel === "Content Hash"} />
-              <HashItem label="File Manifest Hash" value={evidence.fileManifestHash} onCopy={copyValue} copied={copiedLabel === "File Manifest Hash"} />
-              <HashItem label="Merkle Root" value={evidence.merkleRoot} onCopy={copyValue} copied={copiedLabel === "Merkle Root"} />
+            <div className={styles.checkList}>
+              {checks.map((item) => {
+                const isWaiting = !item.passed && ["PENDING", "RPC_UNAVAILABLE"].includes(credential.verificationStatus) && item.key === "external";
+                return (
+                  <div className={item.passed ? styles.checkPass : isWaiting ? styles.checkWaiting : styles.checkFail} key={item.key}>
+                    {item.passed ? <CheckCircle2 size={20} /> : isWaiting ? <Clock3 size={20} /> : <XCircle size={20} />}
+                    <span><strong>{item.label}</strong><small>{item.description}</small></span>
+                    <b>{item.passed ? "확인" : isWaiting ? "대기" : "실패"}</b>
+                  </div>
+                );
+              })}
             </div>
           </section>
 
-          {(credential.replacementCredentialPublicId || credential.replacementCredentialIdHash) && (
-            <section className={`${styles.card} ${styles.replacementCard}`}>
-              <RefreshCw size={22} aria-hidden="true" />
-              <div>
-                <strong>이 Credential은 새 증명서로 대체되었습니다.</strong>
-                <span>
-                  대체 Credential ID hash:{" "}
-                  <code title={credential.replacementCredentialIdHash || undefined}>
-                    {compactHash(credential.replacementCredentialIdHash)}
-                  </code>
-                </span>
-              </div>
-              {credential.replacementCredentialPublicId && (
-                <Link to={getCredentialVerificationPath(credential.replacementCredentialPublicId)}>새 증명서 확인</Link>
-              )}
+          {credential.replacementCredentialPublicId && (
+            <section className={styles.replacementNotice}>
+              <RefreshCw size={21} aria-hidden="true" />
+              <div><strong>새 증명서가 발급되었습니다</strong><p>현재 내용을 대신하는 최신 증명서를 확인해 주세요.</p></div>
+              <Link to={getCredentialVerificationPath(credential.replacementCredentialPublicId)}>최신 증명서 확인</Link>
             </section>
           )}
+
+          <details className={styles.technicalDetails}>
+            <summary>
+              <span><Fingerprint size={18} /><span><strong>기술 검증 정보</strong><small>전문가·시스템 담당자용</small></span></span>
+              <ChevronDown size={18} aria-hidden="true" />
+            </summary>
+            <div className={styles.technicalBody}>
+              <p>원본 해시, 공개 등록 트랜잭션과 검증 배치 정보입니다.</p>
+              <div className={styles.technicalGrid}>
+                {technicalEvidence.map(([key, label]) => (
+                  <TechnicalItem key={key} label={label} value={evidence[key]} onCopy={copyValue} copied={copiedLabel === label} />
+                ))}
+              </div>
+              <dl className={styles.chainDetails}>
+                <DetailItem label="네트워크">{networkLabel(evidence.chainId)}</DetailItem>
+                <DetailItem label="블록 번호">{evidence.blockNumber}</DetailItem>
+                <DetailItem label="검증 배치">{evidence.batchPublicId}</DetailItem>
+                <DetailItem label="컨트랙트">{compactHash(evidence.contractAddress)}</DetailItem>
+              </dl>
+              {explorerUrl && (
+                <a className={styles.explorerLink} href={explorerUrl} target="_blank" rel="noreferrer">
+                  공개 원장 기록 직접 확인 <ExternalLink size={15} />
+                </a>
+              )}
+            </div>
+          </details>
         </div>
 
         <aside className={styles.sideColumn}>
-          <section className={styles.card}>
-            <div className={styles.sectionHead}>
-              <div className={styles.sectionIcon}><Download size={19} /></div>
-              <div><span>검증 자료</span><h2>파일 다운로드</h2></div>
+          <section className={styles.sideSection}>
+            <div className={styles.sectionHeading}>
+              <span className={styles.sectionIcon}><Download size={19} /></span>
+              <div><small>제출 자료</small><h2>파일 받기</h2></div>
             </div>
-            <p className={styles.cardDescription}>증명서와 독립적으로 보관할 수 있는 검증 자료를 내려받을 수 있습니다.</p>
             <div className={styles.downloadList}>
               <button type="button" disabled={Boolean(downloading)} onClick={() => download("certificate")}>
-                <FileText size={20} />
-                <span><strong>증명서 PDF</strong><small>{downloading === "certificate" ? "다운로드 중..." : "출력·제출용 문서"}</small></span>
-                <Download size={16} />
+                <FileText size={20} /><span><strong>증명서 PDF</strong><small>{downloading === "certificate" ? "다운로드 중" : "출력·제출용"}</small></span><Download size={16} />
               </button>
               <button type="button" disabled={Boolean(downloading)} onClick={() => download("package")}>
-                <FileArchive size={20} />
-                <span><strong>Credential 패키지</strong><small>{downloading === "package" ? "다운로드 중..." : "원본·증빙 ZIP 파일"}</small></span>
-                <Download size={16} />
+                <FileArchive size={20} /><span><strong>검증 자료 ZIP</strong><small>{downloading === "package" ? "다운로드 중" : "독립 보관용"}</small></span><Download size={16} />
               </button>
             </div>
-            {downloadError && <p className={styles.errorMessage}>{downloadError}</p>}
+            {downloadError && <p className={styles.formError} role="alert">{downloadError}</p>}
           </section>
 
-          <section className={styles.card}>
-            <div className={styles.sectionHead}>
-              <div className={styles.sectionIcon}><ShieldCheck size={19} /></div>
-              <div><span>블록체인 증빙</span><h2>기록 정보</h2></div>
-            </div>
-            {hasBlockchainEvidence ? (
-              <dl className={styles.chainList}>
-                <DetailItem label="네트워크 Chain ID">{evidence.chainId}</DetailItem>
-                <DetailItem label="블록 번호">{evidence.blockNumber}</DetailItem>
-                <DetailItem label="배치 ID">{evidence.batchPublicId}</DetailItem>
-                <DetailItem label="컨트랙트">{compactHash(evidence.contractAddress)}</DetailItem>
-                <DetailItem label="트랜잭션">{compactHash(evidence.transactionHash)}</DetailItem>
-              </dl>
-            ) : (
-              <p className={styles.emptyCopy}>아직 표시할 블록체인 기록이 없습니다.</p>
-            )}
+          <section className={styles.sideSection}>
+            <div className={styles.issuerMark}><ShieldCheck size={22} /></div>
+            <small>발급기관</small>
+            <h2>{credential.issuerName}</h2>
+            <p>발급 당시 기관 정보와 서명 권한을 공개 기록에서 확인했습니다.</p>
           </section>
 
-          <section className={styles.guideCard}>
-            <ShieldCheck size={19} aria-hidden="true" />
-            <div><strong>공개 검증 안내</strong><p>이 페이지에는 발급 당시 공개하기로 한 정보만 표시됩니다. 링크를 받은 누구나 로그인 없이 진위를 확인할 수 있습니다.</p></div>
+          <section className={styles.privacyNote}>
+            <LockKeyhole size={18} />
+            <div><strong>공개 검증 페이지</strong><p>발급 당시 외부 공개에 동의한 정보만 표시됩니다.</p></div>
           </section>
         </aside>
       </div>

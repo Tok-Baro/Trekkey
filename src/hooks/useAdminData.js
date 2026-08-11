@@ -819,7 +819,7 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     const link = await issueAdminJudgeReviewLink(selectedContestId, judgeId, {
       expiresAt: toDateTime(expiresAt)
     });
-    return { ok: true, link, message: "심사위원 전용 링크를 발급했습니다." };
+    return { ok: true, link, message: "평가위원 1회용 로그인 링크를 발급했습니다." };
   }, [selectedContestId]);
 
   const revokeReviewLink = useCallback(async (judgeId) => {
@@ -828,7 +828,7 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     }
     await revokeAdminJudgeReviewLink(selectedContestId, judgeId);
     await loadSelectedContest(selectedContestId);
-    return { ok: true, message: "심사위원 전용 링크를 폐기했습니다." };
+    return { ok: true, message: "평가위원 1회용 로그인 링크를 폐기했습니다." };
   }, [loadSelectedContest, selectedContestId]);
 
   const openReviewRound = useCallback(async (round) => {

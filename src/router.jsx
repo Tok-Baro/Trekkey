@@ -18,11 +18,12 @@ function AppRouter() {
         ))}
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/signup/admin" element={<SignupPage preferredRole="admin" />} />
+        <Route path="/verify" element={<PublicCredentialVerificationPage />} />
         <Route path="/verify/:credentialPublicId" element={<PublicCredentialVerificationPage />} />
         <Route path="/activity/:publicProfileId" element={<PublicActivityProfilePage />} />
         <Route path="/home" element={<App />} />
         <Route path="/login" element={<App />} />
-        <Route path="/review/:contestId" element={<App />} />
+        <Route path="/review/:contestId" element={<Navigate to="/judge/review" replace />} />
         <Route path="/judge/review" element={<App />} />
         <Route path="/contest/:contestId" element={<App />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -73,6 +73,25 @@
   text-decoration: underline;
 }
 
+.verifyEntry {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--teal-strong);
+  font-size: 13px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.verifyEntry:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
 @media (max-width: 640px) {
   .signupLinks {
     flex-wrap: wrap;
