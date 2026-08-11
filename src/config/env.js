@@ -1,3 +1,5 @@
+import { selectAuthApiBaseUrl } from "../lib/apiRouting.js";
+
 function normalizeHttpUrl(name, value) {
   const trimmedValue = value?.trim();
 
@@ -19,6 +21,18 @@ function normalizeHttpUrl(name, value) {
   return url.toString().replace(/\/+$/, "");
 }
 
+const apiBaseUrl = normalizeHttpUrl("VITE_API_BASE_URL", import.meta.env.VITE_API_BASE_URL);
+const browserOrigin = typeof window === "undefined" ? "" : window.location.origin;
+
 export const appEnv = Object.freeze({
-  apiBaseUrl: normalizeHttpUrl("VITE_API_BASE_URL", import.meta.env.VITE_API_BASE_URL)
+  apiBaseUrl,
+  authApiBaseUrl: normalizeHttpUrl(
+    "VITE_AUTH_API_BASE_URL",
+    selectAuthApiBaseUrl({
+      apiBaseUrl,
+      configuredAuthBaseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
+      isProduction: import.meta.env.PROD,
+      browserOrigin
+    })
+  )
 });

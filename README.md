@@ -17,10 +17,14 @@ npm run dev
 | 변수 | 설명 | 로컬 기본값 |
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | Spring Boot API 서버의 base URL. 마지막 `/`는 생략합니다. | `http://localhost:8080` |
+| `VITE_AUTH_API_BASE_URL` | 선택값. 로그인·refresh·logout을 보낼 동일 출처 인증 프록시 URL | 개발 환경에서는 `VITE_API_BASE_URL`, 프로덕션에서는 현재 프론트 origin |
 
 Vercel에서는 프로젝트의 **Settings → Environment Variables**에 `VITE_API_BASE_URL`을 추가하고 실제 HTTPS 백엔드 주소를 입력합니다. `VITE_`로 시작하는 값은 브라우저 번들에 포함되므로 비밀번호, API 비밀키 같은 민감정보는 넣으면 안 됩니다.
 
-프론트와 백엔드가 서로 다른 도메인이라면 백엔드 CORS에 Vercel 도메인을 허용하고, 인증 쿠키는 크로스 사이트 전송이 가능하도록 설정해야 합니다.
+일반 API는 EC2로 직접 요청하지만 인증 3개 경로는 `vercel.json`의
+동일 출처 rewrite를 사용합니다. refresh cookie를 Vercel origin의
+first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 복구할 수
+있고, 대용량 제출 파일은 Vercel 프록시를 통과하지 않습니다.
 
 ## Vercel 배포
 
@@ -29,7 +33,9 @@ Vercel에서는 프로젝트의 **Settings → Environment Variables**에 `VITE_
 - Output Directory: `dist`
 - Environment Variable: `VITE_API_BASE_URL=https://백엔드-도메인` (`/api` 제외)
 
-`vercel.json`에는 React Router의 직접 접속과 새로고침을 위한 SPA rewrite가 포함되어 있습니다.
+`vercel.json`에는 인증 API 외부 origin rewrite가 SPA rewrite보다 먼저
+정의되어 있습니다. 순서를 바꾸면 `/api/auth/**`가 `index.html`로
+처리되므로 유지해야 합니다.
 
 ## 화면
 
