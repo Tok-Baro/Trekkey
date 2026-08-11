@@ -33,6 +33,8 @@ const serverParticipationTypeOptions = [
   { value: "BOTH", label: "개인/팀" }
 ];
 
+const DEFAULT_MAX_TEAM_MEMBERS = 5;
+
 const serverDecisionOptions = ["top-n", "score-min", "manual"];
 
 function toDateTimeLocal(value) {
@@ -47,6 +49,10 @@ function toServerContestStatus(value) {
 function toServerParticipationType(value) {
   const byLabel = Object.fromEntries(serverParticipationTypeOptions.map((option) => [option.label, option.value]));
   return byLabel[value] ?? value ?? "TEAM";
+}
+
+function isIndividualParticipationType(value) {
+  return value === "INDIVIDUAL" || value === "개인전";
 }
 
 function getServerOptionLabel(options, value) {
@@ -138,6 +144,7 @@ function createServerContestForm(contest) {
   const applicationStage = contest?.stages?.find((stage) => stage.stageType === "APPLICATION");
   const submissionStage = contest?.stages?.find((stage) => stage.stageType === "SUBMISSION");
   const contestId = contest?.id ?? "contest";
+  const participationType = toServerParticipationType(contest?.participationType ?? contest?.type);
 
   return {
     ...(contest ?? {}),
@@ -146,7 +153,10 @@ function createServerContestForm(contest) {
     department: contest?.department ?? "",
     owner: contest?.owner ?? "",
     status: toServerContestStatus(contest?.status),
-    type: toServerParticipationType(contest?.participationType ?? contest?.type),
+    type: participationType,
+    maxTeamMembers: participationType === "INDIVIDUAL"
+      ? 1
+      : Number(contest?.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS),
     awards: Number(contest?.awardCount ?? contest?.awards ?? 0),
     posterUrl: contest?.posterUrl ?? "",
     summary: contest?.summary ?? "",
@@ -193,6 +203,9 @@ function getServerContestValidationMessage(form, rounds) {
   }
   if (!Number.isFinite(Number(form.awards)) || Number(form.awards) < 0) {
     return "시상 수는 0 이상이어야 합니다.";
+  }
+  if (!Number.isInteger(Number(form.maxTeamMembers)) || Number(form.maxTeamMembers) < 1) {
+    return "팀당 최대 인원은 1명 이상인 정수여야 합니다.";
   }
   if (!rounds.length) {
     return "심사 라운드를 하나 이상 추가해 주세요.";
@@ -256,6 +269,9 @@ export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic
       ? {
           ...contest,
           ...getDefaultContestPublicFields(contest),
+          maxTeamMembers: isIndividualParticipationType(contest.type)
+            ? 1
+            : Number(contest.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS),
           evaluationRounds: normalizeEvaluationRounds(contest.evaluationRounds, contest.id)
         }
       : getTestContestFormDefaults()
@@ -265,6 +281,13 @@ export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const updateParticipationType = (type) => setForm((current) => ({
+    ...current,
+    type,
+    maxTeamMembers: isIndividualParticipationType(type)
+      ? 1
+      : current.maxTeamMembers || DEFAULT_MAX_TEAM_MEMBERS
+  }));
   const currentStep = contestFormSteps[stepIndex];
   const isLastStep = stepIndex === contestFormSteps.length - 1;
   const canGoNext = stepIndex !== 0 || Boolean(
@@ -473,7 +496,7 @@ export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic
               </label>
               <label>
                 <span>유형</span>
-                <select value={form.type} onChange={(event) => update("type", event.target.value)}>
+                <select value={form.type} onChange={(event) => updateParticipationType(event.target.value)}>
                   {serverBacked
                     ? serverParticipationTypeOptions.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -484,6 +507,18 @@ export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic
                 </select>
               </label>
             </div>
+            <label>
+              <span>팀당 최대 참가 인원 (대표자 포함)</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={form.maxTeamMembers}
+                disabled={isIndividualParticipationType(form.type)}
+                onChange={(event) => update("maxTeamMembers", event.target.value)}
+                required
+              />
+            </label>
             {serverBacked ? (
               <>
                 <div className="field-row">
@@ -809,6 +844,7 @@ export function ContestForm({ contest, onSubmit, onClose, initialStepId = "basic
                 ? `${getServerOptionLabel(serverContestStatusOptions, form.status)} · ${getServerOptionLabel(serverParticipationTypeOptions, form.type)}`
                 : `${form.status} · ${form.type}`}
             />
+            <SummaryItem label="팀당 최대 인원" value={`${form.maxTeamMembers}명`} />
             <SummaryItem
               label="접수/제출"
               value={serverBacked

@@ -115,6 +115,7 @@ export function getTestContestFormDefaults() {
     owner: "공모전 운영팀",
     status: "접수중",
     type: "개인/팀",
+    maxTeamMembers: 5,
     applicationPeriod: "07.01 - 08.15",
     submissionDue: "08.15",
     awards: 6,

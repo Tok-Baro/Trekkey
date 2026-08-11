@@ -62,6 +62,8 @@ const participationTypeValues = {
   "개인/팀": "BOTH"
 };
 
+const DEFAULT_MAX_TEAM_MEMBERS = 5;
+
 const teamStatusLabels = {
   PENDING: "검토중",
   APPROVED: "승인",
@@ -284,11 +286,16 @@ function toContestRequest(form) {
       .map((stage) => stageRequest(stage))
   ].sort((left, right) => left.sequenceNo - right.sequenceNo);
 
+  const participationType = participationTypeValues[form.type] ?? form.participationType ?? "TEAM";
+
   return {
     title: String(form.title ?? "").trim(),
     department: String(form.department ?? "").trim(),
     status: contestStatusValues[form.status] ?? form.status ?? "PREPARING",
-    participationType: participationTypeValues[form.type] ?? form.participationType ?? "TEAM",
+    participationType,
+    maxTeamMembers: participationType === "INDIVIDUAL"
+      ? 1
+      : Number(form.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS),
     awardCount: Number(form.awards ?? form.awardCount ?? 0),
     posterUrl: form.posterUrl || null,
     summary: String(form.summary ?? "").trim(),
