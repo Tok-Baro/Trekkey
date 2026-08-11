@@ -25,20 +25,37 @@ import {
 } from "../lib/review.js";
 import { getSubmissionFileCount } from "../lib/submissionFiles.js";
 import { sanitizeRoster } from "../lib/roster.js";
+import {
+  getDefaultAwardType,
+  markJointRanks,
+  resolveAwardPrize
+} from "../constants/awards.js";
 
-export const DEMO_DATA_VERSION = "team-roster-2026-07-21";
+export const DEMO_DATA_VERSION = "award-management-2026-08-09";
 
 const LEGACY_DEMO_CONTEST_IDS = new Set(["CT-2026-014", "CT-2026-011", "CT-2026-008", "CT-2026-017"]);
 
 function getSeedCompetitionState() {
+  const seededSubmissions = attachSubmissionTeamIds(submissions, teams);
   return {
     contestRecords: contests,
     teamRecords: teams,
-    submissionRecords: submissions,
+    submissionRecords: seededSubmissions,
     judgeRecords: judgingAssignments,
     reviewRecords: reviewScores,
     awardRecords: awardCandidates
   };
+}
+
+function attachSubmissionTeamIds(submissionRecords, teamRecords) {
+  const teamIdByContestAndName = new Map(
+    teamRecords.map((team) => [`${team.contestId}:${team.name}`, team.id])
+  );
+  return submissionRecords.map((submission) => ({
+    ...submission,
+    teamId: submission.teamId
+      ?? teamIdByContestAndName.get(`${submission.contestId}:${submission.team}`)
+  }));
 }
 
 function mergeRecordsById(seedRecords, storedRecords = [], shouldKeepStored = () => true) {
@@ -76,10 +93,14 @@ function createMigratedCompetitionState(storedAppData) {
   }
 
   if (storedAppData.demoDataVersion === DEMO_DATA_VERSION) {
+    const teamRecords = storedAppData.teamRecords ?? teams;
     return {
       contestRecords: storedAppData.contestRecords ?? contests,
-      teamRecords: storedAppData.teamRecords ?? teams,
-      submissionRecords: storedAppData.submissionRecords ?? submissions,
+      teamRecords,
+      submissionRecords: attachSubmissionTeamIds(
+        storedAppData.submissionRecords ?? submissions,
+        teamRecords
+      ),
       judgeRecords: storedAppData.judgeRecords ?? judgingAssignments,
       reviewRecords: storedAppData.reviewRecords ?? reviewScores,
       awardRecords: storedAppData.awardRecords ?? awardCandidates
@@ -93,11 +114,24 @@ function createMigratedCompetitionState(storedAppData) {
   );
   const validContestIds = new Set(contestRecords.map((contest) => contest.id));
   const scopedToValidContest = (record) => validContestIds.has(record.contestId);
+  const teamRecords = mergeRecordsById(
+    seedState.teamRecords,
+    storedAppData.teamRecords,
+    scopedToValidContest
+  );
+  const submissionRecords = attachSubmissionTeamIds(
+    mergeRecordsById(
+      seedState.submissionRecords,
+      storedAppData.submissionRecords,
+      scopedToValidContest
+    ),
+    teamRecords
+  );
 
   return {
     contestRecords,
-    teamRecords: mergeRecordsById(seedState.teamRecords, storedAppData.teamRecords, scopedToValidContest),
-    submissionRecords: mergeRecordsById(seedState.submissionRecords, storedAppData.submissionRecords, scopedToValidContest),
+    teamRecords,
+    submissionRecords,
     judgeRecords: mergeRecordsById(seedState.judgeRecords, storedAppData.judgeRecords, scopedToValidContest),
     reviewRecords: mergeReviewRecords(seedState.reviewRecords, storedAppData.reviewRecords ?? [], validContestIds),
     awardRecords: mergeAwardRecords(seedState.awardRecords, storedAppData.awardRecords ?? [], validContestIds)
@@ -642,12 +676,14 @@ export function calculateResults(state, contestId, roundId) {
       return {
         submission,
         reviewCount: records.length,
-        average: getAverage(totals),
-        highest: totals.length ? Math.max(...totals) : 0
+        average: getAverage(totals)
       };
     })
     .filter((item) => item.reviewCount > 0)
-    .sort((a, b) => b.average - a.average || b.reviewCount - a.reviewCount || b.highest - a.highest);
+    .sort((a, b) =>
+      b.average - a.average
+      || String(a.submission.id).localeCompare(String(b.submission.id))
+    );
 
   if (!contestSubmissions.length) {
     return { state, ok: false, message: "결과 산출을 위한 제출물이 없습니다." };
@@ -657,19 +693,42 @@ export function calculateResults(state, contestId, roundId) {
     return { state, ok: false, message: "결과 산출을 위한 심사 점수가 없습니다." };
   }
 
-  const awardLimit = Math.min(Number(contest?.awards || 3), scoredSubmissions.length);
-  const prizeLabels = ["대상 후보", "최우수상 후보", "우수상 후보", "장려상 후보", "입선 후보"];
-  const nextAwards = scoredSubmissions.slice(0, awardLimit).map(({ submission, average }, index) => ({
-      rank: index + 1,
+  let previousScore = null;
+  let previousRank = 0;
+  const rankedSubmissions = scoredSubmissions.map((item, index) => {
+    const score = Number(item.average.toFixed(2));
+    const rank = previousScore !== null && score === previousScore ? previousRank : index + 1;
+    previousScore = score;
+    previousRank = rank;
+    return { ...item, score, rank };
+  });
+  const awardLimit = Math.min(Math.max(Number(contest?.awards || 3), 0), rankedSubmissions.length);
+  const cutoffRank = awardLimit > 0 ? rankedSubmissions[awardLimit - 1].rank : 0;
+  const selectedSubmissions = rankedSubmissions.filter((item) => item.rank <= cutoffRank);
+  const nextAwards = markJointRanks(selectedSubmissions.map(({ submission, score, rank }, index) => {
+    const awardType = getDefaultAwardType(rank);
+    const customPrize = awardType === "CUSTOM" ? `${rank}위` : "";
+    const team = state.teamRecords.find((item) =>
+      item.contestId === contestId
+      && (item.id === submission.teamId || item.name === submission.team)
+    );
+    return {
+      id: `AW-${contestId}-${submission.id}`,
+      rank,
       contestId,
       roundId: targetRound?.id,
-      prize: prizeLabels[index] ?? `${index + 1}위 후보`,
+      awardType,
+      customPrize,
+      prize: resolveAwardPrize(awardType, customPrize),
+      teamId: submission.teamId ?? team?.id,
       team: submission.team,
-      score: Number(average.toFixed(1)),
-      members: state.teamRecords.find((team) => team.contestId === contestId && team.name === submission.team)?.members ?? 1,
+      score,
+      members: team?.members ?? 1,
       status: "확정대기",
       certificateNo: `2026-${contestId.slice(-3)}-${String(index + 1).padStart(3, "0")}`
-    }));
+    };
+  }));
+  const awardTeamIds = new Set(nextAwards.map((award) => award.teamId).filter(Boolean));
   const awardTeams = new Set(nextAwards.map((award) => award.team));
 
   return {
@@ -679,7 +738,7 @@ export function calculateResults(state, contestId, roundId) {
         submission.contestId === contestId
           ? {
               ...submission,
-              review: awardTeams.has(submission.team)
+              review: (submission.teamId && awardTeamIds.has(submission.teamId)) || awardTeams.has(submission.team)
                 ? "수상후보"
                 : submission.review === "수상후보"
                   ? "심사완료"
@@ -695,18 +754,70 @@ export function calculateResults(state, contestId, roundId) {
   };
 }
 
-export function confirmAwards(state, contestId) {
-  const targetCount = state.awardRecords.filter((candidate) => candidate.contestId === contestId).length;
+export function updateAwardCandidate(state, candidate, request) {
+  const target = state.awardRecords.find((award) =>
+    (candidate.id && award.id === candidate.id)
+    || (
+      award.contestId === candidate.contestId
+      && award.certificateNo === candidate.certificateNo
+      && award.team === candidate.team
+    )
+  );
 
-  if (!targetCount) {
+  if (!target) {
+    return { state, ok: false, message: "변경할 수상 후보를 찾지 못했습니다." };
+  }
+  if (target.status === "확정") {
+    return { state, ok: false, message: "확정된 수상 결과는 후보 편집으로 변경할 수 없습니다." };
+  }
+
+  const prize = resolveAwardPrize(request.awardType, request.customPrize);
+  if (!prize) {
+    return { state, ok: false, message: "직접 입력 상격명을 입력해 주세요." };
+  }
+  if (!["CANDIDATE", "HELD"].includes(request.status)) {
+    return { state, ok: false, message: "후보 상태는 확정대기 또는 보류만 선택할 수 있습니다." };
+  }
+
+  const nextStatus = request.status === "HELD" ? "보류" : "확정대기";
+  return {
+    state: {
+      ...state,
+      awardRecords: state.awardRecords.map((award) =>
+        award === target
+          ? {
+              ...award,
+              awardType: request.awardType,
+              customPrize: request.awardType === "CUSTOM" ? request.customPrize.trim() : "",
+              prize,
+              status: nextStatus
+            }
+          : award
+      )
+    },
+    ok: true,
+    message: "수상 후보를 변경했습니다."
+  };
+}
+
+export function confirmAwards(state, contestId) {
+  const targets = state.awardRecords.filter((candidate) => candidate.contestId === contestId);
+  const targetCount = targets.filter((candidate) => candidate.status === "확정대기").length;
+
+  if (!targets.length || !targetCount) {
     return { state, ok: false, message: "확정할 수상 후보가 없습니다." };
+  }
+  if (targets.some((candidate) => candidate.status === "보류")) {
+    return { state, ok: false, message: "보류 후보를 확정대기로 변경한 뒤 전체 결과를 확정해 주세요." };
   }
 
   return {
     state: {
       ...state,
       awardRecords: state.awardRecords.map((candidate) =>
-        candidate.contestId === contestId ? { ...candidate, status: "확정" } : candidate
+        candidate.contestId === contestId && candidate.status === "확정대기"
+          ? { ...candidate, status: "확정" }
+          : candidate
       ),
       contestRecords: patchContest(state.contestRecords, contestId, {
         status: "수상확정",

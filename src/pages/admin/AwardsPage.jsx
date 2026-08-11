@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Award, Download, Search, Trophy } from "lucide-react";
 import { ChecklistItem, ContestScopeBar, EmptyState, PanelHeader, SortableTh, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { markJointRanks } from "../../constants/awards.js";
 import { sortRecords, toggleSortState } from "../../lib/sort.js";
 
 export function AwardsPage({
@@ -14,7 +15,9 @@ export function AwardsPage({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState({ key: "", direction: "asc" });
-  const contestAwards = awardCandidates.filter((candidate) => candidate.contestId === selectedContestId);
+  const contestAwards = markJointRanks(
+    awardCandidates.filter((candidate) => candidate.contestId === selectedContestId)
+  );
   const filteredAwards = contestAwards.filter((candidate) => {
     const searchable = `${candidate.rank} ${candidate.prize} ${candidate.team} ${candidate.score} ${candidate.status}`.toLowerCase();
     return !query.trim() || searchable.includes(query.trim().toLowerCase());
@@ -23,6 +26,13 @@ export function AwardsPage({
   const toggleSort = (key) => setSort((current) => toggleSortState(current, key));
   const topCandidate = contestAwards[0];
   const pendingAwardCount = contestAwards.filter((candidate) => candidate.status === "확정대기").length;
+  const heldAwardCount = contestAwards.filter((candidate) => candidate.status === "보류").length;
+  const confirmedAwardCount = contestAwards.filter((candidate) => candidate.status === "확정").length;
+  const jointAwardCount = contestAwards.filter((candidate) => candidate.jointRank).length;
+  const certificateNumbersReady = contestAwards.length > 0
+    && contestAwards.every((candidate) => candidate.certificateNo && candidate.certificateNo !== "-");
+  const allAwardsConfirmed = contestAwards.length > 0 && confirmedAwardCount === contestAwards.length;
+  const unresolvedAwardCount = pendingAwardCount + heldAwardCount;
 
   return (
     <div className="page-grid split-grid">
@@ -46,8 +56,12 @@ export function AwardsPage({
               <button
                 className="primary-button"
                 type="button"
-                disabled={pendingAwardCount === 0}
-                onClick={() => openModal("confirmAwards", { count: pendingAwardCount })}
+                disabled={unresolvedAwardCount === 0}
+                onClick={() => openModal("confirmAwards", {
+                  count: pendingAwardCount,
+                  heldCount: heldAwardCount,
+                  confirmedCount: confirmedAwardCount
+                })}
               >
                 <Award size={17} />
                 확정
@@ -81,9 +95,21 @@ export function AwardsPage({
             </thead>
             <tbody>
               {visibleAwards.map((candidate) => (
-                <tr key={`${candidate.rank}-${candidate.team}`} onClick={() => openModal("awardDetail", { candidate })}>
+                <tr
+                  key={candidate.id ?? `${candidate.contestId}-${candidate.certificateNo}-${candidate.team}`}
+                  onClick={() => openModal("awardDetail", { candidate })}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      openModal("awardDetail", { candidate });
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-label={`${candidate.prize} ${candidate.team} 후보 상세 편집`}
+                >
                   <td data-label="순위">
                     <span className="rank-badge">{candidate.rank}</span>
+                    {candidate.jointRank && <small className="rank-note">공동</small>}
                   </td>
                   <td data-label="상격">
                     <strong>{candidate.prize}</strong>
@@ -117,10 +143,26 @@ export function AwardsPage({
           <span>{topCandidate ? `${topCandidate.prize} · ${topCandidate.team}` : selectedContest.title}</span>
         </div>
         <div className="checklist">
-          <ChecklistItem done label="심사 점수 잠금" meta="평균 및 동점 기준 확인" />
-          <ChecklistItem done label="수상자 학적 확인" meta="재학 상태 기준" />
-          <ChecklistItem label="상장 번호 발급" meta="담당부서 승인 필요" />
-          <ChecklistItem label="검증 메타데이터 생성" meta="블록체인 연동 예정" />
+          <ChecklistItem
+            done={contestAwards.length > 0}
+            label="심사 결과 고정"
+            meta={contestAwards.length > 0 ? `${contestAwards.length}건의 후보 산출 완료` : "최종 라운드 확정 필요"}
+          />
+          <ChecklistItem
+            done={contestAwards.length > 0}
+            label="동점 규칙 반영"
+            meta={jointAwardCount > 0 ? `${jointAwardCount}건 공동순위 적용` : "동점자는 동일 순위와 상격 적용"}
+          />
+          <ChecklistItem
+            done={certificateNumbersReady}
+            label="상장 번호 발급"
+            meta={certificateNumbersReady ? "후보별 고유 번호 생성 완료" : "결과 산출 후 자동 생성"}
+          />
+          <ChecklistItem
+            done={allAwardsConfirmed}
+            label="Credential 발급"
+            meta={heldAwardCount > 0 ? `${heldAwardCount}건 보류 해제 필요` : "수상 확정과 함께 발급"}
+          />
         </div>
       </section>
     </div>

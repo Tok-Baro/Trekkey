@@ -32,9 +32,11 @@ import {
   updateAdminContest,
   updateAdminReviewAssignmentDueAt,
   updateAdminReviewRound,
+  updateAdminAward,
   updateAdminStageStatus,
   updateAdminTeamStatus
 } from "../api/adminBackendApi.js";
+import { inferAwardType, markJointRanks } from "../constants/awards.js";
 
 const contestStatusLabels = {
   PREPARING: "준비중",
@@ -441,6 +443,8 @@ function mapAward(award, membersByTeamId) {
     title: award.submissionTitle,
     score: award.finalScore == null ? "-" : Number(award.finalScore),
     members: Number(membersByTeamId.get(teamId) ?? 0),
+    awardType: award.awardType ?? inferAwardType(award.prize),
+    customPrize: (award.awardType ?? inferAwardType(award.prize)) === "CUSTOM" ? award.prize : "",
     status: awardStatusLabels[award.status] ?? award.status,
     certificateNo: award.certificateNo ?? "-",
     confirmedAt: shortDateTime(award.confirmedAt)
@@ -598,7 +602,9 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
         const progressByJudgeId = new Map((progress ?? []).map((item) => [String(item.judgeId), item]));
         return (judges ?? []).map((judge) => mapJudge(judge, contestId, roundId, progressByJudgeId));
       });
-      const mappedAwards = (awards ?? []).map((award) => mapAward(award, membersByTeamId));
+      const mappedAwards = markJointRanks(
+        (awards ?? []).map((award) => mapAward(award, membersByTeamId))
+      );
       const mappedContest = {
         ...mapContestDetail(detail, mappedRounds),
         isDetailLoaded: true,
@@ -988,6 +994,15 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     return { ok: true, awards, message: "수상 결과를 확정했습니다." };
   }, [loadSelectedContest, selectedContestId]);
 
+  const updateAwardCandidate = useCallback(async (awardId, request) => {
+    if (!awardId) {
+      throw new Error("변경할 수상 후보를 선택해 주세요.");
+    }
+    const award = await updateAdminAward(awardId, request);
+    await loadSelectedContest(award?.contestPublicId ?? selectedContestId);
+    return { ok: true, award, message: "수상 후보를 변경했습니다." };
+  }, [loadSelectedContest, selectedContestId]);
+
   const downloadSubmissionFile = useCallback((fileOrId, options = {}) => {
     const fileId = typeof fileOrId === "object" ? fileOrId.id : fileOrId;
     const fileName = options.fileName ?? (typeof fileOrId === "object" ? fileOrId.name ?? fileOrId.originalName : undefined);
@@ -1033,6 +1048,7 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     finalizeTeam,
     addJudge,
     deleteJudge,
+    updateAwardCandidate,
     confirmAwards,
     downloadSubmissionFile
   };

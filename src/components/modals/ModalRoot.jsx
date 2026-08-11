@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { Award, Copy, Download, Link2, Pencil, QrCode, Trash2 } from "lucide-react";
-import { DetailList, EmptyState } from "../common/CommonUi.jsx";
+import { Award, Copy, Download, Link2, Pencil, QrCode, Save, Trash2 } from "lucide-react";
+import { DetailList, EmptyState, SegmentedControl } from "../common/CommonUi.jsx";
 import { ContestForm, JudgeForm, SubmissionForm } from "../forms/CompetitionForms.jsx";
 import { TeamRosterSummary } from "../forms/TeamRosterField.jsx";
 import { getContestTitle, getReviewUrl } from "../../lib/contest.js";
@@ -15,6 +15,11 @@ import {
 } from "../../lib/review.js";
 import { formatFileSize, getSubmissionFileCount } from "../../lib/submissionFiles.js";
 import { ModalFrame } from "./ModalFrame.jsx";
+import {
+  AWARD_TYPE_OPTIONS,
+  formatAwardRank,
+  inferAwardType
+} from "../../constants/awards.js";
 
 export function ModalRoot({
   modal,
@@ -34,6 +39,7 @@ export function ModalRoot({
   onAddJudge,
   onUpdateJudge,
   onDeleteJudge,
+  onUpdateAward,
   onConfirmAwards,
   onDownloadSubmission,
   onNotify,
@@ -426,15 +432,18 @@ export function ModalRoot({
   }
 
   if (type === "confirmAwards") {
-    const canConfirm = Number(payload.count || 0) > 0;
+    const heldCount = Number(payload.heldCount || 0);
+    const canConfirm = Number(payload.count || 0) > 0 && heldCount === 0;
 
     return (
       <ModalFrame title="수상 결과 확정" description={selectedContest.title} onClose={onClose}>
         <div className="modal-info-stack">
           <p className="modal-copy">
-            {canConfirm
-              ? `후보 ${payload.count}건을 확정 상태로 변경합니다. 이후 블록체인 검증 메타데이터 생성 단계로 이어질 수 있습니다.`
-              : "확정할 수상 후보가 없습니다. 먼저 심사 결과를 산출해 주세요."}
+            {heldCount > 0
+              ? `보류 후보 ${heldCount}건이 있습니다. 후보 상세에서 확정대기로 되돌린 뒤 전체 결과를 확정할 수 있습니다.`
+              : canConfirm
+                ? `후보 ${payload.count}건을 확정하고, 같은 트랜잭션에서 수상 Credential 발급을 시작합니다.`
+                : "확정할 수상 후보가 없습니다. 먼저 심사 결과를 산출해 주세요."}
           </p>
           <div className="modal-actions">
             <button className="secondary-button" type="button" onClick={onClose}>
@@ -453,21 +462,112 @@ export function ModalRoot({
   if (type === "awardDetail") {
     const { candidate } = payload;
     return (
-      <ModalFrame title={`${candidate.prize} · ${candidate.team}`} description="수상 후보 상세" onClose={onClose}>
-        <DetailList
-          items={[
-            ["순위", `${candidate.rank}위`],
-            ["점수", `${candidate.score}점`],
-            ["인원", `${candidate.members}명`],
-            ["상태", candidate.status],
-            ["상장번호", candidate.certificateNo]
-          ]}
-        />
-      </ModalFrame>
+      <AwardDetailModal
+        candidate={candidate}
+        onClose={onClose}
+        onUpdateAward={onUpdateAward}
+      />
     );
   }
 
   return null;
+}
+
+function AwardDetailModal({ candidate, onClose, onUpdateAward }) {
+  const initialAwardType = candidate.awardType ?? inferAwardType(candidate.prize);
+  const [awardType, setAwardType] = useState(initialAwardType);
+  const [customPrize, setCustomPrize] = useState(
+    candidate.customPrize ?? (initialAwardType === "CUSTOM" ? candidate.prize : "")
+  );
+  const [status, setStatus] = useState(candidate.status === "보류" ? "보류" : "확정대기");
+  const [error, setError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const isConfirmed = candidate.status === "확정";
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (awardType === "CUSTOM" && !customPrize.trim()) {
+      setError("직접 입력 상격명을 입력해 주세요.");
+      return;
+    }
+
+    setError("");
+    setIsSaving(true);
+    try {
+      const saved = await onUpdateAward?.(candidate, {
+        awardType,
+        customPrize: awardType === "CUSTOM" ? customPrize.trim() : "",
+        status: status === "보류" ? "HELD" : "CANDIDATE"
+      });
+      if (saved !== false) {
+        onClose();
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <ModalFrame title={`${candidate.prize} · ${candidate.team}`} description="수상 후보 상세" onClose={onClose}>
+      <form className="form-stack award-editor" onSubmit={handleSubmit}>
+        <DetailList
+          items={[
+            ["순위", formatAwardRank(candidate)],
+            ["점수", `${candidate.score}점`],
+            ["인원", `${candidate.members}명`],
+            ["상장번호", candidate.certificateNo]
+          ]}
+        />
+
+        {isConfirmed ? (
+          <p className="modal-copy">확정된 수상 결과입니다. 후보 편집은 확정 전에만 가능합니다.</p>
+        ) : (
+          <>
+            <label>
+              <span>상격</span>
+              <select value={awardType} onChange={(event) => setAwardType(event.target.value)}>
+                {AWARD_TYPE_OPTIONS.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            {awardType === "CUSTOM" && (
+              <label>
+                <span>상격명</span>
+                <input
+                  type="text"
+                  maxLength={50}
+                  value={customPrize}
+                  onChange={(event) => setCustomPrize(event.target.value)}
+                  placeholder="예: 산학협력단장상"
+                  required
+                />
+              </label>
+            )}
+            <div className="award-status-field">
+              <span>후보 상태</span>
+              <SegmentedControl
+                options={["확정대기", "보류"]}
+                value={status}
+                onChange={setStatus}
+              />
+            </div>
+            {error && <p className="award-editor-error" role="alert">{error}</p>}
+          </>
+        )}
+
+        <div className="modal-actions">
+          <button className="secondary-button" type="button" onClick={onClose}>닫기</button>
+          {!isConfirmed && (
+            <button className="primary-button" type="submit" disabled={isSaving || !onUpdateAward}>
+              <Save size={17} />
+              {isSaving ? "저장 중" : "변경 저장"}
+            </button>
+          )}
+        </div>
+      </form>
+    </ModalFrame>
+  );
 }
 
 function TeamDetailModal({ team, contestTitle, onClose, onFinalizeTeam }) {
