@@ -5,3 +5,4 @@ export { SubmissionsPage } from "./SubmissionsPage.jsx";
 export { JudgingPage } from "./JudgingPage.jsx";
 export { AwardsPage } from "./AwardsPage.jsx";
 export { CredentialsPage } from "./CredentialsPage.jsx";
+export { EvidenceVerificationPage } from "./EvidenceVerificationPage.jsx";

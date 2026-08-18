@@ -10,6 +10,7 @@ import {
   ContestsPage,
   CredentialsPage,
   DashboardPage,
+  EvidenceVerificationPage,
   JudgingPage,
   SubmissionsPage,
   TeamsPage
@@ -84,8 +85,8 @@ function App() {
     session?.role === "participant" &&
     session?.authSource === "server";
   const admin = useAdminData({
-    enabled: isServerAdmin && activePage !== "root",
-    loadScope: activePage !== "credentials"
+    enabled: isServerAdmin && !["root", "evidence"].includes(activePage),
+    loadScope: !["credentials", "evidence"].includes(activePage)
   });
   const participant = useParticipantData({
     session,
@@ -940,11 +941,11 @@ function App() {
     );
   }
 
-  if (displayedAdminPage !== "root" && admin.isLoading) {
+  if (!["root", "evidence"].includes(displayedAdminPage) && admin.isLoading) {
     return <AdminDataScreen />;
   }
 
-  if (displayedAdminPage !== "root" && admin.error) {
+  if (!["root", "evidence"].includes(displayedAdminPage) && admin.error) {
     return (
       <AdminDataScreen
         error={admin.error}
@@ -1196,6 +1197,9 @@ function App() {
               }
               onNotify={notify}
             />
+          )}
+          {displayedAdminPage === "evidence" && (
+            <EvidenceVerificationPage onNotify={notify} />
           )}
         </main>
         <AppFooter variant="admin" />

@@ -9,6 +9,7 @@ import {
   Copy,
   ExternalLink,
   FileArchive,
+  FileCheck2,
   History,
   Eye,
   Heart,
@@ -60,6 +61,7 @@ import {
   SUBMISSION_FILE_ACCEPT
 } from "../../lib/submissionFiles.js";
 import styles from "./ParticipantPortal.module.scss";
+import { ExternalEvidencePanel } from "./ExternalEvidencePanel.jsx";
 
 const portalTabs = [
   { id: "discover", label: "대회 찾기", icon: Search },
@@ -68,6 +70,7 @@ const portalTabs = [
   { id: "teams", label: "팀 관리", icon: UsersRound },
   { id: "results", label: "결과", icon: Trophy },
   { id: "activity", label: "활동 이력", icon: History },
+  { id: "evidence", label: "외부 증빙", icon: FileCheck2 },
   { id: "profile", label: "마이페이지", icon: IdCard }
 ];
 const sidebarTabs = portalTabs.filter((tab) => tab.id !== "profile");
@@ -482,6 +485,7 @@ export function ParticipantPortal({
         {activeView === "activity" && (
           <ActivityView items={activityItems} credentialError={credentialError} />
         )}
+        {activeView === "evidence" && <ExternalEvidencePanel />}
 
         {activeView === "profile" && (
           <ProfileView
