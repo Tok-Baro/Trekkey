@@ -1,26 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Bell, Home, Layers3, LogOut, Menu, Search, Settings, ShieldCheck, UserRound, X } from "lucide-react";
+import { Bell, Home, Layers3, LogOut, Menu, Search, ShieldCheck, UserRound, X } from "lucide-react";
 import { navItems } from "./constants/navigation.js";
 import { ModalRoot } from "./components/modals/ModalRoot.jsx";
 import { AppFooter } from "./components/common/AppFooter.jsx";
 import { IconButton } from "./components/common/CommonUi.jsx";
-import {
-  AwardsPage,
-  ContestsPage,
-  CredentialsPage,
-  DashboardPage,
-  JudgingPage,
-  SubmissionsPage,
-  TeamsPage
-} from "./pages/admin/index.js";
-import { RootAdminPage } from "./pages/root/index.js";
-import { LoginPage } from "./pages/auth/LoginPage.jsx";
-import { HomePage } from "./pages/home/HomePage.jsx";
-import { ParticipantPortal } from "./pages/participant/ParticipantPortal.jsx";
-import { ContestPublicDetailPage } from "./pages/public/ContestPublicDetailPage.jsx";
-import { ReviewerPage } from "./pages/review/ReviewerPage.jsx";
-import { ServerReviewerPage } from "./pages/review/ServerReviewerPage.jsx";
 import { getApiErrorMessage } from "./api/backendApi.js";
 import { getContestWithPublicFields } from "./lib/contest.js";
 import { getCredentialVerificationPath } from "./components/credential/CredentialVerificationLink.jsx";
@@ -39,6 +23,25 @@ import {
   getParticipantPath
 } from "./routeConfig.js";
 import styles from "./styles/App.module.scss";
+
+const lazyNamed = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })));
+const AwardsPage = lazyNamed(() => import("./pages/admin/AwardsPage.jsx"), "AwardsPage");
+const ContestsPage = lazyNamed(() => import("./pages/admin/ContestsPage.jsx"), "ContestsPage");
+const CredentialsPage = lazyNamed(() => import("./pages/admin/CredentialsPage.jsx"), "CredentialsPage");
+const DashboardPage = lazyNamed(() => import("./pages/admin/DashboardPage.jsx"), "DashboardPage");
+const JudgingPage = lazyNamed(() => import("./pages/admin/JudgingPage.jsx"), "JudgingPage");
+const SubmissionsPage = lazyNamed(() => import("./pages/admin/SubmissionsPage.jsx"), "SubmissionsPage");
+const TeamsPage = lazyNamed(() => import("./pages/admin/TeamsPage.jsx"), "TeamsPage");
+const RootAdminPage = lazyNamed(() => import("./pages/root/RootAdminPage.jsx"), "RootAdminPage");
+const LoginPage = lazyNamed(() => import("./pages/auth/LoginPage.jsx"), "LoginPage");
+const HomePage = lazyNamed(() => import("./pages/home/HomePage.jsx"), "HomePage");
+const ParticipantPortal = lazyNamed(() => import("./pages/participant/ParticipantPortal.jsx"), "ParticipantPortal");
+const ContestPublicDetailPage = lazyNamed(
+  () => import("./pages/public/ContestPublicDetailPage.jsx"),
+  "ContestPublicDetailPage"
+);
+const ReviewerPage = lazyNamed(() => import("./pages/review/ReviewerPage.jsx"), "ReviewerPage");
+const ServerReviewerPage = lazyNamed(() => import("./pages/review/ServerReviewerPage.jsx"), "ServerReviewerPage");
 
 function saveDownloadedFile(blob, fileName) {
   const url = URL.createObjectURL(blob);
@@ -1019,17 +1022,6 @@ function App() {
             </div>
           </div>
           <div className={styles.sidebarFooterActions}>
-            <button
-              className={styles.sidebarFooterButton}
-              type="button"
-              onClick={() => {
-                setIsSidebarOpen(false);
-                openModal("settings");
-              }}
-            >
-              <Settings size={16} aria-hidden="true" />
-              설정
-            </button>
             <button className={styles.sidebarFooterButton} type="button" onClick={handleLogout}>
               <LogOut size={16} aria-hidden="true" />
               로그아웃
@@ -1127,6 +1119,7 @@ function App() {
               openModal={openModal}
               onGenerateHashes={handleGenerateHashes}
               onCalculateResults={handleCalculateResults}
+              serverBacked={isServerAdmin}
             />
           )}
           {displayedAdminPage === "teams" && (
@@ -1152,6 +1145,7 @@ function App() {
               onExport={handleExport}
               onGenerateHashes={handleGenerateHashes}
               onDownloadSubmission={handleAdminSubmissionDownload}
+              serverBacked={isServerAdmin}
             />
           )}
           {displayedAdminPage === "judging" && (

@@ -391,10 +391,12 @@ export function ModalRoot({
               배정 관리
             </button>
           )}
-          <button className="secondary-button" type="button" onClick={() => openModal("judge", { judge })}>
-            <Pencil size={17} />
-            수정
-          </button>
+          {!serverBacked && (
+            <button className="secondary-button" type="button" onClick={() => openModal("judge", { judge })}>
+              <Pencil size={17} />
+              수정
+            </button>
+          )}
           <button className="danger-button" type="button" onClick={() => openModal("deleteJudge", { judge })}>
             <Trash2 size={17} />
             삭제
