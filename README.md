@@ -39,6 +39,7 @@ first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 
 
 ## 화면
 
+- 기술 검증 실험실: `/tamper-lab`에서 정상·변조·취소·정정 상태 비교, 실제 SHA-256·Merkle Proof 재계산, 브라우저 벤치마크
 - 대시보드: 운영 지표, 단계별 흐름, 처리 항목
 - 대회: 대회 목록, 상태 필터, 대회 설정 폼
 - 신청/팀: 참가 신청 카드, 승인 상태, 팀 관리 정책
@@ -73,3 +74,12 @@ first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 
 npm test
 npm run build
 ```
+
+Tamper Lab은 결정적 시연 fixture만 사용하며 실제 개인정보를 포함하지 않습니다.
+Credential 원문을 브라우저에서 정규화하고 SHA-256, Trekkey V1 leaf,
+OpenZeppelin 호환 Merkle Proof를 다시 계산합니다. 발급 취소·정정 상태는
+암호학적 무결성과 구분된 수명주기 fixture로 재생합니다.
+
+Merkle Proof는 배치 포함과 무결성을 확인하는 기술이며 영지식증명은
+아닙니다. 현실 활동의 사실 여부는 발급을 승인한 기관이 책임지고,
+Trekkey와 공개 원장은 승인 후 변조 여부와 현재 효력을 검증합니다.

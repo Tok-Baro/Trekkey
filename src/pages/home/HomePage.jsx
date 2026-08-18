@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -8,10 +8,14 @@ import {
   ChevronRight,
   ClipboardList,
   FileCheck2,
+  Fingerprint,
   Gauge,
+  GitCompareArrows,
   ImageOff,
   Layers3,
+  LockKeyhole,
   ScrollText,
+  ShieldCheck,
   Trophy,
   UserRoundCheck,
   Users
@@ -86,14 +90,14 @@ const JOIN_STEPS = [
    두 그룹 폭이 정확히 같아야 하므로 gap은 트랙이 아닌 그룹 내부에만 두고,
    그룹 끝 이음새 간격은 그룹의 padding-right로 맞춘다(HomePage.module.scss 참고). */
 const MARQUEE_ITEMS = [
-  "CONTEST OPS",
-  "JUDGING",
-  "SUBMISSIONS",
-  "TEAMS",
-  "AWARDS",
-  "ROUNDS",
-  "APPLICATIONS",
-  "RESULTS"
+  "INSTITUTION APPROVED",
+  "CANONICAL JSON",
+  "MERKLE PROOF",
+  "ISSUER SIGNATURE",
+  "TAMPER DETECTION",
+  "REVOCATION",
+  "CORRECTION LINEAGE",
+  "PRIVACY BY PLACEMENT"
 ];
 /* 초광폭 화면에서도 트랙이 뷰포트보다 넓도록 그룹당 아이템을 2배로 채운다 */
 const MARQUEE_GROUP = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
@@ -262,6 +266,7 @@ export function HomePage({ contests = [], onOpenContest }) {
 
   const goToLogin = () => navigate(getLoginPath());
   const goToVerify = () => navigate("/verify");
+  const goToTamperLab = () => navigate("/tamper-lab");
   const goToTop = () => {
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
   };
@@ -278,16 +283,11 @@ export function HomePage({ contests = [], onOpenContest }) {
   const ringProgress = Math.max(0, Math.min(100, previewContest?.progress ?? 46));
   const ringOffset = RING_CIRCUMFERENCE * (1 - ringProgress / 100);
 
-  const stats = useMemo(() => {
-    const totalContests = contests.length || 12;
-    const totalTeams = contests.reduce((sum, contest) => sum + (contest.teams ?? 0), 0) || 590;
-    const totalSubmissions = contests.reduce((sum, contest) => sum + (contest.submissions ?? 0), 0) || 330;
-    return [
-      { value: totalContests, label: "운영된 대회" },
-      { value: totalTeams, label: "누적 참여 팀" },
-      { value: totalSubmissions, label: "접수된 제출물" }
-    ];
-  }, [contests]);
+  const stats = [
+    { value: 629, label: "서버 자동화 테스트" },
+    { value: 12, label: "스마트컨트랙트 테스트" },
+    { value: 17, label: "프런트 검증 테스트" }
+  ];
 
   return (
     <div className={styles.page} ref={rootRef}>
@@ -300,6 +300,9 @@ export function HomePage({ contests = [], onOpenContest }) {
             <span className={styles.brandName}>Trekkey</span>
           </button>
           <div className={styles.navActions}>
+            <button className={styles.navLink} type="button" onClick={goToTamperLab}>
+              <Fingerprint size={16} aria-hidden="true" /> Tamper Lab
+            </button>
             <button className={styles.navLink} type="button" onClick={goToVerify}>
               <BadgeCheck size={16} aria-hidden="true" /> 증명서 확인
             </button>
@@ -327,25 +330,25 @@ export function HomePage({ contests = [], onOpenContest }) {
 
           <div className={styles.heroInner}>
             <div className={styles.heroCopy}>
-              <span className={`${styles.eyebrow} ${styles.heroEnter} ${styles.d0}`}>교내 비교과 대회 운영 플랫폼</span>
+              <span className={`${styles.eyebrow} ${styles.heroEnter} ${styles.d0}`}>검증 가능한 대학 활동 Credential 플랫폼</span>
               <h1 className={styles.heroTitle}>
-                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>교내 대회 운영의 모든 것,</span>
+                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>AI가 대신 쓴 경험이 아닌,</span>
                 <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d2}`}>
-                  <span className={styles.accent}>트레키 하나로.</span>
+                  <span className={styles.accent}>대학이 승인한 사실을.</span>
                 </span>
               </h1>
               <p className={`${styles.lead} ${styles.heroEnter} ${styles.d3}`}>
-                대회 생성과 신청 검토, 제출물 접수와 심사 배정, 수상 확정까지.
+                대회 운영에서 생성된 활동 증거를 표준 Credential로 발급하고,
                 <br />
-                운영자와 참가자가 같은 흐름 위에서 움직입니다.
+                개인정보 원문을 공개하지 않고도 변조와 현재 효력을 검증합니다.
               </p>
               <div className={`${styles.heroCta} ${styles.heroEnter} ${styles.d4}`}>
-                <button className={styles.btnPrimaryLg} type="button" onClick={goToLogin}>
-                  시작하기
+                <button className={styles.btnPrimaryLg} type="button" onClick={goToTamperLab}>
+                  Tamper Lab 실행
                   <ArrowRight size={18} aria-hidden="true" />
                 </button>
-                <button className={styles.btnSecondaryLg} type="button" onClick={goToContests}>
-                  대회 둘러보기
+                <button className={styles.btnSecondaryLg} type="button" onClick={goToVerify}>
+                  실제 증명서 확인
                 </button>
               </div>
             </div>
@@ -415,6 +418,37 @@ export function HomePage({ contests = [], onOpenContest }) {
             {stats.map((stat) => (
               <CountUpStat key={stat.label} value={stat.value} label={stat.label} />
             ))}
+          </div>
+        </section>
+
+        <section className={styles.proofIntro}>
+          <div className={styles.container}>
+            <div className={`${styles.proofIntroHead} ${styles.reveal}`} data-reveal>
+              <span className={styles.eyebrow}>검증 가능한 경험</span>
+              <h2>서술을 믿으라고 요구하지 않고,<br />증거를 직접 확인하게 합니다.</h2>
+              <p>대학의 승인, 개인정보 최소 공개, 취소·정정 이력을 하나의 검증 흐름으로 연결합니다.</p>
+            </div>
+            <div className={`${styles.proofPillars} ${styles.reveal} ${styles.stagger}`} data-reveal>
+              <article>
+                <span><ShieldCheck size={20} /></span>
+                <h3>기관 승인</h3>
+                <p>누구나 입력한 경력이 아니라 담당자가 근거를 확인하고 승인한 활동입니다.</p>
+              </article>
+              <article>
+                <span><LockKeyhole size={20} /></span>
+                <h3>최소 공개 검증</h3>
+                <p>학번·이메일·원문은 온체인에 올리지 않고 동의된 요약과 Proof만 공개합니다.</p>
+              </article>
+              <article>
+                <span><GitCompareArrows size={20} /></span>
+                <h3>정정 가능한 신뢰</h3>
+                <p>발급 후에도 취소와 정정 계보를 확인해 현재 사용할 수 있는 기록을 찾습니다.</p>
+              </article>
+            </div>
+            <button className={`${styles.proofCta} ${styles.reveal}`} data-reveal type="button" onClick={goToTamperLab}>
+              한 글자 변조 실험 직접 실행
+              <ArrowRight size={17} aria-hidden="true" />
+            </button>
           </div>
         </section>
 

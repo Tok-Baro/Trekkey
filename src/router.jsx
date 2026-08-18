@@ -13,6 +13,7 @@ const PublicActivityProfilePage = lazyNamed(
   () => import("./pages/public/PublicActivityProfilePage.jsx"),
   "PublicActivityProfilePage"
 );
+const TamperLabPage = lazyNamed(() => import("./pages/public/TamperLabPage.jsx"), "TamperLabPage");
 
 function AppRouter() {
   return (
@@ -30,6 +31,7 @@ function AppRouter() {
           <Route path="/verify" element={<PublicCredentialVerificationPage />} />
           <Route path="/verify/:credentialPublicId" element={<PublicCredentialVerificationPage />} />
           <Route path="/activity/:publicProfileId" element={<PublicActivityProfilePage />} />
+          <Route path="/tamper-lab" element={<TamperLabPage />} />
           <Route path="/home" element={<App />} />
           <Route path="/login" element={<App />} />
           <Route path="/review/:contestId" element={<Navigate to="/judge/review" replace />} />
