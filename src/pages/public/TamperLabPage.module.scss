@@ -945,6 +945,21 @@
   line-height: 1.65;
 }
 
+.evidenceReportLink {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  border: 1px solid #b9d7d2;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: #0f766e;
+  font-size: 10px;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 .demoTimeline {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1021,6 +1036,297 @@
   }
 }
 
+.modeSwitch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 22px 0 18px;
+
+  button {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    border: 1px solid #d8e4e2;
+    border-radius: 12px;
+    padding: 12px 15px;
+    background: #f8fbfa;
+    color: #6a807b;
+    font: inherit;
+    text-align: left;
+  }
+
+  button > span,
+  strong,
+  small {
+    display: block;
+  }
+
+  strong {
+    color: #25443f;
+    font-size: 13px;
+  }
+
+  small {
+    margin-top: 3px;
+    color: #7c8e89;
+    font-size: 10px;
+  }
+
+  .modeActive {
+    border-color: #1c8b82;
+    background: #e9f7f4;
+    color: #0f766e;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.08);
+  }
+}
+
+.operationalLab {
+  display: grid;
+  gap: 14px;
+}
+
+.operationalForm {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #b8ccc8;
+  border-radius: 12px;
+  padding: 7px 7px 7px 16px;
+  background: #fff;
+  color: #78908b;
+
+  input {
+    min-width: 0;
+    height: 46px;
+    border: 0;
+    outline: 0;
+    color: #1f3c37;
+    background: transparent;
+    font: inherit;
+  }
+
+  button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    border-radius: 9px;
+    padding: 0 16px;
+    background: #0f766e;
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 850;
+  }
+
+  button:disabled {
+    opacity: 0.62;
+  }
+}
+
+.operationalHint {
+  margin: -5px 2px 2px;
+  color: #80918d;
+  font-size: 10px;
+}
+
+.operationalEmpty {
+  min-height: 220px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  border: 1px dashed #bdd0cc;
+  border-radius: 14px;
+  padding: 30px;
+  background: #f8fbfa;
+  color: #8aa09b;
+  text-align: center;
+
+  strong {
+    margin-top: 11px;
+    color: #35534d;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: #80918d;
+    font-size: 11px;
+  }
+}
+
+.operationalStatus {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid;
+  border-radius: 14px;
+  padding: 20px;
+
+  > span {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  small {
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  h2 {
+    margin: 4px 0 0;
+    color: #19362f;
+    font-size: 20px;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: #667b76;
+    font-size: 10px;
+  }
+
+  b {
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    padding: 8px 11px;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+}
+
+.operationalValid {
+  border-color: #9ed4c4;
+  background: #eaf8f1;
+  color: #16724c;
+}
+
+.operationalInvalid {
+  border-color: #e0a5a5;
+  background: #fff0f0;
+  color: #aa3737;
+}
+
+.operationalChecks {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+
+  article {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 5px 8px;
+    border: 1px solid;
+    border-radius: 11px;
+    padding: 14px;
+  }
+
+  span {
+    color: #70827e;
+    font-size: 9px;
+  }
+
+  strong {
+    grid-column: 2;
+    color: #284640;
+    font-size: 12px;
+  }
+}
+
+.operationalCheckPass {
+  border-color: #c8e3da;
+  background: #f3faf7;
+  color: #19805a;
+}
+
+.operationalCheckFail {
+  border-color: #e7c5c5;
+  background: #fff5f5;
+  color: #b13a3a;
+}
+
+.operationalChain {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+
+  div {
+    min-width: 0;
+    border: 1px solid #dce7e4;
+    border-radius: 10px;
+    padding: 13px;
+    background: #f9fbfb;
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  dt {
+    color: #84938f;
+    font-size: 9px;
+  }
+
+  dd {
+    overflow-wrap: anywhere;
+    margin-top: 5px;
+    color: #314d47;
+    font-size: 11px;
+    font-weight: 800;
+  }
+}
+
+.operationalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  a {
+    min-height: 39px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #c8d9d5;
+    border-radius: 8px;
+    padding: 0 12px;
+    color: #0f766e;
+    font-size: 10px;
+    font-weight: 850;
+    text-decoration: none;
+  }
+}
+
+.operationalPrivacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border: 1px solid #decf9f;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff9e9;
+  color: #9a7221;
+
+  p {
+    margin: 0;
+    color: #7c6d49;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  strong {
+    margin-right: 5px;
+    color: #6e5723;
+  }
+}
+
 @media (max-width: 960px) {
   .heroInner,
   .labGrid {
@@ -1044,6 +1350,11 @@
 
   .trustFlow {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .operationalChecks,
+  .operationalChain {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .trustArrow {
@@ -1093,6 +1404,7 @@
   }
 
   .scenarioTabs,
+  .modeSwitch,
   .checkGrid,
   .trustFlow,
   .evidenceStats {
@@ -1105,6 +1417,29 @@
 
   .resultTitle {
     flex-direction: column;
+  }
+
+  .operationalForm {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    button {
+      grid-column: 1 / -1;
+      justify-content: center;
+    }
+  }
+
+  .operationalStatus {
+    grid-template-columns: auto minmax(0, 1fr);
+
+    b {
+      grid-column: 1 / -1;
+      justify-self: start;
+    }
+  }
+
+  .operationalChecks,
+  .operationalChain {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -247,6 +247,79 @@ export function processMerkleProof(leafHash, proof) {
   return proof.reduce((current, sibling) => hashMerklePair(current, sibling), leafHash.toLowerCase());
 }
 
+export function verifyOperationalCredentialEvidence(credential) {
+  const evidence = credential?.evidence;
+  if (!evidence) {
+    throw new TypeError("Credential evidence is required");
+  }
+
+  const requiredFields = [
+    "issuerId",
+    "credentialIdHash",
+    "schemaVersionHash",
+    "contentHash",
+    "fileManifestHash",
+    "leafHash",
+    "merkleRoot"
+  ];
+  const missingFields = requiredFields.filter((field) => !evidence[field]);
+  if (missingFields.length > 0) {
+    throw new TypeError(`Operational evidence is incomplete: ${missingFields.join(", ")}`);
+  }
+
+  const calculatedLeafHash = createCredentialLeafHash({
+    issuerId: evidence.issuerId,
+    credentialIdHash: evidence.credentialIdHash,
+    schemaVersionHash: evidence.schemaVersionHash,
+    contentHash: evidence.contentHash,
+    fileManifestHash: evidence.fileManifestHash
+  });
+  const proof = Array.isArray(evidence.merkleProof) ? evidence.merkleProof : [];
+  const calculatedRoot = processMerkleProof(calculatedLeafHash, proof);
+  const leafMatches = calculatedLeafHash.toLowerCase() === evidence.leafHash.toLowerCase();
+  const merkleRootMatches = calculatedRoot.toLowerCase() === evidence.merkleRoot.toLowerCase();
+  const payloadChecks = [
+    evidence.canonicalPayloadMatches,
+    evidence.contentHashMatches,
+    evidence.fileManifestHashMatches,
+    evidence.credentialClaimsMatch,
+    evidence.credentialIdMatches
+  ];
+  const payloadMatches = payloadChecks.every(Boolean);
+  const chainRecorded = Boolean(
+    evidence.transactionHash
+    && evidence.contractAddress
+    && evidence.batchPublicId
+    && Number(evidence.chainId) > 0
+  );
+
+  return {
+    credentialPublicId: credential.credentialPublicId,
+    verificationStatus: credential.verificationStatus,
+    payloadMatches,
+    leafMatches,
+    merkleRootMatches,
+    backendProofMatches: Boolean(evidence.merkleProofMatches),
+    chainRecorded,
+    calculatedLeafHash,
+    expectedLeafHash: evidence.leafHash,
+    calculatedRoot,
+    expectedRoot: evidence.merkleRoot,
+    proofDepth: proof.length,
+    chainId: evidence.chainId,
+    contractAddress: evidence.contractAddress,
+    transactionHash: evidence.transactionHash,
+    blockNumber: evidence.blockNumber,
+    batchPublicId: evidence.batchPublicId,
+    verified: credential.verificationStatus === "VALID"
+      && payloadMatches
+      && leafMatches
+      && merkleRootMatches
+      && Boolean(evidence.merkleProofMatches)
+      && chainRecorded
+  };
+}
+
 function copyCredential(credential) {
   return JSON.parse(JSON.stringify(credential));
 }

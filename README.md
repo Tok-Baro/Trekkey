@@ -39,7 +39,11 @@ first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 
 
 ## 화면
 
+- 5분 심사 시연: `/demo`에서 문제 정의→실제 발급 E2E→운영 검증→Proof 재계산→프라이버시→정량 결과를 단계별 발표
 - 기술 검증 실험실: `/tamper-lab`에서 정상·변조·취소·정정 상태 비교, 실제 SHA-256·Merkle Proof 재계산, 브라우저 벤치마크
+- 운영 Proof 모드: `/tamper-lab?mode=live&credential={publicId}`에서 공개 Credential의 leaf와 Merkle Root를 브라우저가 독립 재계산
+- 정량 검증 리포트: `/evidence-report`에서 1·10·100·500·1,000개 배치 실측과 CSV 원시 결과 다운로드
+- 외부 검증 리포트: `/verify/{publicId}`에서 인쇄·PDF 저장, 외부 사용 판단, Tamper Lab 재계산 연결
 - 대시보드: 운영 지표, 단계별 흐름, 처리 항목
 - 대회: 대회 목록, 상태 필터, 대회 설정 폼
 - 신청/팀: 참가 신청 카드, 승인 상태, 팀 관리 정책
@@ -75,7 +79,7 @@ npm test
 npm run build
 ```
 
-Tamper Lab은 결정적 시연 fixture만 사용하며 실제 개인정보를 포함하지 않습니다.
+Tamper Lab의 시나리오 모드는 결정적 fixture만 사용하며 실제 개인정보를 포함하지 않습니다.
 Credential 원문을 브라우저에서 정규화하고 SHA-256, Trekkey V1 leaf,
 OpenZeppelin 호환 Merkle Proof를 다시 계산합니다. 발급 취소·정정 상태는
 암호학적 무결성과 구분된 수명주기 fixture로 재생합니다.
@@ -83,3 +87,12 @@ OpenZeppelin 호환 Merkle Proof를 다시 계산합니다. 발급 취소·정�
 Merkle Proof는 배치 포함과 무결성을 확인하는 기술이며 영지식증명은
 아닙니다. 현실 활동의 사실 여부는 발급을 승인한 기관이 책임지고,
 Trekkey와 공개 원장은 승인 후 변조 여부와 현재 효력을 검증합니다.
+
+운영 Proof 모드는 공개 검증 API가 제공하는 `issuerId`, `credentialIdHash`,
+`schemaVersionHash`, `contentHash`, `fileManifestHash`, `leafHash`, Merkle proof를
+사용합니다. 개인정보가 포함된 canonical 원문은 브라우저로 내려받지 않고,
+공개 hash tuple로 leaf와 Root 포함 여부를 독립 재계산합니다.
+
+관리자 검증 원장의 `5분 시연` 버튼은 `ANCHORED` Credential의 공개 ID만
+시연 화면에 전달합니다. 취소·정정의 정식 운영 UX는 이번 심사 시연 범위에서
+제외하고 향후 구현 항목으로 표시합니다.

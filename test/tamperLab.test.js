@@ -8,7 +8,8 @@ import {
   createTamperLabFixture,
   evaluateTamperScenario,
   getMerkleProof,
-  processMerkleProof
+  processMerkleProof,
+  verifyOperationalCredentialEvidence
 } from "../src/lib/tamperLab.js";
 
 test("canonical JSON sorts keys and normalizes strings to NFC", () => {
@@ -61,4 +62,43 @@ test("Tamper Lab distinguishes valid, tampered, revoked, and superseded states",
   assert.equal(revoked.merkleProofMatches, true);
   assert.equal(superseded.verificationStatus, "SUPERSEDED");
   assert.equal(superseded.replacementCredentialPublicId, "cred-demo-award-01-revision-2");
+});
+
+test("operational evidence independently rebuilds the leaf and Merkle root", () => {
+  const leafInput = {
+    issuerId: "0x1b4b60001d40d20639e89ae875fa01eaf1ccec9da59fc9c2b94f67a97e82f954",
+    credentialIdHash: "0x2e15bc1a19cec0e1d152aae0114d7c04b9c59e482cf1982a864832cc3dbc63a4",
+    schemaVersionHash: "0xa85859e4135243f8ef6848827fc78f57e621db32231756e8ba640b96e666012c",
+    contentHash: "0xe7f3166da4dc7113539b2dc0f228502661429a2a96fa753a2d0a533d7bcf6b6f",
+    fileManifestHash: "0xf1d7ed28735bd09ca4645a3a690d23b0017337d61134e1a61dca9655b7887814"
+  };
+  const leafHash = createCredentialLeafHash(leafInput);
+  const sibling = "0x1338f469bd08f99b51f4782f78ac5142678d31d39c9605e1b1f8768201001dab";
+  const merkleRoot = processMerkleProof(leafHash, [sibling]);
+  const result = verifyOperationalCredentialEvidence({
+    credentialPublicId: "operational-public-id",
+    verificationStatus: "VALID",
+    evidence: {
+      ...leafInput,
+      leafHash,
+      merkleRoot,
+      merkleProof: [sibling],
+      canonicalPayloadMatches: true,
+      contentHashMatches: true,
+      fileManifestHashMatches: true,
+      credentialClaimsMatch: true,
+      credentialIdMatches: true,
+      merkleProofMatches: true,
+      chainId: 1001,
+      contractAddress: "0x4ca738CC22Af5aE40EA8A23E001FA93e1e044117",
+      transactionHash: "0xb2a2bc95949b8f8450d2f1a3d010b9626cb51c27aa0a2c1b2cc96d62bebec322",
+      blockNumber: 223574298,
+      batchPublicId: "batch-public-id"
+    }
+  });
+
+  assert.equal(result.leafMatches, true);
+  assert.equal(result.merkleRootMatches, true);
+  assert.equal(result.proofDepth, 1);
+  assert.equal(result.verified, true);
 });

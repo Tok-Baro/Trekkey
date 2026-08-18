@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Activity,
-  ArrowLeft,
   BadgeCheck,
   Ban,
   Check,
@@ -17,6 +16,7 @@ import {
   GitCompareArrows,
   KeyRound,
   Layers3,
+  Link2,
   LockKeyhole,
   Play,
   RefreshCw,
@@ -28,14 +28,18 @@ import {
   X,
   Zap
 } from "lucide-react";
+import { verifyPublicCredential } from "../../api/publicCredentialApi.js";
+import { getApiErrorMessage } from "../../api/backendApi.js";
 import { AppFooter } from "../../components/common/AppFooter.jsx";
+import { buildExplorerUrl, getVerificationPresentation, normalizeCredentialInput } from "../../lib/credentialVerification.js";
 import {
   ANCHOR_BATCH_GAS_SAMPLE,
   TAMPER_SCENARIOS,
   createTamperLabFixture,
   evaluateTamperScenario,
   runRuntimeBenchmark,
-  shortenHash
+  shortenHash,
+  verifyOperationalCredentialEvidence
 } from "../../lib/tamperLab.js";
 import styles from "./TamperLabPage.module.scss";
 
@@ -103,9 +107,9 @@ const PRIVACY_ROWS = [
 
 const DEMO_STEPS = [
   ["00:00", "문제", "AI가 만든 서술과 기관이 승인한 사실을 구분합니다."],
-  ["00:35", "정상 검증", "원문→해시→Proof→Root가 일치하는 과정을 실행합니다."],
-  ["01:35", "변조 실험", "‘대상’을 ‘최우수상’으로 바꿔 즉시 실패를 확인합니다."],
-  ["02:35", "상태 이력", "발급 취소와 정정 발급이 무결성과 다른 축임을 보여줍니다."],
+  ["00:35", "실제 발급", "업무 확정→Credential→기관 승인→Kaia 흐름을 확인합니다."],
+  ["01:35", "운영 검증", "운영 Credential의 leaf와 Proof를 브라우저에서 다시 계산합니다."],
+  ["02:35", "변조 실험", "‘대상’을 ‘최우수상’으로 바꿔 즉시 실패를 확인합니다."],
   ["03:35", "개인정보", "원문·공개 요약·온체인 데이터의 저장 위치를 구분합니다."],
   ["04:20", "정량 검증", "배치 크기별 실행 시간과 gas 분담 효과를 설명합니다."]
 ];
@@ -229,7 +233,103 @@ function BenchmarkTable({ results }) {
   );
 }
 
+function OperationalLab({
+  credentialInput,
+  setCredentialInput,
+  credential,
+  evidenceResult,
+  loading,
+  error,
+  onSubmit
+}) {
+  const presentation = getVerificationPresentation(credential?.verificationStatus, credential?.issuerName);
+  const explorerUrl = buildExplorerUrl(evidenceResult?.chainId, evidenceResult?.transactionHash);
+
+  return (
+    <div className={styles.operationalLab}>
+      <form className={styles.operationalForm} onSubmit={onSubmit}>
+        <Link2 size={20} aria-hidden="true" />
+        <input
+          aria-label="운영 Credential 공개 ID"
+          value={credentialInput}
+          onChange={(event) => setCredentialInput(event.target.value)}
+          placeholder="Credential 공개 ID 또는 /verify 링크"
+          autoComplete="off"
+          spellCheck="false"
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? <RefreshCw className={styles.spin} size={17} /> : <ShieldCheck size={17} />}
+          {loading ? "조회·계산 중" : "운영 증거 재계산"}
+        </button>
+      </form>
+      <p className={styles.operationalHint}>관리자 검증 원장의 ‘5분 시연’ 또는 공개 검증 페이지의 ‘Proof 직접 재계산’에서 자동으로 연결할 수 있습니다.</p>
+
+      {error && <div className={styles.errorBanner}><CircleAlert size={18} /> {error}</div>}
+      {!credential && !error && !loading && (
+        <div className={styles.operationalEmpty}>
+          <Server size={34} />
+          <strong>Kaia에 기록 완료된 Credential을 입력하세요</strong>
+          <p>공개 API가 제공하는 hash·leaf·Merkle Proof를 이 브라우저가 독립 계산합니다.</p>
+        </div>
+      )}
+
+      {credential && evidenceResult && (
+        <>
+          <div className={`${styles.operationalStatus} ${evidenceResult.verified ? styles.operationalValid : styles.operationalInvalid}`}>
+            <span><ShieldCheck size={28} /></span>
+            <div><small>{presentation.label} · 운영 데이터</small><h2>{presentation.headline}</h2><p>{credential.credentialNo} · {credential.credentialType} · {credential.issuerName}</p></div>
+            <b>{evidenceResult.verified ? "브라우저 독립 검증 PASS" : "증거 불일치 확인 필요"}</b>
+          </div>
+
+          <div className={styles.operationalChecks}>
+            <article className={evidenceResult.payloadMatches ? styles.operationalCheckPass : styles.operationalCheckFail}>
+              {evidenceResult.payloadMatches ? <Check size={18} /> : <X size={18} />}<span>서버 원문·claim 검증</span><strong>{evidenceResult.payloadMatches ? "일치" : "불일치"}</strong>
+            </article>
+            <article className={evidenceResult.leafMatches ? styles.operationalCheckPass : styles.operationalCheckFail}>
+              {evidenceResult.leafMatches ? <Check size={18} /> : <X size={18} />}<span>여섯 bytes32→leaf</span><strong>{evidenceResult.leafMatches ? "일치" : "불일치"}</strong>
+            </article>
+            <article className={evidenceResult.merkleRootMatches ? styles.operationalCheckPass : styles.operationalCheckFail}>
+              {evidenceResult.merkleRootMatches ? <Check size={18} /> : <X size={18} />}<span>Proof {evidenceResult.proofDepth}단계→Root</span><strong>{evidenceResult.merkleRootMatches ? "일치" : "불일치"}</strong>
+            </article>
+            <article className={evidenceResult.chainRecorded ? styles.operationalCheckPass : styles.operationalCheckFail}>
+              {evidenceResult.chainRecorded ? <Check size={18} /> : <X size={18} />}<span>Kaia 공개 기록</span><strong>{evidenceResult.chainRecorded ? "확인" : "없음"}</strong>
+            </article>
+          </div>
+
+          <div className={styles.hashGrid}>
+            <HashComparison label="운영 Trekkey V1 leafHash" expected={evidenceResult.expectedLeafHash} calculated={evidenceResult.calculatedLeafHash} passed={evidenceResult.leafMatches} />
+            <HashComparison label="운영 Merkle Proof 계산 Root" expected={evidenceResult.expectedRoot} calculated={evidenceResult.calculatedRoot} passed={evidenceResult.merkleRootMatches} />
+          </div>
+
+          <dl className={styles.operationalChain}>
+            <div><dt>네트워크</dt><dd>{Number(evidenceResult.chainId) === 1001 ? "Kaia Kairos · 1001" : `Chain ${evidenceResult.chainId}`}</dd></div>
+            <div><dt>블록</dt><dd>{evidenceResult.blockNumber ?? "-"}</dd></div>
+            <div><dt>배치</dt><dd>{evidenceResult.batchPublicId}</dd></div>
+            <div><dt>컨트랙트</dt><dd title={evidenceResult.contractAddress}>{shortenHash(evidenceResult.contractAddress, 12, 8)}</dd></div>
+          </dl>
+
+          <div className={styles.operationalActions}>
+            <Link to={`/verify/${encodeURIComponent(credential.credentialPublicId)}`}>외부 검증 화면 <ExternalLink size={15} /></Link>
+            {explorerUrl && <a href={explorerUrl} target="_blank" rel="noreferrer">Kaia 트랜잭션 <ExternalLink size={15} /></a>}
+            <Link to={`/demo?credential=${encodeURIComponent(credential.credentialPublicId)}`}>5분 심사 시연 <Play size={15} /></Link>
+          </div>
+
+          <div className={styles.operationalPrivacy}>
+            <LockKeyhole size={19} />
+            <p><strong>원문 비공개 검증</strong> 공개 API는 개인정보가 포함된 canonical 원문을 전달하지 않습니다. 서버가 검증한 contentHash와 공개 Proof를 브라우저가 재계산해 Root 포함 여부를 확인합니다.</p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TamperLabPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const credentialParam = searchParams.get("credential") ?? "";
+  const requestedMode = searchParams.get("mode") === "live" ? "live" : "fixture";
+  const [labMode, setLabMode] = useState(requestedMode);
   const [fixture, setFixture] = useState(null);
   const [scenarioId, setScenarioId] = useState("VALID");
   const [changedPrize, setChangedPrize] = useState("최우수상");
@@ -237,6 +337,42 @@ export function TamperLabPage() {
   const [loadError, setLoadError] = useState("");
   const [benchmarkResults, setBenchmarkResults] = useState(null);
   const [benchmarking, setBenchmarking] = useState(false);
+  const [operationalInput, setOperationalInput] = useState(credentialParam);
+  const [operationalCredential, setOperationalCredential] = useState(null);
+  const [operationalEvidence, setOperationalEvidence] = useState(null);
+  const [operationalLoading, setOperationalLoading] = useState(false);
+  const [operationalError, setOperationalError] = useState("");
+
+  const loadOperationalCredential = useCallback(async (rawValue) => {
+    const credentialId = normalizeCredentialInput(rawValue);
+    if (!credentialId) {
+      setOperationalError("운영 Credential 공개 ID 또는 검증 링크를 입력해 주세요.");
+      return;
+    }
+    setOperationalLoading(true);
+    setOperationalError("");
+    setOperationalCredential(null);
+    setOperationalEvidence(null);
+    try {
+      const nextCredential = await verifyPublicCredential(credentialId);
+      const nextEvidence = verifyOperationalCredentialEvidence(nextCredential);
+      setOperationalCredential(nextCredential);
+      setOperationalEvidence(nextEvidence);
+      setOperationalInput(credentialId);
+    } catch (error) {
+      setOperationalError(getApiErrorMessage(error, "운영 Credential 증거를 재계산하지 못했습니다. Kaia 기록 완료 상태인지 확인해 주세요."));
+    } finally {
+      setOperationalLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    setLabMode(requestedMode);
+    if (requestedMode === "live" && credentialParam) {
+      setOperationalInput(credentialParam);
+      loadOperationalCredential(credentialParam);
+    }
+  }, [credentialParam, loadOperationalCredential, requestedMode]);
 
   useEffect(() => {
     let alive = true;
@@ -279,11 +415,6 @@ export function TamperLabPage() {
     };
   }, [fixture, scenarioId, changedPrize]);
 
-  const selectedScenario = useMemo(
-    () => TAMPER_SCENARIOS.find((scenario) => scenario.id === scenarioId),
-    [scenarioId]
-  );
-
   const runBenchmark = async () => {
     setBenchmarking(true);
     try {
@@ -297,6 +428,32 @@ export function TamperLabPage() {
     setScenarioId("VALID");
     setChangedPrize("최우수상");
     setBenchmarkResults(null);
+    setOperationalCredential(null);
+    setOperationalEvidence(null);
+    setOperationalError("");
+    setOperationalInput("");
+    navigate("/tamper-lab", { replace: true });
+  };
+
+  const switchMode = (nextMode) => {
+    setLabMode(nextMode);
+    if (nextMode === "fixture") {
+      navigate("/tamper-lab", { replace: true });
+      return;
+    }
+    const suffix = operationalInput ? `&credential=${encodeURIComponent(normalizeCredentialInput(operationalInput))}` : "";
+    navigate(`/tamper-lab?mode=live${suffix}`, { replace: true });
+  };
+
+  const submitOperational = (event) => {
+    event.preventDefault();
+    const credentialId = normalizeCredentialInput(operationalInput);
+    if (!credentialId) {
+      setOperationalError("운영 Credential 공개 ID 또는 검증 링크를 입력해 주세요.");
+      return;
+    }
+    navigate(`/tamper-lab?mode=live&credential=${encodeURIComponent(credentialId)}`, { replace: true });
+    if (credentialId === credentialParam) loadOperationalCredential(credentialId);
   };
 
   return (
@@ -307,6 +464,7 @@ export function TamperLabPage() {
           <strong>Trekkey</strong>
         </Link>
         <nav aria-label="기술 검증 페이지 이동">
+          <Link to="/demo"><Play size={16} /> 5분 심사 시연</Link>
           <Link to="/verify"><BadgeCheck size={16} /> 실제 증명서 확인</Link>
           <button type="button" onClick={resetLab}><RotateCcw size={16} /> 초기화</button>
         </nav>
@@ -342,31 +500,52 @@ export function TamperLabPage() {
             <div className={styles.sectionHead}>
               <div>
                 <span className={styles.kicker}>01 · Tamper Lab</span>
-                <h2>정상·변조·취소·정정을 같은 증거로 비교</h2>
-                <p>암호학적 무결성과 행정적 현재 효력을 별도 축으로 판정합니다.</p>
+                <h2>{labMode === "live" ? "운영 Credential의 Proof를 브라우저에서 독립 재계산" : "정상·변조·취소·정정을 같은 증거로 비교"}</h2>
+                <p>{labMode === "live" ? "운영 서버 응답의 leaf와 Proof를 그대로 믿지 않고 공개 Root까지 다시 계산합니다." : "암호학적 무결성과 행정적 현재 효력을 별도 축으로 판정합니다."}</p>
               </div>
-              <span className={styles.fixtureBadge}><Activity size={16} /> 결정적 DEMO fixture · 실제 개인정보 아님</span>
+              <span className={styles.fixtureBadge}><Activity size={16} /> {labMode === "live" ? "운영 공개 증거 · 원문 비공개" : "결정적 DEMO fixture · 실제 개인정보 아님"}</span>
             </div>
 
-            <div className={styles.scenarioTabs} role="tablist" aria-label="Credential 검증 시나리오">
-              {TAMPER_SCENARIOS.map((scenario) => (
-                <button
-                  className={scenario.id === scenarioId ? styles.scenarioActive : ""}
-                  key={scenario.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={scenario.id === scenarioId}
-                  onClick={() => setScenarioId(scenario.id)}
-                >
-                  <span>{scenario.label}</span>
-                  <small>{scenario.id === "VALID" ? "원문 일치" : scenario.id === "TAMPERED" ? "내용 변경" : scenario.id === "REVOKED" ? "효력 없음" : "새 기록 존재"}</small>
-                </button>
-              ))}
+            <div className={styles.modeSwitch} role="tablist" aria-label="Tamper Lab 데이터 모드">
+              <button type="button" role="tab" aria-selected={labMode === "fixture"} className={labMode === "fixture" ? styles.modeActive : ""} onClick={() => switchMode("fixture")}>
+                <Sparkles size={17} /><span><strong>시나리오 실험</strong><small>변조 전후를 즉시 비교</small></span>
+              </button>
+              <button type="button" role="tab" aria-selected={labMode === "live"} className={labMode === "live" ? styles.modeActive : ""} onClick={() => switchMode("live")}>
+                <Server size={17} /><span><strong>운영 Credential</strong><small>실제 공개 Proof 재계산</small></span>
+              </button>
             </div>
 
-            {loadError && <div className={styles.errorBanner}><CircleAlert size={18} /> {loadError}</div>}
+            {labMode === "live" ? (
+              <OperationalLab
+                credentialInput={operationalInput}
+                setCredentialInput={setOperationalInput}
+                credential={operationalCredential}
+                evidenceResult={operationalEvidence}
+                loading={operationalLoading}
+                error={operationalError}
+                onSubmit={submitOperational}
+              />
+            ) : (
+              <>
+                <div className={styles.scenarioTabs} role="tablist" aria-label="Credential 검증 시나리오">
+                  {TAMPER_SCENARIOS.map((scenario) => (
+                    <button
+                      className={scenario.id === scenarioId ? styles.scenarioActive : ""}
+                      key={scenario.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={scenario.id === scenarioId}
+                      onClick={() => setScenarioId(scenario.id)}
+                    >
+                      <span>{scenario.label}</span>
+                      <small>{scenario.id === "VALID" ? "원문 일치" : scenario.id === "TAMPERED" ? "내용 변경" : scenario.id === "REVOKED" ? "효력 없음" : "새 기록 존재"}</small>
+                    </button>
+                  ))}
+                </div>
 
-            <div className={styles.labGrid}>
+                {loadError && <div className={styles.errorBanner}><CircleAlert size={18} /> {loadError}</div>}
+
+                <div className={styles.labGrid}>
               <article className={styles.credentialCard}>
                 <div className={styles.credentialHead}>
                   <div>
@@ -406,9 +585,9 @@ export function TamperLabPage() {
               </article>
 
               <ScenarioResult result={result} />
-            </div>
+                </div>
 
-            <div className={styles.hashGrid}>
+                <div className={styles.hashGrid}>
               <HashComparison
                 label="Credential contentHash"
                 expected={result?.expectedContentHash}
@@ -427,12 +606,14 @@ export function TamperLabPage() {
                 calculated={result?.calculatedRoot}
                 passed={Boolean(result?.merkleProofMatches)}
               />
-            </div>
+                </div>
 
-            <details className={styles.canonicalDetails}>
-              <summary><Fingerprint size={17} /> 계산에 사용한 canonical JSON 보기</summary>
-              <pre>{result?.canonical ?? "계산 중"}</pre>
-            </details>
+                <details className={styles.canonicalDetails}>
+                  <summary><Fingerprint size={17} /> 계산에 사용한 canonical JSON 보기</summary>
+                  <pre>{result?.canonical ?? "계산 중"}</pre>
+                </details>
+              </>
+            )}
           </div>
         </section>
 
@@ -511,7 +692,7 @@ export function TamperLabPage() {
             <div className={styles.evidenceStats}>
               <article><strong>629</strong><span>Java 서버 테스트</span><small>Java 21 전체 회귀</small></article>
               <article><strong>12</strong><span>Solidity 테스트</span><small>Merkle·서명·상태 전이</small></article>
-              <article><strong>17</strong><span>프런트 테스트</span><small>동일 fixture 재현 포함</small></article>
+              <article><strong>18</strong><span>프런트 테스트</span><small>fixture·운영 Proof 재현</small></article>
               <article><strong>{ANCHOR_BATCH_GAS_SAMPLE.toLocaleString("ko-KR")}</strong><span>anchorBatch gas 표본</span><small>Hardhat 현재 평균</small></article>
             </div>
 
@@ -519,6 +700,7 @@ export function TamperLabPage() {
             <p className={styles.benchmarkNote}>
               브라우저 시간은 기기별로 달라집니다. gas 분담값은 현재 `anchorBatch` 평균 표본을 배치 크기로 나눈 비교이며 실제 네트워크 수수료를 뜻하지 않습니다.
             </p>
+            <Link className={styles.evidenceReportLink} to="/evidence-report"><Gauge size={16} /> 1,000개 배치·CSV 정량 리포트 열기 <ExternalLink size={14} /></Link>
           </div>
         </section>
 
@@ -544,8 +726,8 @@ export function TamperLabPage() {
                 <h2>AI가 대신 쓴 경험이 아닌,<br />대학이 승인한 사실을 증명합니다.</h2>
               </div>
               <div>
-                <Link to="/verify">실제 Credential 확인 <ExternalLink size={17} /></Link>
-                <Link className={styles.secondaryCta} to="/"><ArrowLeft size={17} /> 서비스 홈</Link>
+                <Link to="/demo"><Play size={17} /> 5분 심사 시연 시작</Link>
+                <Link className={styles.secondaryCta} to="/verify">실제 Credential 확인 <ExternalLink size={17} /></Link>
               </div>
             </div>
           </div>

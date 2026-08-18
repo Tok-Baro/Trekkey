@@ -267,6 +267,7 @@ export function HomePage({ contests = [], onOpenContest }) {
   const goToLogin = () => navigate(getLoginPath());
   const goToVerify = () => navigate("/verify");
   const goToTamperLab = () => navigate("/tamper-lab");
+  const goToJudgeDemo = () => navigate("/demo");
   const goToTop = () => {
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
   };
@@ -286,7 +287,7 @@ export function HomePage({ contests = [], onOpenContest }) {
   const stats = [
     { value: 629, label: "서버 자동화 테스트" },
     { value: 12, label: "스마트컨트랙트 테스트" },
-    { value: 17, label: "프런트 검증 테스트" }
+    { value: 18, label: "프런트 검증 테스트" }
   ];
 
   return (
@@ -300,6 +301,9 @@ export function HomePage({ contests = [], onOpenContest }) {
             <span className={styles.brandName}>Trekkey</span>
           </button>
           <div className={styles.navActions}>
+            <button className={styles.navLink} type="button" onClick={goToJudgeDemo}>
+              <Gauge size={16} aria-hidden="true" /> 5분 심사 시연
+            </button>
             <button className={styles.navLink} type="button" onClick={goToTamperLab}>
               <Fingerprint size={16} aria-hidden="true" /> Tamper Lab
             </button>
@@ -343,12 +347,12 @@ export function HomePage({ contests = [], onOpenContest }) {
                 개인정보 원문을 공개하지 않고도 변조와 현재 효력을 검증합니다.
               </p>
               <div className={`${styles.heroCta} ${styles.heroEnter} ${styles.d4}`}>
-                <button className={styles.btnPrimaryLg} type="button" onClick={goToTamperLab}>
-                  Tamper Lab 실행
+                <button className={styles.btnPrimaryLg} type="button" onClick={goToJudgeDemo}>
+                  5분 심사 시연 시작
                   <ArrowRight size={18} aria-hidden="true" />
                 </button>
-                <button className={styles.btnSecondaryLg} type="button" onClick={goToVerify}>
-                  실제 증명서 확인
+                <button className={styles.btnSecondaryLg} type="button" onClick={goToTamperLab}>
+                  Tamper Lab 실행
                 </button>
               </div>
             </div>

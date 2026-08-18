@@ -15,6 +15,7 @@ import {
   Link2,
   LoaderCircle,
   LockKeyhole,
+  Printer,
   RefreshCw,
   Search,
   Share2,
@@ -211,6 +212,7 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
   const [downloadError, setDownloadError] = useState("");
   const [copiedLabel, setCopiedLabel] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [verifiedAt, setVerifiedAt] = useState(null);
 
   useEffect(() => {
     let isActive = true;
@@ -228,6 +230,7 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
       .then((result) => {
         if (isActive) {
           setCredential(result);
+          setVerifiedAt(new Date());
         }
       })
       .catch((error) => {
@@ -344,6 +347,9 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
           </div>
           <div className={styles.resultActions}>
             <span><LockKeyhole size={14} /> 로그인 없이 확인됨</span>
+            <button className={styles.printAction} type="button" onClick={() => window.print()} title="검증 리포트 인쇄 또는 PDF 저장">
+              <Printer size={17} /> <b>인쇄·PDF</b>
+            </button>
             <button type="button" onClick={shareResult} title="검증 결과 공유" aria-label="검증 결과 공유">
               {copiedLabel === "공유 링크" ? <Check size={18} /> : <Share2 size={18} />}
             </button>
@@ -446,6 +452,22 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
         </div>
 
         <aside className={styles.sideColumn}>
+          <section className={`${styles.sideSection} ${styles.verifierDecision}`}>
+            <div className={styles.decisionHead}>
+              <span className={credential.verificationStatus === "VALID" ? styles.decisionValid : styles.decisionInvalid}>
+                {credential.verificationStatus === "VALID" ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}
+              </span>
+              <div><small>외부 검증자 판단</small><h2>{credential.verificationStatus === "VALID" ? "제출 증빙으로 사용 가능" : "사용 전 기관 확인 필요"}</h2></div>
+            </div>
+            <ul>
+              {checks.map((item) => <li key={item.key}>{item.passed ? <Check size={14} /> : <XCircle size={14} />} {item.label}</li>)}
+            </ul>
+            <p>확인 시각 {verifiedAt ? formatDateTime(verifiedAt) : "-"}</p>
+            <Link className={styles.recalculateLink} to={`/tamper-lab?mode=live&credential=${encodeURIComponent(credential.credentialPublicId)}`}>
+              브라우저에서 Proof 직접 재계산 <Fingerprint size={15} />
+            </Link>
+          </section>
+
           <section className={styles.sideSection}>
             <div className={styles.sectionHeading}>
               <span className={styles.sectionIcon}><Download size={19} /></span>
