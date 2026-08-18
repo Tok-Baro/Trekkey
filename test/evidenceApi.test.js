@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-test("학생 증빙 제출은 JSON request와 원본 file을 multipart로 전송한다", async () => {
+test("학생 증빙 제출은 JSON request와 원본 files를 multipart로 전송한다", async () => {
   process.env.VITE_API_BASE_URL = "http://localhost:8080";
   process.env.VITE_AUTH_API_BASE_URL = "http://localhost:8080";
   const { submitEvidence } = await import("../src/api/evidenceApi.js");
@@ -22,14 +22,18 @@ test("학생 증빙 제출은 JSON request와 원본 file을 multipart로 전송
         title: "정보처리기사",
         issuerName: "한국산업인력공단"
       },
-      file: new Blob(["%PDF-1.7"], { type: "application/pdf" })
+      files: [
+        new Blob(["%PDF-1.7 first"], { type: "application/pdf" }),
+        new Blob(["%PDF-1.7 second"], { type: "application/pdf" })
+      ]
     });
 
     assert.equal(result.publicId, "evidence-1");
     assert.equal(captured.options.method, "POST");
     assert.ok(captured.options.body instanceof FormData);
     assert.equal(JSON.parse(await captured.options.body.get("request").text()).evidenceType, "QUALIFICATION");
-    assert.equal(captured.options.body.get("file").type, "application/pdf");
+    assert.equal(captured.options.body.getAll("files").length, 2);
+    assert.equal(captured.options.body.getAll("files")[0].type, "application/pdf");
     assert.equal(captured.options.headers.has("Content-Type"), false);
   } finally {
     globalThis.fetch = previousFetch;

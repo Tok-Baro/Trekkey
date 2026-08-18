@@ -19,7 +19,7 @@ const initialForm = {
 export function ExternalEvidencePanel() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(initialForm);
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -40,8 +40,8 @@ export function ExternalEvidencePanel() {
 
   const submit = async (event) => {
     event.preventDefault();
-    if (!file) {
-      setMessage("PDF, JPG, PNG 원본 파일을 선택해주세요.");
+    if (files.length === 0) {
+      setMessage("PDF, JPG, PNG 원본 파일을 1개 이상 선택해주세요.");
       return;
     }
     const type = EVIDENCE_TYPES.find((item) => item.value === form.evidenceType);
@@ -56,9 +56,9 @@ export function ExternalEvidencePanel() {
     }).filter(([, value]) => value !== ""));
     setIsSubmitting(true);
     try {
-      await submitEvidence({ values, file });
+      await submitEvidence({ values, files });
       setForm(initialForm);
-      setFile(null);
+      setFiles([]);
       event.currentTarget.reset();
       setMessage("증빙을 제출했습니다. 서로 다른 두 관리자가 확인한 뒤 반영됩니다.");
       await load();
@@ -104,8 +104,8 @@ export function ExternalEvidencePanel() {
             <label>만료일<input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} /></label>
           </div>
           {form.evidenceType === "LANGUAGE_SCORE" && <label>등급·급수<input type="number" min="0" step="0.01" value={form.numericValue} onChange={(e) => setForm({ ...form, numericValue: e.target.value })} /></label>}
-          <label className={styles.file}>원본 파일 <small>PDF/JPG/PNG · 최대 10MB</small>
-            <input required type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <label className={styles.file}>원본 파일 묶음 <small>PDF/JPG/PNG · 최대 5개 · 파일당 10MB, 합계 25MB</small>
+            <input required multiple type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
           </label>
           <button disabled={isSubmitting} type="submit">{isSubmitting ? "제출 중…" : "관리자 검수 요청"}</button>
         </form>

@@ -4,10 +4,10 @@ export function listMyEvidence() {
   return apiRequest("/api/me/evidence-submissions");
 }
 
-export function submitEvidence({ values, file }) {
+export function submitEvidence({ values, files }) {
   const body = new FormData();
   body.append("request", new Blob([JSON.stringify(values)], { type: "application/json" }));
-  body.append("file", file);
+  files.forEach((file) => body.append("files", file));
   return apiRequest("/api/me/evidence-submissions", { method: "POST", body });
 }
 

@@ -82,6 +82,7 @@ export function EvidenceVerificationPage({ onNotify }) {
             <div><dt>학생</dt><dd>{selected.subjectName}</dd></div><div><dt>학번</dt><dd>{selected.studentId || "-"}</dd></div>
             <div><dt>발급일</dt><dd>{selected.issuedAt || "-"}</dd></div><div><dt>만료일</dt><dd>{selected.expiresAt || "없음"}</dd></div>
             <div><dt>기관 코드</dt><dd>{selected.issuerCode || "미등록"}</dd></div><div><dt>번호</dt><dd>{selected.credentialNumberMasked || "파일 확인"}</dd></div>
+            <div><dt>신청 등급·수치</dt><dd>{selected.numericValue ?? "해당 없음"}</dd></div>
           </dl>
           <section className={styles.files}><h3>제출 원본</h3>{selected.files?.map((file) => <button key={file.publicId} type="button" onClick={() => download(file)}><Download size={16} /><span>{file.originalName}<small>{Math.ceil(file.sizeBytes / 1024)} KB · {file.safetyStatus}</small></span></button>)}</section>
           {!['VERIFIED','REJECTED','INCONCLUSIVE'].includes(selected.caseStatus) && <section className={styles.review}>
