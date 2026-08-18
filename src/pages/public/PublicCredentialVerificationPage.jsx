@@ -456,7 +456,7 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
                 <FileText size={20} /><span><strong>증명서 PDF</strong><small>{downloading === "certificate" ? "다운로드 중" : "출력·제출용"}</small></span><Download size={16} />
               </button>
               <button type="button" disabled={Boolean(downloading)} onClick={() => download("package")}>
-                <FileArchive size={20} /><span><strong>검증 자료 ZIP</strong><small>{downloading === "package" ? "다운로드 중" : "독립 보관용"}</small></span><Download size={16} />
+                <FileArchive size={20} /><span><strong>공개 검증 ZIP</strong><small>{downloading === "package" ? "다운로드 중" : "공개 요약·Proof 보관용"}</small></span><Download size={16} />
               </button>
             </div>
             {downloadError && <p className={styles.formError} role="alert">{downloadError}</p>}

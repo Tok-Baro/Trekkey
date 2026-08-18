@@ -14,7 +14,8 @@ export function SubmissionsPage({
   openModal,
   onExport,
   onGenerateHashes,
-  onDownloadSubmission
+  onDownloadSubmission,
+  serverBacked = false
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState({ key: "", direction: "asc" });
@@ -51,10 +52,12 @@ export function SubmissionsPage({
                 <Download size={17} />
                 내보내기
               </button>
-              <button className="primary-button" type="button" onClick={() => openModal("submission", { teams })}>
-                <Upload size={17} />
-                수동 접수
-              </button>
+              {!serverBacked && (
+                <button className="primary-button" type="button" onClick={() => openModal("submission", { teams })}>
+                  <Upload size={17} />
+                  수동 접수
+                </button>
+              )}
             </div>
           }
         />
@@ -144,12 +147,16 @@ export function SubmissionsPage({
             </span>
           </div>
         </div>
-        <div className="button-row">
-          <button className="secondary-button" type="button" onClick={onGenerateHashes}>
-            <LockKeyhole size={17} />
-            해시 생성
-          </button>
-        </div>
+        {serverBacked ? (
+          <p className="form-message">파일 해시는 참가자 제출 시 서버에서 자동 생성됩니다.</p>
+        ) : (
+          <div className="button-row">
+            <button className="secondary-button" type="button" onClick={onGenerateHashes}>
+              <LockKeyhole size={17} />
+              해시 생성
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );

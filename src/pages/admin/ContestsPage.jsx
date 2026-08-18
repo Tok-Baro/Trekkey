@@ -69,7 +69,8 @@ export function ContestsPage({
   onOpenPublicPage,
   openModal,
   onGenerateHashes,
-  onCalculateResults
+  onCalculateResults,
+  serverBacked = false
 }) {
   const [statusFilter, setStatusFilter] = useState("전체");
   const [activeTab, setActiveTab] = useState("overview");
@@ -306,6 +307,7 @@ export function ContestsPage({
           openModal={openModal}
           onGenerateHashes={onGenerateHashes}
           onCalculateResults={onCalculateResults}
+          serverBacked={serverBacked}
         />
       </section>
     </div>
@@ -328,7 +330,8 @@ function ContestDetailTab({
   onNavigate,
   openModal,
   onGenerateHashes,
-  onCalculateResults
+  onCalculateResults,
+  serverBacked
 }) {
   if (activeTab === "teams") {
     return (
@@ -385,10 +388,12 @@ function ContestDetailTab({
           onAction={() => onNavigate("submissions", selectedContest.id)}
         />
         <div className={styles.ctaStrip}>
-          <button className={styles.secondaryButton} type="button" onClick={onGenerateHashes}>
-            <FileArchive size={17} />
-            해시 일괄 생성
-          </button>
+          {!serverBacked && (
+            <button className={styles.secondaryButton} type="button" onClick={onGenerateHashes}>
+              <FileArchive size={17} />
+              해시 일괄 생성
+            </button>
+          )}
           <button className={styles.primaryButton} type="button" onClick={() => onNavigate("submissions", selectedContest.id)}>
             <Check size={17} />
             제출물 관리
