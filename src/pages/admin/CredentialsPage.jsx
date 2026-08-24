@@ -1,10 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   BadgeCheck,
   Blocks,
+  CheckCircle2,
   ExternalLink,
   KeyRound,
+  Presentation,
   RefreshCcw,
+  Route,
   Search,
   ShieldCheck
 } from "lucide-react";
@@ -253,6 +257,20 @@ export function CredentialsPage({
     && !selectedStatusEvent.approved
     && !statusApprovalExpired
   );
+  const issuanceProgress = useMemo(() => {
+    const hasCredentials = contestCredentials.length > 0;
+    const hasBatch = batches.length > 0 || contestCredentials.some((item) => ["BATCHED", "ANCHORED"].includes(item.status));
+    const hasApprovedBatch = batches.some((item) => ["SIGNED", "ANCHORING", "ANCHORED"].includes(item.status));
+    const hasAnchoredCredential = contestCredentials.some((item) => item.status === "ANCHORED");
+    return [
+      { label: "업무 확정", body: "참가·작품·수상 원천", complete: hasCredentials },
+      { label: "Credential 발급", body: "불변 snapshot·해시", complete: hasCredentials },
+      { label: "Merkle 배치", body: "Leaf→Root 생성", complete: hasBatch },
+      { label: "기관 승인", body: "EIP-712 서명", complete: hasApprovedBatch || hasAnchoredCredential },
+      { label: "Kaia 앵커링", body: "Root 공개 기록", complete: hasAnchoredCredential },
+      { label: "외부 검증", body: "QR·Proof 재계산", complete: hasAnchoredCredential }
+    ];
+  }, [batches, contestCredentials]);
 
   const loadCredentials = useCallback(async () => {
     if (!selectedContestId) {
@@ -486,6 +504,26 @@ export function CredentialsPage({
         </dl>
       </section>
 
+      <section className={`${styles.e2ePanel} wide`}>
+        <div className={styles.e2eHead}>
+          <div><span><Route size={15} /> LIVE E2E</span><h3>실제 발급 흐름 진행률</h3><p>현재 선택한 대회의 업무 원천부터 공개 검증까지 운영 데이터로 표시합니다.</p></div>
+          <Link to="/demo"><Presentation size={16} /> 5분 심사 모드</Link>
+        </div>
+        <div className={styles.e2eFlow}>
+          {issuanceProgress.map((item, index) => (
+            <React.Fragment key={item.label}>
+              {index > 0 && <span className={styles.e2eConnector} aria-hidden="true" />}
+              <article className={item.complete ? styles.e2eComplete : ""}>
+                <span>{item.complete ? <CheckCircle2 size={18} /> : index + 1}</span>
+                <strong>{item.label}</strong>
+                <small>{item.body}</small>
+              </article>
+            </React.Fragment>
+          ))}
+        </div>
+        <p className={styles.e2eHint}>기록 완료 Credential의 ‘5분 시연’ 버튼을 누르면 공개 ID가 심사 모드와 Tamper Lab에 안전하게 전달됩니다.</p>
+      </section>
+
       <section className="panel wide">
         <PanelHeader
           title={`${selectedContest.title} Credential`}
@@ -707,7 +745,8 @@ export function CredentialsPage({
       </section>
 
       <section className="panel wide" id="credential-status-workflow">
-        <PanelHeader title="4. Credential 폐기·대체" />
+        <PanelHeader title="향후 운영 범위 · Credential 폐기·대체" />
+        <div className={styles.roadmapNotice}>이번 심사 시연에서는 실제 발급·앵커링·공개 검증에 집중합니다. 취소·정정의 정식 운영 UX는 향후 구현 범위입니다.</div>
         <div className={styles.workflowGrid}>
           <form className={styles.operationForm} onSubmit={createStatusEvent}>
             <div className={styles.fieldRow}>
@@ -856,6 +895,11 @@ function CredentialTable({ credentials, emptyTitle, compact = false, onOpenCrede
                   <button className="secondary-button" type="button" onClick={() => onOpenCredential?.(credential.id)}>
                     <ExternalLink size={15} /> 검증
                   </button>
+                  {credential.status === "ANCHORED" && (
+                    <Link className="secondary-button" to={`/demo?credential=${encodeURIComponent(credential.id)}`}>
+                      <Presentation size={15} /> 5분 시연
+                    </Link>
+                  )}
                   {!["REVOKED", "SUPERSEDED"].includes(credential.status) && (
                     <button className="secondary-button" type="button" onClick={() => onSelectStatusChange?.(credential.id)}>
                       상태 변경

@@ -21,7 +21,7 @@ export function AppFooter({ variant = "default" }) {
           </div>
           <div>
             <strong>Trekkey</strong>
-            <p>교내 비교과 대회 운영과 활동 이력 검증을 위한 통합 관리 서비스</p>
+            <p>기관이 승인한 대학 활동을 개인정보 최소 공개로 발급·검증하는 플랫폼</p>
           </div>
         </div>
 
@@ -35,7 +35,7 @@ export function AppFooter({ variant = "default" }) {
 
         <div className={styles.meta}>
           <span>© {year} Trekkey. All rights reserved.</span>
-          <span>본 화면은 프로젝트 시연용 UI이며 실제 개인정보는 저장하지 않습니다.</span>
+          <span>공개 화면에는 동의된 최소 정보만 표시하며 개인정보 원문은 블록체인에 저장하지 않습니다.</span>
         </div>
       </div>
     </footer>
