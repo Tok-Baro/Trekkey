@@ -19,6 +19,8 @@
 
 기술적 완성도와 결과 검증이 45점이므로 **구조, 운영 검증, 변조 탐지, 재현 결과에 5분 이상**을 사용한다.
 
+발표 당일 기준 정량 근거는 백엔드 `629 discovered / 604 passed / 25 MySQL 조건부 skipped / 0 failed`, Solidity `12 passing`, 프런트 `19 passed`, `anchorBatch` Hardhat local 5회 평균 `202,598 execution gas`다. 가스는 네트워크 수수료가 아닌 로컬 실행 표본이라고 함께 말한다.
+
 ## 정확히 10분 발표 대본
 
 | 시간 | 장 | 화면 목적 | 발표 문장 |

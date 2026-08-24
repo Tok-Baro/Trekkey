@@ -6,7 +6,7 @@ const textEncoder = new TextEncoder();
 
 export const TREKKEY_LEAF_DOMAIN =
   "0x5d94c81e6ec3080e984cba1adb7df83a737c11ae46c6d9b02eb62d3ed54d58ed";
-export const ANCHOR_BATCH_GAS_SAMPLE = 202_591;
+export const ANCHOR_BATCH_GAS_SAMPLE = 202_598;
 
 export const TAMPER_SCENARIOS = [
   {

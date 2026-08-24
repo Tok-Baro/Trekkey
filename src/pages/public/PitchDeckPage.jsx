@@ -379,9 +379,9 @@ export function PitchDeckPage() {
                 {benchmark.status === "error" && <><CircleAlert size={34} /><strong>측정 재시도</strong><span>브라우저 계산 오류</span></>}
                 {benchmark.status === "idle" && <><Gauge size={34} /><strong>준비 중</strong></>}
               </article>
-              <article><small>BACKEND</small><strong>629 tests</strong><span>Java 21 전체 회귀 suite</span></article>
-              <article><small>SMART CONTRACT</small><strong>12 tests</strong><span>Root·서명·권한·상태 PASS</span></article>
-              <article><small>FRONTEND</small><strong>19 tests</strong><span>해시 fixture·API·Proof PASS</span></article>
+              <article><small>BACKEND</small><strong>629-case suite</strong><span>604 PASS · MySQL-only 25 SKIP</span></article>
+              <article><small>SMART CONTRACT</small><strong>12 PASS</strong><span>Root·서명·권한·상태 전이</span></article>
+              <article><small>FRONTEND</small><strong>19 PASS</strong><span>해시 fixture·API·Proof 재현</span></article>
             </div>
             <div className={styles.evidenceActions}>
               <button type="button" onClick={rerunBenchmark} disabled={benchmark.status === "running"}><TimerReset size={16} /> 다시 측정</button>
