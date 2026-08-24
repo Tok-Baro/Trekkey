@@ -1,15 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Activity,
   BadgeCheck,
   BarChart3,
   BrainCircuit,
-  BriefcaseBusiness,
   Check,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  ClipboardCheck,
   Database,
   ExternalLink,
   FileCheck2,
@@ -18,8 +18,6 @@ import {
   GraduationCap,
   KeyRound,
   Layers3,
-  Link2,
-  LockKeyhole,
   Maximize2,
   Network,
   Pause,
@@ -31,62 +29,65 @@ import {
   Sparkles,
   StickyNote,
   TimerReset,
+  Trophy,
   UserCheck,
+  UsersRound,
   Workflow,
   X
 } from "lucide-react";
 import { runRuntimeBenchmark } from "../../lib/tamperLab.js";
+import { PitchDemoTheater } from "./PitchDemoTheater.jsx";
 import styles from "./PitchDeckPage.module.scss";
 
 const SLIDES = [
   {
     id: "opening", time: "00:00", label: "OPENING", score: "첫 35초",
-    note: "AI가 경험을 대신 서술하는 시대입니다. Trekkey는 문장이 아니라 그 문장 뒤의 사실을 검증합니다.",
-    cue: "‘경험을 주장하는 방식에서 검증하는 방식으로 바꿉니다.’"
+    note: "Trekkey는 교내 대회 운영 과정에서 학교가 확정한 참가·작품·수상 기록을 외부 검증 가능한 Credential로 전환합니다.",
+    cue: "보고서와 같은 작품임을 첫 문장에서 확인시키고 ‘운영에서 검증까지’를 강조합니다."
   },
   {
-    id: "problem", time: "00:35", label: "PROBLEM", score: "문제·필요성 15",
-    note: "학생은 같은 경험을 반복해서 증명하고, 기업은 자기서술을 다시 확인하며, 대학의 승인 기록은 학교 밖에서 검증하기 어렵습니다.",
-    cue: "핵심은 경험 부족이 아니라 검증 가능한 경험 부족입니다."
+    id: "problem", time: "00:35", label: "PROBLEM", score: "문제·필요성 15 · 50초",
+    note: "대회 공고·신청·제출·심사·수상 기록은 부서별 문서에 흩어지고, 학생이 졸업하면 학교 밖에서 진위와 현재 효력을 확인하기 어렵습니다.",
+    cue: "보고서에 적은 두 문제인 ‘운영 분산’과 ‘졸업 후 검증 단절’을 그대로 회수합니다."
   },
   {
-    id: "thesis", time: "01:20", label: "SOLUTION", score: "창의성·혁신성 20",
-    note: "블록체인이 현실의 사실을 만들지는 않습니다. 사실 판단은 대학이 하고, Trekkey는 승인 이후 내용과 효력이 바뀌지 않았는지 검증합니다.",
-    cue: "대학 승인 → 최소 공개 → 누구나 검증의 세 층을 짚습니다."
+    id: "urgency", time: "01:25", label: "WHY NOW", score: "문제 + 혁신 · 40초",
+    note: "AI로 자기서술의 완성도가 평준화될수록 잘 쓴 문장보다 누가 언제 무엇을 확정했는지 확인 가능한 발급 근거가 중요해집니다.",
+    cue: "AI를 주 문제가 아니라, 보고서 문제의 시급성을 높이는 배경으로만 사용합니다."
   },
   {
-    id: "architecture", time: "02:05", label: "ARCHITECTURE", score: "기술적 완성도 25",
-    note: "대회 참가·작품·수상 확정이라는 기존 업무 이벤트가 Credential 발급 원천입니다. Canonical JSON, Merkle batch, EIP-712 승인, Kaia 앵커링, 공개 검증까지 이어집니다.",
-    cue: "별도 수기 등록이 아니라 기존 대학 업무가 발급 트리거라는 점을 강조합니다."
+    id: "trust", time: "02:05", label: "TRUST MODEL", score: "창의성·혁신성 20 · 45초",
+    note: "대학이 현실의 사실을 판단합니다. Trekkey는 발급 당시 내용의 변경을 탐지하고, VALID·REVOKED·SUPERSEDED로 현재 효력을 갱신합니다.",
+    cue: "‘모든 것을 바꿀 수 없게’가 아니라 ‘내용은 고정, 효력은 갱신’이라고 말합니다."
   },
   {
-    id: "privacy", time: "03:05", label: "PRIVACY", score: "혁신성 + 기술",
-    note: "개인정보 원문은 기관 서버, 동의한 요약과 Proof는 공개 검증, 체인에는 Root·발급자·상태만 둡니다. Merkle Proof는 ZKP가 아니라 포함·무결성 증명입니다.",
-    cue: "‘위변조 불가능’이 아니라 ‘한 글자 변조도 탐지’라고 말합니다."
+    id: "usage", time: "02:50", label: "USER JOURNEY", score: "실용성 10 · 50초",
+    note: "학생, 대학 관리자, 심사위원, 외부 검증자가 서로 다른 화면을 사용하지만 하나의 대회 기록과 Credential 흐름으로 연결됩니다.",
+    cue: "각 사용자가 기존에 반복하던 일을 무엇으로 줄이는지 한 문장씩 말합니다."
   },
   {
-    id: "usage", time: "04:00", label: "USER JOURNEY", score: "실용성 10",
-    note: "대학 관리자는 기존 업무에서 승인하고, 학생은 활동과 증빙을 관리해 링크로 공유하며, 외부 검증자는 가입 없이 확인합니다. 세 화면을 실제로 열 수 있습니다.",
-    cue: "기술이 아니라 각 사용자가 줄이는 일을 한 문장씩 말합니다."
+    id: "architecture", time: "03:40", label: "ARCHITECTURE", score: "기술적 완성도 25 · 75초",
+    note: "대회 결과 확정, Canonical snapshot, Merkle batch, EIP-712 기관 승인, Kaia 앵커링, 공개 검증까지 E2E로 연결됩니다. 개인정보 원문은 체인에 올리지 않습니다.",
+    cue: "Transactional Outbox와 UNKNOWN 재조회까지 짚어 체인 응답 불명확성 처리도 구현했음을 보여줍니다."
   },
   {
-    id: "services", time: "04:50", label: "IMPLEMENTED", score: "구현 범위 · 30초",
-    note: "프로토콜 위에 대회관리, 외부증빙 2인 검수, 졸업 자가점검, 공개 검증이 작동합니다. 졸업 기능은 공식 판정이 아닌 자가점검입니다.",
-    cue: "외부증빙의 온체인 Credential 자동 발급은 다음 연계 범위라고 경계를 밝힙니다."
+    id: "progress", time: "04:55", label: "REPORT → NOW", score: "완성도 + 결과 · 40초",
+    note: "예비보고서에서 향후 계획이었던 심사 운영 화면, 공개 QR·PDF 검증, 외부 증빙 2인 검수, 졸업 자가점검을 실제 화면으로 연결했습니다.",
+    cue: "외부 증빙→Credential 자동 발급은 아직 별도라는 경계와 KMS·S3·Mainnet은 다음 단계라고 밝힙니다."
   },
   {
-    id: "demo", time: "05:20", label: "LIVE USAGE", score: "기술 + 시연 · 140초",
-    note: "운영 데이터를 새로 발급하거나 변경하지 않습니다. 학생 증빙, 관리자 2인 검수, 졸업 자가점검을 먼저 보여주고, 별도 ANCHORED 대회 Credential로 공개 검증과 변조 탐지를 보여줍니다.",
-    cue: "탭 순서: 학생 외부 증빙 → 관리자 검수 → 졸업 자가점검 → 공개 검증 → Tamper Lab."
+    id: "demo", time: "05:35", label: "LIVE TAMPER LAB", score: "기술 + 시연 · 155초",
+    note: "결정적 데모 fixture로 정상 Proof, 한 글자 변조, 폐기, 대체 상태를 실제 브라우저에서 계산합니다. 영상이나 미리 정한 결과가 아닙니다.",
+    cue: "‘대상’을 ‘대샹’으로 한 글자만 바꿔 contentHash→leaf→Root 실패를 보여주고 자동 발표 모드로 진행합니다."
   },
   {
-    id: "evidence", time: "07:40", label: "EVIDENCE", score: "성능·결과 검증 20",
-    note: "1,000개 수치는 전체 TPS가 아니라 이 브라우저의 hash·Merkle Tree·Proof 생성 및 검증 시간입니다. 네트워크·DB·체인 확정은 제외됩니다.",
+    id: "evidence", time: "08:10", label: "EVIDENCE", score: "성능·결과 검증 20 · 70초",
+    note: "1,000-leaf 수치는 전체 TPS가 아니라 이 브라우저의 hash·Merkle Tree·Proof 생성 및 검증 시간입니다. 정확성 테스트와 성능 측정을 구분합니다.",
     cue: "화면에 방금 측정된 시간과 PASS가 뜬 것을 읽고, CSV 재현 화면을 엽니다."
   },
   {
-    id: "closing", time: "09:00", label: "CLOSING", score: "전체 회수 · 60초",
-    note: "대학은 반복 확인 비용을 줄이고, 개인은 승인된 경험을 재사용하며, 외부 검증자는 로그인 없이 확인합니다. Trekkey는 경험 기록 앱이 아니라 신뢰 인프라입니다.",
+    id: "closing", time: "09:20", label: "CLOSING", score: "전체 회수 · 40초",
+    note: "Trekkey는 대회 운영으로 검증할 사실을 만들고, Merkle Proof와 Kaia로 그 사실의 무결성과 현재 효력을 학교 밖에서도 확인하게 합니다.",
     cue: "마지막 문장을 천천히 말한 뒤 10분 전에 멈춥니다."
   }
 ];
@@ -100,38 +101,42 @@ const PIPELINE = [
   [BadgeCheck, "공개 검증", "QR·Proof 확인"]
 ];
 
-const SERVICES = [
-  [Workflow, "대회 운영", "신청·제출·심사·수상 확정이 Credential 발급 원천", "Credential 연계"],
-  [FileCheck2, "외부 증빙", "PDF·이미지 제출과 서로 다른 관리자 2인의 L2 검수", "2인 승인"],
-  [GraduationCap, "졸업 자가점검", "성적표·비교과 자료를 정책 기준일의 공식 근거와 비교", "자가점검"],
-  [ShieldCheck, "외부 공개 검증", "계정·지갑 없이 기관·내용·현재 효력·Proof 확인", "로그인 불필요"]
-];
-
 const USER_JOURNEYS = [
   {
-    icon: GraduationCap,
-    actor: "대학 관리자",
-    outcome: "기존 업무가 발급·검수 근거가 됩니다",
-    steps: ["대회 결과 확정", "외부 증빙 2인 검수", "대회 Credential 앵커링"],
-    path: "/credentials",
-    linkLabel: "관리자 원장"
-  },
-  {
-    icon: UserCheck,
+    icon: UsersRound,
     actor: "학생",
-    outcome: "승인된 경험을 계속 재사용합니다",
-    steps: ["활동·증빙 관리", "공개 링크·QR 공유", "졸업요건 자가점검"],
-    path: "/participant/activity",
-    linkLabel: "학생 활동"
+    outcome: "하나의 포털에서 대회를 끝까지",
+    steps: ["대회 조회·참가 신청", "팀 구성·작품 제출", "수상·활동 이력 확인"],
+    badge: "PARTICIPANT"
   },
   {
-    icon: BriefcaseBusiness,
-    actor: "기업·외부 기관",
-    outcome: "가입 없이 즉시 검증합니다",
-    steps: ["링크·QR 열기", "기관·내용·효력 확인", "필요 시 Proof 재계산"],
-    path: "/verify",
-    linkLabel: "공개 검증"
+    icon: Database,
+    actor: "대학 관리자",
+    outcome: "운영과 발급을 한 흐름으로",
+    steps: ["신청·제출 관리", "심사 배정·수상 확정", "Credential 발급·앵커링"],
+    badge: "OPERATOR"
+  },
+  {
+    icon: ClipboardCheck,
+    actor: "심사위원",
+    outcome: "배정된 작품에 바로 평가",
+    steps: ["전용 링크 접속", "평가 기준별 점수", "의견 제출·완료 추적"],
+    badge: "REVIEWER"
+  },
+  {
+    icon: ShieldCheck,
+    actor: "외부 검증자",
+    outcome: "가입·지갑 없이 즉시 확인",
+    steps: ["QR·공개 링크", "기관·내용·효력", "필요 시 Proof 재계산"],
+    badge: "PUBLIC"
   }
+];
+
+const REPORT_PROGRESS = [
+  [ClipboardCheck, "심사 운영 UX", "라운드·심사위원 배정·점수·수상 확정 화면 연결", "계획 → 구현"],
+  [BadgeCheck, "공개 검증 패키지", "QR·인쇄/PDF·Proof 재계산·상태 판정", "계획 → 구현"],
+  [FileCheck2, "외부 증빙 검수", "서로 다른 관리자 2인의 검수와 졸업 기록 반영", "별도 흐름 구현"],
+  [GraduationCap, "졸업 자가점검", "정책 기준일·공식 근거·충족·부족·확인 필요", "자가점검 구현"]
 ];
 
 function formatTime(totalSeconds) {
@@ -141,18 +146,12 @@ function formatTime(totalSeconds) {
 }
 
 export function PitchDeckPage() {
-  const [searchParams] = useSearchParams();
   const [slide, setSlide] = useState(0);
   const [running, setRunning] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [notesVisible, setNotesVisible] = useState(false);
   const [benchmark, setBenchmark] = useState({ status: "idle", result: null });
   const benchmarkStarted = useRef(false);
-  const credentialId = searchParams.get("credential")?.trim() || "";
-  const encodedCredentialId = encodeURIComponent(credentialId);
-  const tamperPath = credentialId
-    ? `/tamper-lab?mode=live&credential=${encodedCredentialId}`
-    : "/tamper-lab";
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -170,6 +169,7 @@ export function PitchDeckPage() {
     const onKeyDown = (event) => {
       const tag = event.target?.tagName;
       if (["INPUT", "TEXTAREA", "SELECT", "BUTTON", "A"].includes(tag)) return;
+      if (slide === 7 && ["ArrowRight", "ArrowLeft", "PageDown", "PageUp", " "].includes(event.key)) return;
       if (["ArrowRight", "PageDown", " "].includes(event.key)) {
         event.preventDefault();
         setSlide((value) => Math.min(SLIDES.length - 1, value + 1));
@@ -189,7 +189,7 @@ export function PitchDeckPage() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [slide]);
 
   useEffect(() => {
     if (SLIDES[slide].id !== "evidence" || benchmarkStarted.current) return;
@@ -213,6 +213,8 @@ export function PitchDeckPage() {
       .catch(() => setBenchmark({ status: "error", result: null }));
   };
 
+  const handleDemoComplete = useCallback(() => setSlide(8), []);
+
   const toggleFullscreen = () => {
     if (document.fullscreenElement) document.exitFullscreen?.();
     else document.documentElement.requestFullscreen?.();
@@ -233,153 +235,146 @@ export function PitchDeckPage() {
         </div>
       </header>
 
-      <main className={styles.stage}>
+      <main className={styles.stage} data-slide={SLIDES[slide].id}>
         <div className={styles.slideMeta}>
           <span>{SLIDES[slide].label}</span><strong>{SLIDES[slide].score}</strong><time>{SLIDES[slide].time}</time>
         </div>
 
         {slide === 0 && (
           <section className={`${styles.slide} ${styles.opening}`}>
-            <div className={styles.eyebrow}><Sparkles size={15} /> HANSUNG ENGINEERING COMPETITION 2026</div>
-            <h1>경험을 <em>말하지 말고,</em><br />증명하게 하자.</h1>
-            <p className={styles.technicalTitle}>Merkle Proof 기반 개인정보 보호형<br />대학 활동 Credential 발급·검증 플랫폼</p>
-            <div className={styles.openingFooter}><span>TREKKEY</span><i /><p>대학의 승인에서 외부 검증까지 이어지는 신뢰 인프라</p></div>
+            <div className={styles.eyebrow}><Sparkles size={15} /> 제22회 공학경진대회 · TREKKEY</div>
+            <h1>교내 대회 운영에서,<br /><em>검증 가능한 성과로.</em></h1>
+            <p className={styles.technicalTitle}>교내 대회 운영과 성과 검증을 연결하는<br /><strong>Merkle Proof 기반 Credential 플랫폼</strong></p>
+            <div className={styles.openingFooter}><span>TREKKEY</span><i /><p>개인정보 원문은 기관에 · 무결성과 현재 효력의 근거는 공개 검증으로</p></div>
           </section>
         )}
 
         {slide === 1 && (
           <section className={`${styles.slide} ${styles.problem}`}>
-            <div className={styles.eyebrow}><BrainCircuit size={15} /> PROBLEM DEFINITION</div>
-            <h2>AI 시대, <em>잘 쓴 경험</em>과<br /><em>실제로 한 경험</em>의 경계가 사라졌습니다.</h2>
+            <div className={styles.eyebrow}><CircleAlert size={15} /> PROBLEM DEFINITION</div>
+            <h2>학교 안에서 확정된 성과가,<br /><em>학교 밖에서는 다시 문서가 됩니다.</em></h2>
             <div className={styles.problemGrid}>
-              <article><GraduationCap size={28} /><small>개인</small><strong>경험은 많지만<br />신뢰받기 어렵다</strong><p>자기소개서만으로 활동의 주체·시점·성과를 증명하기 어렵습니다.</p></article>
-              <div className={styles.gap}><span>TRUST</span><i /><b>GAP</b></div>
-              <article><BriefcaseBusiness size={28} /><small>기업·기관</small><strong>지원자는 많지만<br />검증 비용이 커진다</strong><p>자격과 활동을 문서·전화·사이트로 다시 확인해야 합니다.</p></article>
+              <article><Database size={28} /><small>대학 내부</small><strong>운영 기록이<br />부서별 문서에 분산</strong><p>공고·신청·제출·심사·수상 기록이 서로 다른 문서와 시스템에 남습니다.</p></article>
+              <div className={styles.gap}><span>졸업 · 공유</span><i /><b>단절</b></div>
+              <article><ShieldCheck size={28} /><small>학교 외부</small><strong>진위와 현재 효력을<br />즉시 확인하기 어려움</strong><p>학생이 제출한 PDF와 자기서술만으로는 발급 주체·변경 여부·취소 상태를 알기 어렵습니다.</p></article>
             </div>
-            <blockquote>취업난과 구인난이 동시에 존재하는 이유 중 하나는<br /><strong>경험의 부족이 아니라, 검증 가능한 경험의 부족</strong>입니다.</blockquote>
+            <blockquote>한 대회를 끝냈는데도, 학생에게 남는 것은<br /><strong>학교 밖에서 곧바로 검증할 수 없는 기록</strong>입니다.</blockquote>
           </section>
         )}
 
         {slide === 2 && (
           <section className={`${styles.slide} ${styles.thesis}`}>
-            <div className={styles.eyebrow}><Network size={15} /> OUR THESIS</div>
-            <h2>블록체인이 사실을 만드는 것이 아니라,<br /><em>대학이 승인한 사실을 바꿀 수 없게</em> 만듭니다.</h2>
+            <div className={styles.eyebrow}><BrainCircuit size={15} /> WHY NOW</div>
+            <h2>AI가 글을 평준화할수록,<br /><em>발급 근거가 더 중요해집니다.</em></h2>
             <div className={styles.layerFlow}>
-              <article><span>01</span><GraduationCap size={26} /><small>UNIVERSITY</small><strong>사실 승인</strong><p>참가·작품·수상·외부 증빙을 담당자가 확정</p></article>
+              <article><span>01</span><BrainCircuit size={26} /><small>SELF NARRATIVE</small><strong>누구나 작성</strong><p>문장은 더 좋아졌지만 실제 활동 여부는 문장만으로 확인하기 어렵습니다.</p></article>
               <ChevronRight size={24} />
-              <article><span>02</span><LockKeyhole size={26} /><small>PROTOCOL</small><strong>최소 공개</strong><p>원문 대신 hash·Merkle Proof·상태만 검증 가능</p></article>
+              <article><span>02</span><GraduationCap size={26} /><small>UNIVERSITY RECORD</small><strong>대학이 확정</strong><p>누가·언제·무엇을 했는지 담당자가 근거와 함께 확정합니다.</p></article>
               <ChevronRight size={24} />
-              <article><span>03</span><ShieldCheck size={26} /><small>PUBLIC SERVICE</small><strong>즉시 검증</strong><p>누구나 QR 하나로 기관·내용·변조 여부를 확인</p></article>
+              <article><span>03</span><ShieldCheck size={26} /><small>PUBLIC PROOF</small><strong>누구나 확인</strong><p>발급기관·공개 내용·변경 여부·현재 효력을 로그인 없이 확인합니다.</p></article>
             </div>
-            <div className={styles.kick}><ShieldCheck size={20} /><strong>판단의 주체</strong><span>대학</span><i /><strong>무결성의 근거</strong><span>Merkle Proof + Kaia</span></div>
+            <div className={styles.kick}><ShieldCheck size={20} /><strong>AI는 문제의 배경</strong><span>핵심은 발급자 · 무결성 · 현재 효력</span></div>
           </section>
         )}
 
         {slide === 3 && (
+          <section className={`${styles.slide} ${styles.trust}`}>
+            <div className={styles.eyebrow}><ShieldCheck size={15} /> TRUST MODEL</div>
+            <h2>발급 내용은 고정하고,<br /><em>현재 효력은 갱신합니다.</em></h2>
+            <div className={styles.trustGrid}>
+              <article><GraduationCap size={25} /><small>01 · REALITY</small><strong>대학이 사실을 판단</strong><p>참가·작품·수상 근거를 확인하고 발급 여부를 결정합니다.</p></article>
+              <article><Fingerprint size={25} /><small>02 · INTEGRITY</small><strong>변경을 즉시 탐지</strong><p>Canonical snapshot의 한 글자 변경도 다른 contentHash와 leaf를 만듭니다.</p></article>
+              <article><Activity size={25} /><small>03 · VALIDITY</small><strong>효력 상태를 갱신</strong><p>VALID · REVOKED · SUPERSEDED로 진짜 기록의 현재 사용 가능 여부를 구분합니다.</p></article>
+            </div>
+            <div className={styles.proofFormula}>
+              <div><small>APPROVED CLAIMS</small><strong>canonical JSON</strong></div><ChevronRight size={19} />
+              <div><small>CONTENT HASH</small><strong>SHA-256</strong></div><ChevronRight size={19} />
+              <div><small>TREKKEY LEAF</small><strong>6 × bytes32</strong></div><ChevronRight size={19} />
+              <div className={styles.formulaPass}><small>MERKLE ROOT</small><strong><Check size={15} /> Kaia 기준값</strong></div>
+            </div>
+            <div className={styles.precisionNote}><CircleAlert size={18} /><p><strong>블록체인이 진실을 결정하지 않습니다.</strong> 대학이 사실성을 책임지고, Trekkey는 승인 이후의 내용 무결성과 현재 효력을 검증합니다.</p></div>
+          </section>
+        )}
+
+        {slide === 4 && (
+          <section className={`${styles.slide} ${styles.usage}`}>
+            <div className={styles.eyebrow}><UsersRound size={15} /> USER JOURNEY</div>
+            <h2>하나의 검증 가능한 흐름으로<br /><em>네 사용자의 일을 줄입니다.</em></h2>
+            <div className={styles.journeyGrid}>
+              {USER_JOURNEYS.map(({ icon: Icon, actor, outcome, steps, badge }) => (
+                <article key={actor}>
+                  <header><Icon size={23} /><span>{badge}</span></header>
+                  <small>{actor}</small>
+                  <strong>{outcome}</strong>
+                  <ol>{steps.map((step, index) => <li key={step}><b>0{index + 1}</b><span>{step}</span></li>)}</ol>
+                </article>
+              ))}
+            </div>
+            <div className={styles.journeyOutcome}><Network size={19} /><strong>하나의 기록</strong><span>운영에서 사실을 만들고</span><i /><span>Credential로 묶고</span><i /><span>공개 Proof로 검증합니다</span></div>
+          </section>
+        )}
+
+        {slide === 5 && (
           <section className={`${styles.slide} ${styles.architecture}`}>
             <div className={styles.eyebrow}><Workflow size={15} /> END-TO-END ARCHITECTURE</div>
-            <h2>기존 대학 업무의 <em>확정 이벤트</em>가<br />곧 Credential의 발급 원천입니다.</h2>
+            <h2>업무 확정부터 Kaia 검증까지<br /><em>한 번도 끊기지 않습니다.</em></h2>
             <div className={styles.pipeline}>
               {PIPELINE.map(([Icon, title, body], index) => (
                 <React.Fragment key={title}>{index > 0 && <ChevronRight className={styles.pipelineArrow} size={18} />}<article><span>0{index + 1}</span><Icon size={22} /><strong>{title}</strong><p>{body}</p></article></React.Fragment>
               ))}
             </div>
             <div className={styles.runtimeSplit}>
-              <article><Server size={18} /><div><small>SPRING + MYSQL</small><strong>업무·원문·승인·Outbox</strong></div></article>
-              <article><Fingerprint size={18} /><div><small>REACT BROWSER</small><strong>공개 leaf·Proof 재계산</strong></div></article>
-              <article><Layers3 size={18} /><div><small>KAIA KAIROS</small><strong>Root·발급자·현재 상태</strong></div></article>
+              <article><Server size={18} /><div><small>INSTITUTION SERVER</small><strong>개인정보 원문 · 업무 근거</strong></div></article>
+              <article><Fingerprint size={18} /><div><small>PUBLIC VERIFICATION</small><strong>동의된 요약 · Proof 재계산</strong></div></article>
+              <article><Layers3 size={18} /><div><small>KAIA KAIROS</small><strong>Root · 발급자 · 현재 상태</strong></div></article>
             </div>
+            <div className={styles.reliabilityStrip}><Activity size={17} /><strong>체인 장애도 업무 유실 없이</strong><span>Transactional Outbox</span><i /><span>UNKNOWN 상태</span><i /><span>동일 트랜잭션 재조회</span></div>
             <p className={styles.scopeLine}>Java · JavaScript · Solidity가 같은 fixture로 leaf와 Root를 교차 재현합니다.</p>
           </section>
         )}
 
-        {slide === 4 && (
-          <section className={`${styles.slide} ${styles.privacy}`}>
-            <div className={styles.eyebrow}><LockKeyhole size={15} /> PRIVACY BY PLACEMENT</div>
-            <h2>개인정보를 체인에 올리지 않고도<br /><em>한 글자 변조를 탐지</em>합니다.</h2>
-            <div className={styles.privacyZones}>
-              <article><Database size={24} /><span>PRIVATE</span><strong>기관 서버</strong><p>학번·이메일·증빙 원문<br />업무상 접근 권한으로 보호</p></article>
-              <article><BadgeCheck size={24} /><span>CONSENTED PUBLIC</span><strong>검증 화면</strong><p>동의된 이름·활동 요약<br />Credential payload·Proof</p></article>
-              <article><Layers3 size={24} /><span>ON-CHAIN</span><strong>Kaia</strong><p>Merkle Root·발급자·상태<br />개인정보 원문 없음</p></article>
-            </div>
-            <div className={styles.proofFormula}>
-              <div><small>공개 CLAIMS</small><strong>H(canonical JSON)</strong></div><ChevronRight size={19} />
-              <div><small>TREKKEY V1 LEAF</small><strong>6 × bytes32</strong></div><ChevronRight size={19} />
-              <div><small>MERKLE PROOF</small><strong>siblings 접기</strong></div><ChevronRight size={19} />
-              <div className={styles.formulaPass}><small>ANCHORED ROOT</small><strong><Check size={15} /> 일치</strong></div>
-            </div>
-            <div className={styles.precisionNote}><CircleAlert size={18} /><p><strong>Merkle Proof는 ZKP가 아닙니다.</strong> 공개된 내용의 포함 여부와 무결성을 최소한의 sibling hash로 증명합니다.</p></div>
-          </section>
-        )}
-
-        {slide === 5 && (
-          <section className={`${styles.slide} ${styles.usage}`}>
-            <div className={styles.eyebrow}><UserCheck size={15} /> WHO USES TREKKEY</div>
-            <h2>한 번의 대학 승인으로<br /><em>세 사용자의 일을 줄입니다.</em></h2>
-            <div className={styles.journeyGrid}>
-              {USER_JOURNEYS.map(({ icon: Icon, actor, outcome, steps, path, linkLabel }) => (
-                <article key={actor}>
-                  <header><Icon size={23} /><span>{actor}</span></header>
-                  <strong>{outcome}</strong>
-                  <ol>{steps.map((step, index) => <li key={step}><b>0{index + 1}</b><span>{step}</span></li>)}</ol>
-                  <Link target="_blank" rel="noreferrer" to={path}>{linkLabel} 열기 <ExternalLink size={13} /></Link>
-                </article>
+        {slide === 6 && (
+          <section className={`${styles.slide} ${styles.progress}`}>
+            <div className={styles.eyebrow}><Trophy size={15} /> REPORT → NOW</div>
+            <h2>예비보고서의 계획이,<br /><em>실제 사용 화면이 되었습니다.</em></h2>
+            <div className={styles.progressGrid}>
+              {REPORT_PROGRESS.map(([Icon, title, body, status]) => (
+                <article key={title}><header><Icon size={22} /><span>{status}</span></header><strong>{title}</strong><p>{body}</p></article>
               ))}
             </div>
-            <div className={styles.journeyOutcome}><Network size={19} /><strong>하나의 신뢰 구조</strong><span>대학은 승인·발급하고</span><i /><span>학생은 관리·공유하고</span><i /><span>외부 기관은 검증합니다</span></div>
-          </section>
-        )}
-
-        {slide === 6 && (
-          <section className={`${styles.slide} ${styles.services}`}>
-            <div className={styles.eyebrow}><Activity size={15} /> PROTOCOL → PLATFORM → SERVICES</div>
-            <h2>검증 프로토콜 위에<br /><em>실제로 쓰는 네 가지 서비스</em>가 작동합니다.</h2>
-            <div className={styles.serviceGrid}>
-              {SERVICES.map(([Icon, title, body, badge]) => <article key={title}><div><Icon size={23} /><em>IMPLEMENTED</em></div><strong>{title}</strong><p>{body}</p><span>{badge}</span></article>)}
+            <div className={styles.progressEvidence}>
+              <article><small>예비보고서</small><strong>Java 322 tests</strong><span>대회·Credential 핵심</span></article>
+              <ChevronRight size={18} />
+              <article><small>Credential 공개 릴리스</small><strong>629-case suite</strong><span>604 PASS · 25 MySQL-only SKIP · 0 FAIL</span></article>
+              <i />
+              <p><strong>구현 경계</strong> 외부 증빙 검수와 졸업 자가점검은 별도 업무 흐름입니다. 자동 Credential 발급과 공식 졸업사정은 후속 범위입니다.</p>
             </div>
-            <div className={styles.serviceBoundary}><GraduationCap size={19} /><p><strong>졸업 기능은 공식 졸업 판정이 아닌 자가점검입니다.</strong> 외부 증빙 2인 승인 결과는 현재 졸업 기록에 반영되며, 온체인 Credential 자동 발급은 다음 연계 범위입니다.</p></div>
           </section>
         )}
 
         {slide === 7 && (
           <section className={`${styles.slide} ${styles.demo}`}>
-            <div className={styles.eyebrow}><Presentation size={15} /> 140-SECOND LIVE USAGE</div>
-            <h2>학생의 제출부터 외부 검증까지,<br /><em>실제로 사용해 보겠습니다.</em></h2>
-            <div className={styles.demoTimeline}>
-              <article><time>00–20s</time><span>01</span><FileCheck2 size={23} /><strong>학생 증빙</strong><p>2/2 검수 완료 상태 확인</p></article>
-              <article><time>20–42s</time><span>02</span><UserCheck size={23} /><strong>관리자 검수</strong><p>완료 건의 2인 승인 이력</p></article>
-              <article><time>42–72s</time><span>03</span><GraduationCap size={23} /><strong>졸업 자가점검</strong><p>충족·부족·확인 필요</p></article>
-              <article><time>72–105s</time><span>04</span><Link2 size={23} /><strong>공개 검증</strong><p>별도 ANCHORED 기록 확인</p></article>
-              <article><time>105–135s</time><span>05</span><Fingerprint size={23} /><strong>Proof·변조</strong><p>leaf → Root, 한 글자 변경</p></article>
+            <div className={styles.demoHeading}>
+              <div><span className={styles.eyebrow}><Presentation size={15} /> 140-SECOND GUIDED DEMO</span><h2>운영에서 검증까지, <em>한 사건으로 보여드립니다.</em></h2></div>
+              <Link target="_blank" rel="noreferrer" to="/tamper-lab?present=1&autoplay=1"><Fingerprint size={15} /> 전체 Tamper Lab <ExternalLink size={13} /></Link>
             </div>
-            <div className={styles.demoActions}>
-              <Link target="_blank" rel="noreferrer" to="/participant/evidence"><FileCheck2 size={17} /> 학생 외부 증빙 <ExternalLink size={14} /></Link>
-              <Link target="_blank" rel="noreferrer" to="/evidence"><UserCheck size={17} /> 관리자 검수 <ExternalLink size={14} /></Link>
-              <Link target="_blank" rel="noreferrer" to="/participant/graduation"><GraduationCap size={17} /> 졸업 자가점검 <ExternalLink size={14} /></Link>
-              {credentialId && <Link target="_blank" rel="noreferrer" to={`/verify/${encodedCredentialId}`}><ShieldCheck size={17} /> 공개 검증 <ExternalLink size={14} /></Link>}
-              <Link target="_blank" rel="noreferrer" to={tamperPath}><Fingerprint size={17} /> Tamper Lab <ExternalLink size={14} /></Link>
-            </div>
-            <div className={styles.credentialReady} data-ready={Boolean(credentialId) || undefined}>
-              <span>{credentialId ? "LIVE CREDENTIAL CONNECTED" : "PREFLIGHT"}</span>
-              <strong>{credentialId || "발표 전 ANCHORED Credential을 ?credential={publicId}로 연결하세요."}</strong>
-            </div>
-            <p className={styles.demoCaveat}><strong>정확한 구현 경계</strong> 증빙 2인 검수→졸업 자가점검은 대학 업무 경로이며, 공개 Proof는 별도로 발급·앵커링된 대회 Credential입니다. 두 경로의 자동 발급 연계는 다음 범위입니다. 브라우저는 공개 Proof를 재계산하고 Kaia 상태는 서버 조회와 Explorer로 교차 확인합니다.</p>
+            <PitchDemoTheater autoStart onComplete={handleDemoComplete} />
           </section>
         )}
 
         {slide === 8 && (
           <section className={`${styles.slide} ${styles.evidence}`}>
             <div className={styles.eyebrow}><BarChart3 size={15} /> REPRODUCIBLE EVIDENCE</div>
-            <h2>구현했다고 말하는 대신,<br /><em>지금 이 브라우저에서 다시 측정</em>합니다.</h2>
+            <h2>정확성과 성능을<br /><em>서로 다른 방법으로 검증했습니다.</em></h2>
             <div className={styles.metricGrid}>
               <article className={styles.liveMetric}>
-                <small>LIVE · 1,000 CREDENTIAL BATCH</small>
+                <small>LIVE · 1,000-LEAF BROWSER CRYPTO</small>
                 {benchmark.status === "running" && <><Gauge className={styles.pulse} size={34} /><strong>측정 중…</strong></>}
                 {benchmark.status === "complete" && <><Check size={34} /><strong>{benchmark.result.durationMs.toFixed(2)} ms</strong><span>{benchmark.result.proofMatches ? "PROOF PASS" : "CHECK REQUIRED"}</span></>}
                 {benchmark.status === "error" && <><CircleAlert size={34} /><strong>측정 재시도</strong><span>브라우저 계산 오류</span></>}
                 {benchmark.status === "idle" && <><Gauge size={34} /><strong>준비 중</strong></>}
               </article>
-              <article><small>BACKEND</small><strong>629-case suite</strong><span>604 PASS · MySQL-only 25 SKIP</span></article>
+              <article><small>CREDENTIAL RELEASE</small><strong>629-case suite</strong><span>604 PASS · 25 MySQL-only SKIP · 0 FAIL</span></article>
               <article><small>SMART CONTRACT</small><strong>12 PASS</strong><span>Root·서명·권한·상태 전이</span></article>
               <article><small>FRONTEND</small><strong>19 PASS</strong><span>해시 fixture·API·Proof 재현</span></article>
             </div>
@@ -387,21 +382,21 @@ export function PitchDeckPage() {
               <button type="button" onClick={rerunBenchmark} disabled={benchmark.status === "running"}><TimerReset size={16} /> 다시 측정</button>
               <Link target="_blank" rel="noreferrer" to="/evidence-report"><BarChart3 size={16} /> 원시 결과·CSV 열기 <ExternalLink size={13} /></Link>
             </div>
-            <p className={styles.measureScope}><Gauge size={17} /><strong>측정 범위</strong> SHA-256 · leaf · Merkle Tree · 중앙 Proof 생성·검증. 네트워크·DB·체인 확정 시간은 포함하지 않습니다.</p>
+            <p className={styles.measureScope}><Gauge size={17} /><strong>측정 범위</strong> SHA-256 · leaf · Merkle Tree · 중앙 Proof 생성·검증. 전체 TPS나 네트워크·DB·체인 확정 시간은 포함하지 않습니다.</p>
           </section>
         )}
 
         {slide === 9 && (
           <section className={`${styles.slide} ${styles.closing}`}>
-            <div className={styles.eyebrow}><ShieldCheck size={15} /> VERIFIED EXPERIENCE INFRASTRUCTURE</div>
-            <h2>경험을 주장하는 시대에서,<br /><em>경험을 증명하는 시대로.</em></h2>
+            <div className={styles.eyebrow}><ShieldCheck size={15} /> FROM OPERATION TO VERIFICATION</div>
+            <h2>대회 운영으로 사실을 만들고,<br /><em>학교 밖에서도 검증하게 합니다.</em></h2>
             <div className={styles.outcomes}>
-              <article><GraduationCap size={23} /><small>대학</small><strong>승인과 발급을 한 흐름으로</strong><p>기존 업무 확정이 검증 가능한 기록이 됩니다.</p></article>
-              <article><UserCheck size={23} /><small>개인</small><strong>한 번 승인받고 계속 재사용</strong><p>필요한 정보만 링크와 QR로 제시합니다.</p></article>
-              <article><BriefcaseBusiness size={23} /><small>기업·기관</small><strong>로그인 없이 즉시 검증</strong><p>전화·문서 확인 비용을 공개 Proof로 줄입니다.</p></article>
+              <article><GraduationCap size={23} /><small>대학</small><strong>운영과 발급을 한 흐름으로</strong><p>기존 업무의 확정 결과가 검증 가능한 기록이 됩니다.</p></article>
+              <article><UserCheck size={23} /><small>학생</small><strong>한 번 승인받고 계속 공유</strong><p>발급 시 공개에 동의한 요약만 링크와 QR로 제시합니다.</p></article>
+              <article><ShieldCheck size={23} /><small>외부 검증자</small><strong>로그인·지갑 없이 즉시 확인</strong><p>발급기관·내용 무결성·현재 효력을 공개 Proof로 확인합니다.</p></article>
             </div>
-            <div className={styles.roadmapStrip}><span>NOW</span><strong>발급 · Merkle 앵커링 · 공개 검증 · 증빙 2인 검수 · 졸업 자가점검</strong><i /><span>NEXT</span><p>외부증빙 Credential 자동 연계 · 공식 학사데이터 연동 · 취소·정정 운영 UX 고도화</p></div>
-            <blockquote>“Trekkey는 경험을 기록하는 서비스가 아니라,<br /><strong>그 경험이 사실임을 개인정보 원문 노출 없이 증명하는 기반</strong>입니다.”</blockquote>
+            <div className={styles.roadmapStrip}><span>NOW</span><strong>대회 운영 E2E · Credential · Merkle/Kaia · 공개 검증 · Tamper Lab</strong><i /><span>EXTEND</span><p>외부 증빙 검수 · 졸업 자가점검</p><i /><span>NEXT</span><p>S3·KMS·모니터링 · 내부 베타 후 Mainnet 검토</p></div>
+            <blockquote>Trekkey는 모든 경험의 진실을 판정하지 않습니다.<br /><strong>대학이 승인한 기록이 이후 변조되지 않았고 지금도 유효한지를 누구나 검증하게 합니다.</strong></blockquote>
           </section>
         )}
       </main>

@@ -6,6 +6,7 @@ import {
   Ban,
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   CircleAlert,
   Database,
@@ -18,7 +19,9 @@ import {
   Layers3,
   Link2,
   LockKeyhole,
+  Pause,
   Play,
+  Presentation,
   RefreshCw,
   RotateCcw,
   Server,
@@ -106,12 +109,21 @@ const PRIVACY_ROWS = [
 ];
 
 const DEMO_STEPS = [
-  ["00:00", "문제", "AI가 만든 서술과 기관이 승인한 사실을 구분합니다."],
-  ["00:35", "실제 발급", "업무 확정→Credential→기관 승인→Kaia 흐름을 확인합니다."],
-  ["01:35", "운영 검증", "운영 Credential의 leaf와 Proof를 브라우저에서 다시 계산합니다."],
-  ["02:35", "변조 실험", "‘대상’을 ‘최우수상’으로 바꿔 즉시 실패를 확인합니다."],
+  ["00:00", "대회 기록", "학교가 확정한 참가·작품·수상 snapshot을 확인합니다."],
+  ["00:35", "정상 Proof", "브라우저가 leaf와 Merkle Root를 다시 계산합니다."],
+  ["01:35", "한 글자 변조", "‘대상’을 ‘대샹’으로 바꿔 즉시 실패를 확인합니다."],
+  ["02:35", "현재 효력", "VALID·REVOKED·SUPERSEDED 상태를 내용 무결성과 구분합니다."],
   ["03:35", "개인정보", "원문·공개 요약·온체인 데이터의 저장 위치를 구분합니다."],
-  ["04:20", "정량 검증", "배치 크기별 실행 시간과 gas 분담 효과를 설명합니다."]
+  ["04:20", "정량 검증", "배치 크기별 브라우저 암호 계산 시간을 다시 측정합니다."]
+];
+
+const PRESENT_STAGES = [
+  { id: "valid", time: "00:00", label: "정상 Proof", scenario: "VALID", target: "live-lab", durationMs: 20_000 },
+  { id: "tampered", time: "00:20", label: "한 글자 변조", scenario: "TAMPERED", target: "live-lab", durationMs: 30_000 },
+  { id: "revoked", time: "00:50", label: "발급 취소", scenario: "REVOKED", target: "live-lab", durationMs: 18_000 },
+  { id: "superseded", time: "01:08", label: "정정·대체", scenario: "SUPERSEDED", target: "live-lab", durationMs: 18_000 },
+  { id: "privacy", time: "01:26", label: "데이터 배치", target: "privacy-placement", durationMs: 22_000 },
+  { id: "evidence", time: "01:48", label: "정량 검증", target: "benchmark", durationMs: 27_000 }
 ];
 
 function hashParts(expected, calculated) {
@@ -329,10 +341,12 @@ export function TamperLabPage() {
   const [searchParams] = useSearchParams();
   const credentialParam = searchParams.get("credential") ?? "";
   const requestedMode = searchParams.get("mode") === "live" ? "live" : "fixture";
+  const presentationMode = searchParams.get("present") === "1";
+  const requestedPresentStage = PRESENT_STAGES.findIndex((stage) => stage.id === searchParams.get("stage"));
   const [labMode, setLabMode] = useState(requestedMode);
   const [fixture, setFixture] = useState(null);
   const [scenarioId, setScenarioId] = useState("VALID");
-  const [changedPrize, setChangedPrize] = useState("최우수상");
+  const [changedPrize, setChangedPrize] = useState("대샹");
   const [result, setResult] = useState(null);
   const [loadError, setLoadError] = useState("");
   const [benchmarkResults, setBenchmarkResults] = useState(null);
@@ -342,6 +356,10 @@ export function TamperLabPage() {
   const [operationalEvidence, setOperationalEvidence] = useState(null);
   const [operationalLoading, setOperationalLoading] = useState(false);
   const [operationalError, setOperationalError] = useState("");
+  const [presentStage, setPresentStage] = useState(requestedPresentStage >= 0 ? requestedPresentStage : 0);
+  const [presentAuto, setPresentAuto] = useState(
+    presentationMode && searchParams.get("autoplay") === "1"
+  );
 
   const loadOperationalCredential = useCallback(async (rawValue) => {
     const credentialId = normalizeCredentialInput(rawValue);
@@ -415,18 +433,69 @@ export function TamperLabPage() {
     };
   }, [fixture, scenarioId, changedPrize]);
 
-  const runBenchmark = async () => {
+  const runBenchmark = useCallback(async () => {
     setBenchmarking(true);
     try {
       setBenchmarkResults(await runRuntimeBenchmark());
     } finally {
       setBenchmarking(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!presentationMode) return undefined;
+    const stage = PRESENT_STAGES[presentStage] ?? PRESENT_STAGES[0];
+    if (stage.scenario) {
+      setLabMode("fixture");
+      setScenarioId(stage.scenario);
+      if (stage.scenario === "TAMPERED") setChangedPrize("대샹");
+    }
+    if (stage.id === "evidence" && !benchmarkResults && !benchmarking) runBenchmark();
+    const scrollTimer = window.setTimeout(() => {
+      document.getElementById(stage.target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(scrollTimer);
+  }, [benchmarkResults, benchmarking, presentStage, presentationMode, runBenchmark]);
+
+  useEffect(() => {
+    if (!presentationMode || !presentAuto) return undefined;
+    if (presentStage >= PRESENT_STAGES.length - 1) {
+      setPresentAuto(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(
+      () => setPresentStage((value) => Math.min(PRESENT_STAGES.length - 1, value + 1)),
+      PRESENT_STAGES[presentStage].durationMs
+    );
+    return () => window.clearTimeout(timer);
+  }, [presentAuto, presentStage, presentationMode]);
+
+  useEffect(() => {
+    if (!presentationMode) return undefined;
+    const onKeyDown = (event) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target?.tagName)) return;
+      if (event.key === "ArrowRight" || event.key === "PageDown") {
+        event.preventDefault();
+        setPresentAuto(false);
+        setPresentStage((value) => Math.min(PRESENT_STAGES.length - 1, value + 1));
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        setPresentAuto(false);
+        setPresentStage((value) => Math.max(0, value - 1));
+      }
+      if (event.key === " ") {
+        event.preventDefault();
+        setPresentAuto((value) => !value);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [presentationMode]);
 
   const resetLab = () => {
     setScenarioId("VALID");
-    setChangedPrize("최우수상");
+    setChangedPrize("대샹");
     setBenchmarkResults(null);
     setOperationalCredential(null);
     setOperationalEvidence(null);
@@ -457,7 +526,7 @@ export function TamperLabPage() {
   };
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-present={presentationMode || undefined}>
       <header className={styles.topbar}>
         <Link className={styles.brand} to="/">
           <span><Layers3 size={18} aria-hidden="true" /></span>
@@ -469,6 +538,38 @@ export function TamperLabPage() {
           <button type="button" onClick={resetLab}><RotateCcw size={16} /> 초기화</button>
         </nav>
       </header>
+
+      {presentationMode && (
+        <aside className={styles.presentDock} aria-label="Tamper Lab 발표 컨트롤">
+          <div className={styles.presentTitle}>
+            <Presentation size={17} />
+            <span>LIVE DEMO</span>
+            <strong>{PRESENT_STAGES[presentStage].time}</strong>
+          </div>
+          <nav className={styles.presentSteps} aria-label="시연 단계">
+            {PRESENT_STAGES.map((stage, index) => (
+              <button
+                type="button"
+                key={stage.id}
+                className={index === presentStage ? styles.presentActive : ""}
+                aria-current={index === presentStage ? "step" : undefined}
+                onClick={() => { setPresentAuto(false); setPresentStage(index); }}
+              >
+                <b>0{index + 1}</b><span>{stage.label}</span>
+              </button>
+            ))}
+          </nav>
+          <div className={styles.presentTools}>
+            <button type="button" onClick={() => setPresentStage((value) => Math.max(0, value - 1))} disabled={presentStage === 0} aria-label="이전 시연 단계"><ChevronLeft size={16} /></button>
+            <button className={styles.presentPlay} type="button" onClick={() => {
+              if (!presentAuto && presentStage === PRESENT_STAGES.length - 1) setPresentStage(0);
+              setPresentAuto((value) => !value);
+            }}>{presentAuto ? <Pause size={15} /> : <Play size={15} />}{presentAuto ? "일시정지" : "자동 진행"}</button>
+            <button type="button" onClick={() => setPresentStage((value) => Math.min(PRESENT_STAGES.length - 1, value + 1))} disabled={presentStage === PRESENT_STAGES.length - 1} aria-label="다음 시연 단계"><ChevronRight size={16} /></button>
+            <Link to="/pitch">PT 복귀</Link>
+          </div>
+        </aside>
+      )}
 
       <main>
         <section className={styles.hero}>
@@ -646,7 +747,7 @@ export function TamperLabPage() {
           </div>
         </section>
 
-        <section className={styles.privacySection}>
+        <section className={styles.privacySection} id="privacy-placement">
           <div className={styles.container}>
             <div className={styles.sectionHead}>
               <div>
