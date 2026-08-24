@@ -87,7 +87,7 @@
 - Demo Theater에서는 `Space`가 재생·정지, `←/→`가 장면 이동, `R`이 시연 초기화다.
 - 전체 Tamper Lab 자동 발표: `/tamper-lab?present=1&autoplay=1`
 
-8번 장에서는 PT의 전역 슬라이드 단축키보다 Demo Theater 제어가 우선한다. 시연을 마친 뒤 `다음 슬라이드` 버튼으로 Evidence 장으로 이동한다.
+8번 장에 들어가면 crypto 준비 직후 자동 재생되고, 종료되면 Evidence 장으로 자동 이동한다. 이 장에서는 PT의 전역 슬라이드 단축키보다 Demo Theater 제어가 우선하며 필요하면 일시정지·장면 이동·초기화를 사용할 수 있다.
 
 ## 리허설 체크리스트
 
