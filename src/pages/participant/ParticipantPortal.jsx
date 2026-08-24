@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FileArchive,
   FileCheck2,
+  GraduationCap,
   History,
   Eye,
   Heart,
@@ -62,6 +63,10 @@ import {
 } from "../../lib/submissionFiles.js";
 import styles from "./ParticipantPortal.module.scss";
 import { ExternalEvidencePanel } from "./ExternalEvidencePanel.jsx";
+import { GraduationPanel } from "./GraduationPanel.jsx";
+import { AcademicProfileCard } from "./AcademicProfileCard.jsx";
+import { TranscriptImportCard } from "./TranscriptImportCard.jsx";
+import { ActivityImportCard } from "./ActivityImportCard.jsx";
 
 const portalTabs = [
   { id: "discover", label: "대회 찾기", icon: Search },
@@ -71,6 +76,7 @@ const portalTabs = [
   { id: "results", label: "결과", icon: Trophy },
   { id: "activity", label: "활동 이력", icon: History },
   { id: "evidence", label: "외부 증빙", icon: FileCheck2 },
+  { id: "graduation", label: "졸업 자가점검", icon: GraduationCap },
   { id: "profile", label: "마이페이지", icon: IdCard }
 ];
 const sidebarTabs = portalTabs.filter((tab) => tab.id !== "profile");
@@ -486,6 +492,7 @@ export function ParticipantPortal({
           <ActivityView items={activityItems} credentialError={credentialError} />
         )}
         {activeView === "evidence" && <ExternalEvidencePanel />}
+        {activeView === "graduation" && <GraduationPanel />}
 
         {activeView === "profile" && (
           <ProfileView
@@ -1612,6 +1619,7 @@ function ActivityView({ items, credentialError }) {
 }
 
 function ProfileView({ session, summary, credentialCount, notifications }) {
+  const [academicRefreshKey, setAcademicRefreshKey] = useState(0);
   return (
     <div className={styles.profilePageGrid}>
       <section className={styles.portalPanel}>
@@ -1661,6 +1669,9 @@ function ProfileView({ session, summary, credentialCount, notifications }) {
           <p>활동 이력에서 발급된 Credential의 공개 검증 결과와 증명서 파일을 확인할 수 있습니다.</p>
         </div>
       </section>
+      <AcademicProfileCard key={academicRefreshKey} studentNumber={session.studentId} />
+      <TranscriptImportCard onImported={() => setAcademicRefreshKey((value) => value + 1)} />
+      <ActivityImportCard onImported={() => setAcademicRefreshKey((value) => value + 1)} />
       <PublicActivitySharingCard />
     </div>
   );

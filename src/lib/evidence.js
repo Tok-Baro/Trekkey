@@ -1,14 +1,18 @@
 export const EVIDENCE_TYPES = [
   { value: "QUALIFICATION", label: "자격증", recordType: "OTHER" },
-  { value: "LANGUAGE_SCORE", label: "어학 성적", recordType: "TOPIK" },
-  { value: "CONTEST_AWARD", label: "공모전 상장", recordType: "OTHER" },
+  { value: "TOPIK_SCORE", label: "TOPIK 성적", recordType: "TOPIK" },
+  { value: "ENGLISH_SCORE", label: "공인 영어 성적", recordType: "ENGLISH_SCORE" },
+  { value: "CONTEST_PARTICIPATION", label: "공모전·경진대회 참여", recordType: "CONTEST_PARTICIPATION" },
+  { value: "CONTEST_AWARD", label: "공모전 상장", recordType: "CONTEST_AWARD" },
+  { value: "INDUSTRY_PROJECT", label: "산학·기업연계 프로젝트", recordType: "INDUSTRY_PROJECT" },
+  { value: "CAPSTONE", label: "캡스톤디자인", recordType: "CAPSTONE" },
   { value: "THESIS", label: "졸업논문", recordType: "THESIS" },
   { value: "GRADUATION_WORK", label: "졸업작품·캡스톤", recordType: "GRADUATION_WORK" },
   { value: "GRADUATION_EXAM", label: "졸업시험", recordType: "GRADUATION_EXAM" },
   { value: "RESEARCH_PLAN", label: "연구활동계획서", recordType: "RESEARCH_PLAN" },
   { value: "COMPLETION", label: "수료증", recordType: "OTHER" },
   { value: "ENROLLMENT", label: "재학·등록 서류", recordType: "OTHER" },
-  { value: "EMPLOYMENT", label: "경력 증명", recordType: "OTHER" },
+  { value: "EMPLOYMENT", label: "경력 증명", recordType: "EMPLOYMENT" },
   { value: "OTHER", label: "기타", recordType: "OTHER" }
 ];
 

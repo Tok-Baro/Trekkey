@@ -103,7 +103,7 @@ export function ExternalEvidencePanel() {
             <label>발급일<input type="date" value={form.issuedAt} onChange={(e) => setForm({ ...form, issuedAt: e.target.value })} /></label>
             <label>만료일<input type="date" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} /></label>
           </div>
-          {form.evidenceType === "LANGUAGE_SCORE" && <label>등급·급수<input type="number" min="0" step="0.01" value={form.numericValue} onChange={(e) => setForm({ ...form, numericValue: e.target.value })} /></label>}
+          {["LANGUAGE_SCORE", "TOPIK_SCORE", "ENGLISH_SCORE"].includes(form.evidenceType) && <label>점수·급수<input type="number" min="0" step="0.01" value={form.numericValue} onChange={(e) => setForm({ ...form, numericValue: e.target.value })} /></label>}
           <label className={styles.file}>원본 파일 묶음 <small>PDF/JPG/PNG · 최대 5개 · 파일당 10MB, 합계 25MB</small>
             <input required multiple type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
           </label>
