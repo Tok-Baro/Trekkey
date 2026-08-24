@@ -54,7 +54,7 @@ export function verificationSummary(evidence = {}) {
     {
       key: "external",
       label: "외부 기록 확인",
-      description: "독립된 공개 기록과 대조했습니다.",
+      description: "공개 Proof와 체인 기록 메타데이터를 확인했습니다.",
       passed: Boolean(evidence.merkleProofMatches && evidence.transactionHash)
     }
   ];

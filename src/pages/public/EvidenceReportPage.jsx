@@ -133,7 +133,7 @@ export function EvidenceReportPage() {
           <div className={styles.metricGrid}>
             <article><strong>629</strong><span>Java 서버 테스트</span><small>발급·배치·검증 전체 회귀</small></article>
             <article><strong>12</strong><span>Solidity 테스트</span><small>Root·서명·권한·상태</small></article>
-            <article><strong>18</strong><span>프런트 테스트</span><small>fixture·운영 Proof 교차 재현</small></article>
+            <article><strong>19</strong><span>프런트 테스트</span><small>fixture·운영 Proof 교차 재현</small></article>
             <article><strong>{ANCHOR_BATCH_GAS_SAMPLE.toLocaleString("ko-KR")}</strong><span>anchorBatch gas 표본</span><small>Hardhat 실행 표본</small></article>
           </div>
 

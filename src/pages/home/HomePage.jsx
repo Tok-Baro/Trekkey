@@ -287,7 +287,7 @@ export function HomePage({ contests = [], onOpenContest }) {
   const stats = [
     { value: 629, label: "서버 자동화 테스트" },
     { value: 12, label: "스마트컨트랙트 테스트" },
-    { value: 18, label: "프런트 검증 테스트" }
+    { value: 19, label: "프런트 검증 테스트" }
   ];
 
   return (

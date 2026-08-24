@@ -226,7 +226,7 @@ export function JudgeDemoPage() {
         {step === 2 && (
           <section className={styles.slide}>
             <span className={styles.kicker}><BadgeCheck size={15} /> 운영 Credential</span>
-            <h1>지금 운영 서버와 Kaia를<br /><em>실시간으로 대조합니다</em></h1>
+            <h1>운영 Credential과 공개 Proof를<br /><em>실시간으로 검증합니다</em></h1>
             <form className={styles.credentialForm} onSubmit={submitCredential}>
               <Link2 size={20} />
               <input value={credentialInput} onChange={(event) => setCredentialInput(event.target.value)} placeholder="Credential 공개 ID 또는 /verify 링크" aria-label="운영 Credential 공개 ID" />
@@ -256,7 +256,7 @@ export function JudgeDemoPage() {
           <section className={styles.slide}>
             <span className={styles.kicker}><Fingerprint size={15} /> 독립 재계산</span>
             <h1>서버의 “정상” 응답을<br /><em>그대로 믿지 않습니다</em></h1>
-            <p className={styles.lead}>브라우저가 공개된 여섯 bytes32로 Trekkey V1 leaf를 만들고 Proof를 접어 온체인 Root와 다시 비교합니다.</p>
+            <p className={styles.lead}>브라우저가 공개된 여섯 bytes32로 Trekkey V1 leaf를 만들고 Proof를 접어 API가 공개한 기준 Root와 비교합니다. 체인 상태는 서버 조회와 Explorer로 교차 확인합니다.</p>
             <div className={styles.proofEquation}>
               <article><small>PUBLIC EVIDENCE</small><strong>issuerId + credentialIdHash<br />+ schema + content + files</strong></article>
               <ArrowRight size={22} />
@@ -268,7 +268,7 @@ export function JudgeDemoPage() {
             </div>
             <div className={styles.proofVerdict}>
               {evidenceResult?.verified ? <ShieldCheck size={28} /> : <Gauge size={28} />}
-              <div><span>브라우저 독립 판정</span><h2>{evidenceResult ? evidenceResult.verified ? "서버·브라우저·Kaia 결과가 모두 일치합니다" : "운영 증거를 다시 확인해야 합니다" : "앞 단계에서 운영 Credential을 먼저 선택하세요"}</h2></div>
+              <div><span>브라우저 독립 판정</span><h2>{evidenceResult ? evidenceResult.verified ? "서버 검증 결과와 브라우저 Proof 재계산이 일치합니다" : "운영 증거를 다시 확인해야 합니다" : "앞 단계에서 운영 Credential을 먼저 선택하세요"}</h2></div>
             </div>
             <Link className={styles.primaryLink} to={`/tamper-lab?mode=live${credential?.credentialPublicId ? `&credential=${encodeURIComponent(credential.credentialPublicId)}` : ""}`}>Tamper Lab에서 전체 해시 보기 <ExternalLink size={16} /></Link>
           </section>
@@ -286,7 +286,7 @@ export function JudgeDemoPage() {
             <div className={styles.evidenceStrip}>
               <article><strong>629</strong><span>Java 서버 테스트</span></article>
               <article><strong>12</strong><span>Solidity 테스트</span></article>
-              <article><strong>18</strong><span>프런트 검증 테스트</span></article>
+              <article><strong>19</strong><span>프런트 검증 테스트</span></article>
               <article><strong>1·10·100·500·1,000</strong><span>브라우저 실측 배치</span></article>
             </div>
             <Link className={styles.primaryLink} to="/evidence-report"><BarChart3 size={16} /> 정량 실험을 지금 다시 실행</Link>

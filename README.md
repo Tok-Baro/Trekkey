@@ -39,6 +39,7 @@ first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 
 
 ## 화면
 
+- 10분 공학경진대회 발표: `/pitch`에서 평가 배점에 맞춘 10장 PT, 10분 타이머, 발표자 노트, 140초 실사용 데모 실행
 - 5분 심사 시연: `/demo`에서 문제 정의→실제 발급 E2E→운영 검증→Proof 재계산→프라이버시→정량 결과를 단계별 발표
 - 기술 검증 실험실: `/tamper-lab`에서 정상·변조·취소·정정 상태 비교, 실제 SHA-256·Merkle Proof 재계산, 브라우저 벤치마크
 - 운영 Proof 모드: `/tamper-lab?mode=live&credential={publicId}`에서 공개 Credential의 leaf와 Merkle Root를 브라우저가 독립 재계산
@@ -96,3 +97,7 @@ Trekkey와 공개 원장은 승인 후 변조 여부와 현재 효력을 검증�
 관리자 검증 원장의 `5분 시연` 버튼은 `ANCHORED` Credential의 공개 ID만
 시연 화면에 전달합니다. 취소·정정의 정식 운영 UX는 이번 심사 시연 범위에서
 제외하고 향후 구현 항목으로 표시합니다.
+
+10분 발표 웹은 `/pitch?credential={publicId}`로 열면 운영 Credential, 공개 검증,
+Tamper Lab 링크에 같은 공개 ID를 전달합니다. 발표 대본과 리허설 체크리스트는
+[`docs/engineering-competition-pitch-10min.md`](docs/engineering-competition-pitch-10min.md)에 있습니다.
