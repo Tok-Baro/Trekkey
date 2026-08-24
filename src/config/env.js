@@ -21,7 +21,8 @@ function normalizeHttpUrl(name, value) {
   return url.toString().replace(/\/+$/, "");
 }
 
-const apiBaseUrl = normalizeHttpUrl("VITE_API_BASE_URL", import.meta.env.VITE_API_BASE_URL);
+const runtimeEnv = import.meta.env ?? (typeof process === "undefined" ? {} : process.env);
+const apiBaseUrl = normalizeHttpUrl("VITE_API_BASE_URL", runtimeEnv.VITE_API_BASE_URL);
 const browserOrigin = typeof window === "undefined" ? "" : window.location.origin;
 
 export const appEnv = Object.freeze({
@@ -30,8 +31,8 @@ export const appEnv = Object.freeze({
     "VITE_AUTH_API_BASE_URL",
     selectAuthApiBaseUrl({
       apiBaseUrl,
-      configuredAuthBaseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
-      isProduction: import.meta.env.PROD,
+      configuredAuthBaseUrl: runtimeEnv.VITE_AUTH_API_BASE_URL,
+      isProduction: runtimeEnv.PROD === true || runtimeEnv.PROD === "true",
       browserOrigin
     })
   )

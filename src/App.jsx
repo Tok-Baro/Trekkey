@@ -32,6 +32,14 @@ const DashboardPage = lazyNamed(() => import("./pages/admin/DashboardPage.jsx"),
 const JudgingPage = lazyNamed(() => import("./pages/admin/JudgingPage.jsx"), "JudgingPage");
 const SubmissionsPage = lazyNamed(() => import("./pages/admin/SubmissionsPage.jsx"), "SubmissionsPage");
 const TeamsPage = lazyNamed(() => import("./pages/admin/TeamsPage.jsx"), "TeamsPage");
+const EvidenceVerificationPage = lazyNamed(
+  () => import("./pages/admin/EvidenceVerificationPage.jsx"),
+  "EvidenceVerificationPage"
+);
+const GraduationPolicyPage = lazyNamed(
+  () => import("./pages/admin/GraduationPolicyPage.jsx"),
+  "GraduationPolicyPage"
+);
 const RootAdminPage = lazyNamed(() => import("./pages/root/RootAdminPage.jsx"), "RootAdminPage");
 const LoginPage = lazyNamed(() => import("./pages/auth/LoginPage.jsx"), "LoginPage");
 const HomePage = lazyNamed(() => import("./pages/home/HomePage.jsx"), "HomePage");
@@ -87,8 +95,8 @@ function App() {
     session?.role === "participant" &&
     session?.authSource === "server";
   const admin = useAdminData({
-    enabled: isServerAdmin && activePage !== "root",
-    loadScope: activePage !== "credentials"
+    enabled: isServerAdmin && !["root", "evidence", "graduationPolicies"].includes(activePage),
+    loadScope: !["credentials", "evidence", "graduationPolicies"].includes(activePage)
   });
   const participant = useParticipantData({
     session,
@@ -943,11 +951,11 @@ function App() {
     );
   }
 
-  if (displayedAdminPage !== "root" && admin.isLoading) {
+  if (!["root", "evidence"].includes(displayedAdminPage) && admin.isLoading) {
     return <AdminDataScreen />;
   }
 
-  if (displayedAdminPage !== "root" && admin.error) {
+  if (!["root", "evidence"].includes(displayedAdminPage) && admin.error) {
     return (
       <AdminDataScreen
         error={admin.error}
@@ -1191,6 +1199,10 @@ function App() {
               onNotify={notify}
             />
           )}
+          {displayedAdminPage === "evidence" && (
+            <EvidenceVerificationPage onNotify={notify} />
+          )}
+          {displayedAdminPage === "graduationPolicies" && <GraduationPolicyPage />}
         </main>
         <AppFooter variant="admin" />
       </div>

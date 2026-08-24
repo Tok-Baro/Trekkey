@@ -6,6 +6,8 @@ export const adminRoutes = [
   { id: "judging", path: "/judging", label: "심사", heading: "심사 배정 및 점수 관리" },
   { id: "awards", path: "/awards", label: "수상 확정", heading: "수상자 확정" },
   { id: "credentials", path: "/credentials", label: "검증 원장", heading: "Credential 발급 및 블록체인 기록" },
+  { id: "evidence", path: "/evidence", label: "증빙 검수", heading: "외부 자격증·상장 검수" },
+  { id: "graduationPolicies", path: "/graduation-policies", label: "졸업 정책", heading: "한성대 졸업요건 공식 출처" },
   { id: "root", path: "/root", label: "관리자 계정", heading: "관리자 초대 및 가입 승인" }
 ];
 
@@ -21,6 +23,8 @@ export const participantRoutes = [
   { id: "teams", path: "/participant/teams", label: "팀 관리" },
   { id: "results", path: "/participant/results", label: "결과" },
   { id: "activity", path: "/participant/activity", label: "활동 이력" },
+  { id: "evidence", path: "/participant/evidence", label: "외부 증빙" },
+  { id: "graduation", path: "/participant/graduation", label: "졸업 자가점검" },
   { id: "profile", path: "/participant/profile", label: "마이페이지" }
 ];
 
@@ -43,7 +47,7 @@ export function getPageHeading(page) {
 
 export function getAdminPath(page, contestId) {
   const path = routeByPage[page]?.path ?? routeByPage.dashboard.path;
-  if (!contestId || page === "dashboard" || page === "root") {
+  if (!contestId || ["dashboard", "root", "credentials", "evidence", "graduationPolicies"].includes(page)) {
     return path;
   }
 

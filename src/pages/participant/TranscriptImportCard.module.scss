@@ -1,0 +1,37 @@
+.card {
+  min-width: 0;
+  grid-column: 1 / -1;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.card header { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.card header h2, .card header p { margin: 0; }
+.card header h2 { margin: 3px 0; font-size: 20px; }
+.card header span, .card header p { color: var(--ink-500); font-size: 12px; }
+.icon { width: 44px; height: 44px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 14px; background: var(--teal-soft); color: var(--teal-strong); }
+
+.importer { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.importer label, .importer button { min-height: 42px; border-radius: 10px; padding: 10px 14px; font: inherit; font-weight: 800; }
+.importer label { min-width: 260px; flex: 1; display: flex; align-items: center; gap: 8px; border: 1px dashed var(--line); cursor: pointer; }
+.importer input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.importer button { border: 1px solid var(--line); background: var(--grey-50); color: var(--ink-950); }
+.importer .apply { border-color: var(--teal-strong); background: var(--teal-strong); color: white; }
+.importer button:disabled { cursor: not-allowed; opacity: .5; }
+
+.message, .warning { margin: 12px 0 0; border-radius: 9px; padding: 10px 12px; font-size: 13px; }
+.message { background: var(--teal-soft); color: var(--teal-strong); font-weight: 700; }
+.warning { background: #fff4d6; color: #7a5200; }
+.summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 0; }
+.summary div { border-radius: 10px; padding: 11px; background: var(--grey-50); }
+.summary dt { color: var(--ink-500); font-size: 11px; }
+.summary dd { margin: 4px 0 0; font-weight: 850; }
+.tableWrap { max-height: 360px; margin-top: 14px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+.tableWrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tableWrap th, .tableWrap td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.tableWrap th { position: sticky; top: 0; background: var(--grey-50); color: var(--ink-650); }
+.tableWrap select { min-height: 32px; border: 1px solid var(--line); border-radius: 7px; background: white; }
+
+@media (max-width: 700px) { .summary { grid-template-columns: repeat(2, 1fr); } .card { padding: 15px; } }
