@@ -302,7 +302,7 @@ export function ModalRoot({
   if (type === "submission") {
     return (
       <ModalFrame title="수동 제출물 접수" description={selectedContest.title} onClose={onClose}>
-        <SubmissionForm teams={contestTeams} onSubmit={onAddSubmission} onClose={onClose} />
+        <SubmissionForm teams={contestTeams} serverBacked={serverBacked} onSubmit={onAddSubmission} onClose={onClose} />
       </ModalFrame>
     );
   }
@@ -361,6 +361,7 @@ export function ModalRoot({
       <ModalFrame title={judge ? "심사위원 수정" : "심사위원 추가"} description={selectedContest.title} onClose={onClose}>
         <JudgeForm
           judge={judge}
+          serverBacked={serverBacked}
           onSubmit={judge ? onUpdateJudge : onAddJudge}
           onClose={onClose}
         />
@@ -391,12 +392,10 @@ export function ModalRoot({
               배정 관리
             </button>
           )}
-          {!serverBacked && (
             <button className="secondary-button" type="button" onClick={() => openModal("judge", { judge })}>
               <Pencil size={17} />
               수정
             </button>
-          )}
           <button className="danger-button" type="button" onClick={() => openModal("deleteJudge", { judge })}>
             <Trash2 size={17} />
             삭제

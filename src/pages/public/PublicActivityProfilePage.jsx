@@ -73,7 +73,7 @@ export function PublicActivityProfilePage() {
         <section className={styles.stateCard} aria-live="polite">
           <LoaderCircle className={styles.spinner} size={34} aria-hidden="true" />
           <h1>온체인 활동을 불러오고 있습니다</h1>
-          <p>공개 동의된 Credential 목록을 확인하는 중입니다.</p>
+          <p>발급 당시 PUBLIC으로 지정된 Credential 목록을 확인하는 중입니다. 현재 공유 동의를 별도로 확인한 결과는 아닙니다.</p>
         </section>
         <AppFooter variant="public" />
       </main>

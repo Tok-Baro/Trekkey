@@ -35,10 +35,13 @@ import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { getCredentialVerificationPath } from "../../components/credential/CredentialVerificationLink.jsx";
 import {
   buildExplorerUrl,
+  getCredentialDisplayStatus,
   getVerificationPresentation,
   normalizeCredentialInput,
   verificationSummary
 } from "../../lib/credentialVerification.js";
+import { normalizeBlockchainEvidence } from "../../lib/blockchainEvidence.js";
+import { PUBLIC_CREDENTIAL_DISCLOSURE } from "../../lib/publicDisclosure.js";
 import styles from "./PublicCredentialVerificationPage.module.scss";
 
 const credentialType = {
@@ -83,16 +86,6 @@ function compactHash(value) {
     return "-";
   }
   return value.length > 30 ? `${value.slice(0, 16)}...${value.slice(-10)}` : value;
-}
-
-function networkLabel(chainId) {
-  if (Number(chainId) === 1001) {
-    return "Kaia Kairos 테스트넷";
-  }
-  if (Number(chainId) === 8217) {
-    return "Kaia 메인넷";
-  }
-  return chainId ? `공개 네트워크 ${chainId}` : "-";
 }
 
 function saveBlob(blob, fileName) {
@@ -250,8 +243,8 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
   }, [credentialPublicId, reloadKey]);
 
   const presentation = useMemo(
-    () => getVerificationPresentation(credential?.verificationStatus, credential?.issuerName),
-    [credential?.issuerName, credential?.verificationStatus]
+    () => getVerificationPresentation(getCredentialDisplayStatus(credential), credential?.issuerName),
+    [credential]
   );
 
   const download = async (kind) => {
@@ -328,8 +321,10 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
   const details = credential.publicDetails ?? {};
   const subjects = credential.publicSubjects ?? [];
   const team = subjects.find((subject) => subject.subjectType === "TEAM");
-  const checks = verificationSummary(evidence);
-  const explorerUrl = buildExplorerUrl(evidence.chainId, evidence.transactionHash);
+  const checks = verificationSummary(evidence, credential.verificationStatus);
+  const chain = normalizeBlockchainEvidence(evidence);
+  const explorerUrl = buildExplorerUrl(evidence);
+  const isUsable = getCredentialDisplayStatus(credential) === "VALID";
   const StatusIcon = presentation.tone === "success" ? ShieldCheck : presentation.tone === "pending" ? Clock3 : ShieldAlert;
   const recordTitle = details.prize || details.submissionTitle || credentialType[credential.credentialType] || "공식 증명서";
 
@@ -393,14 +388,14 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
                 ))}
               </div>
             ) : (
-              <p className={styles.emptyCopy}>외부 공개에 동의된 대상자 정보가 없습니다.</p>
+              <p className={styles.emptyCopy}>발급 당시 PUBLIC으로 지정된 대상자 정보가 없습니다.</p>
             )}
           </section>
 
           <section className={styles.evidenceSection}>
             <div className={styles.sectionHeading}>
               <span className={styles.sectionIcon}><ShieldCheck size={19} /></span>
-              <div><small>검증 결과</small><h2>세 가지 항목을 확인했습니다</h2></div>
+              <div><small>검증 결과</small><h2>세 가지 항목의 확인 결과</h2></div>
             </div>
             <div className={styles.checkList}>
               {checks.map((item) => {
@@ -437,11 +432,20 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
                 ))}
               </div>
               <dl className={styles.chainDetails}>
-                <DetailItem label="네트워크">{networkLabel(evidence.chainId)}</DetailItem>
-                <DetailItem label="블록 번호">{evidence.blockNumber}</DetailItem>
+                <DetailItem label="네트워크">{chain.networkLabel}</DetailItem>
+                <DetailItem label={chain.sequenceLabel || "기록 위치"}>{chain.sequenceNumber}</DetailItem>
                 <DetailItem label="검증 배치">{evidence.batchPublicId}</DetailItem>
-                <DetailItem label="컨트랙트">{compactHash(evidence.contractAddress)}</DetailItem>
+                <DetailItem label={chain.addressLabel || "기록 주소"}>{compactHash(chain.address)}</DetailItem>
+                {chain.provider === "SUI" && <DetailItem label="체인 식별자">{chain.chainIdentifier}</DetailItem>}
+                <DetailItem label="기관 승인 방식">{chain.approvalScheme}</DetailItem>
               </dl>
+              <div className={styles.technicalGrid}>
+                <TechnicalItem label={chain.provider === "SUI" ? "트랜잭션 digest" : "트랜잭션 해시"} value={chain.transactionId} onCopy={copyValue} copied={copiedLabel === (chain.provider === "SUI" ? "트랜잭션 digest" : "트랜잭션 해시")} />
+                {chain.provider === "SUI" && <>
+                  <TechnicalItem label="레지스트리 객체" value={chain.registryObjectId} onCopy={copyValue} copied={copiedLabel === "레지스트리 객체"} />
+                  <TechnicalItem label="체크포인트 digest" value={chain.checkpointDigest} onCopy={copyValue} copied={copiedLabel === "체크포인트 digest"} />
+                </>}
+              </div>
               {explorerUrl && (
                 <a className={styles.explorerLink} href={explorerUrl} target="_blank" rel="noreferrer">
                   공개 원장 기록 직접 확인 <ExternalLink size={15} />
@@ -454,10 +458,10 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
         <aside className={styles.sideColumn}>
           <section className={`${styles.sideSection} ${styles.verifierDecision}`}>
             <div className={styles.decisionHead}>
-              <span className={credential.verificationStatus === "VALID" ? styles.decisionValid : styles.decisionInvalid}>
-                {credential.verificationStatus === "VALID" ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}
+              <span className={isUsable ? styles.decisionValid : styles.decisionInvalid}>
+                {isUsable ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}
               </span>
-              <div><small>외부 검증자 판단</small><h2>{credential.verificationStatus === "VALID" ? "제출 증빙으로 사용 가능" : "사용 전 기관 확인 필요"}</h2></div>
+              <div><small>외부 검증자 판단</small><h2>{isUsable ? "제출 증빙으로 사용 가능" : "사용 전 기관 확인 필요"}</h2></div>
             </div>
             <ul>
               {checks.map((item) => <li key={item.key}>{item.passed ? <Check size={14} /> : <XCircle size={14} />} {item.label}</li>)}
@@ -493,7 +497,7 @@ export function PublicCredentialVerificationPage({ credentialPublicId: credentia
 
           <section className={styles.privacyNote}>
             <LockKeyhole size={18} />
-            <div><strong>공개 검증 페이지</strong><p>발급 당시 외부 공개에 동의한 정보만 표시됩니다.</p></div>
+            <div><strong>공개 검증 페이지</strong><p>{PUBLIC_CREDENTIAL_DISCLOSURE}</p></div>
           </section>
         </aside>
       </div>

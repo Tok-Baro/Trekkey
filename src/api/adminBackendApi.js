@@ -150,6 +150,16 @@ export function listAdminSubmissions(contestPublicId) {
   return apiRequest(`/api/admin/contests/${encodePath(contestPublicId)}/submissions`);
 }
 
+export function receiveAdminSubmission(contestPublicId, teamPublicId, { title, files }) {
+  const body = new FormData();
+  body.append("title", title);
+  files.forEach((file) => body.append("files", file));
+  return apiRequest(
+    `/api/admin/contests/${encodePath(contestPublicId)}/teams/${encodePath(teamPublicId)}/submission`,
+    { method: "POST", body }
+  );
+}
+
 export function downloadAdminSubmissionFile(fileId, { fileName } = {}) {
   return downloadApiFile(
     `/api/admin/files/${encodePath(fileId)}/download`,
@@ -166,6 +176,13 @@ export function createAdminJudge(contestPublicId, judge) {
     method: "POST",
     body: judge
   });
+}
+
+export function updateAdminJudge(contestPublicId, judgeId, { name, roleLabel }) {
+  return apiRequest(
+    `/api/admin/contests/${encodePath(contestPublicId)}/judges/${encodePath(judgeId)}`,
+    { method: "PATCH", body: { name, roleLabel } }
+  );
 }
 
 export function deleteAdminJudge(contestPublicId, judgeId) {

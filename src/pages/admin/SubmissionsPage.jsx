@@ -52,12 +52,10 @@ export function SubmissionsPage({
                 <Download size={17} />
                 내보내기
               </button>
-              {!serverBacked && (
                 <button className="primary-button" type="button" onClick={() => openModal("submission", { teams })}>
                   <Upload size={17} />
                   수동 접수
                 </button>
-              )}
             </div>
           }
         />
@@ -133,10 +131,17 @@ export function SubmissionsPage({
       <section className="panel detail-panel">
         <PanelHeader eyebrow="제출 기준" title="제출 조건" />
         <div className="checklist">
+          {serverBacked ? <>
+            <ChecklistItem done label="파일 1개 이상" meta="서버 업로드 한도 적용" />
+            <ChecklistItem done label="제출 단계 OPEN" meta="시작·마감 시각 확인" />
+            <ChecklistItem done label="검토중 또는 승인 팀" meta="반려·보완요청 제외" />
+            <ChecklistItem done label="수동 접수는 신규만" meta="기존 제출·심사 잠금 보호" />
+          </> : <>
           <ChecklistItem done label="PDF 제안서" meta="최대 30MB" />
           <ChecklistItem done label="발표 자료" meta="PPTX 또는 PDF" />
           <ChecklistItem label="시연 영상" meta="선택, 최대 300MB" />
           <ChecklistItem done label="개인정보 동의서" meta="팀원 전원" />
+          </>}
         </div>
         <div className="hash-preview">
           <LockKeyhole size={18} aria-hidden="true" />
@@ -148,7 +153,7 @@ export function SubmissionsPage({
           </div>
         </div>
         {serverBacked ? (
-          <p className="form-message">파일 해시는 참가자 제출 시 서버에서 자동 생성됩니다.</p>
+          <p className="form-message">파일 해시는 접수 시 서버에서 자동 생성됩니다. 수동 접수도 제출 기간과 잠금 조건을 따르며 기존 제출물을 덮어쓰지 않습니다.</p>
         ) : (
           <div className="button-row">
             <button className="secondary-button" type="button" onClick={onGenerateHashes}>

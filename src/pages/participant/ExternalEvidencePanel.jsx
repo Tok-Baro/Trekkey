@@ -40,6 +40,7 @@ export function ExternalEvidencePanel() {
 
   const submit = async (event) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     if (files.length === 0) {
       setMessage("PDF, JPG, PNG 원본 파일을 1개 이상 선택해주세요.");
       return;
@@ -59,7 +60,7 @@ export function ExternalEvidencePanel() {
       await submitEvidence({ values, files });
       setForm(initialForm);
       setFiles([]);
-      event.currentTarget.reset();
+      formElement.reset();
       setMessage("증빙을 제출했습니다. 서로 다른 두 관리자가 확인한 뒤 반영됩니다.");
       await load();
     } catch (error) {

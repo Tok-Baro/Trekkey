@@ -28,8 +28,10 @@ import {
   prepareAdminReviewAssignments,
   prepareAdminReviewEntries,
   reassignAdminReviewAssignment,
+  receiveAdminSubmission,
   revokeAdminJudgeReviewLink,
   updateAdminContest,
+  updateAdminJudge,
   updateAdminReviewAssignmentDueAt,
   updateAdminReviewRound,
   updateAdminAward,
@@ -492,6 +494,8 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
   const [isOverviewLoading, setIsOverviewLoading] = useState(false);
   const [isScopeLoading, setIsScopeLoading] = useState(false);
   const [error, setError] = useState(null);
+  const mutationScopeRef = useRef(null);
+  mutationScopeRef.current = { enabled, contestId: selectedContestId };
 
   const loadOverview = useCallback(async (options = {}) => {
     if (!enabled) {
@@ -976,6 +980,40 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     return { ok: true, judge, message: "심사위원을 추가했습니다." };
   }, [loadSelectedContest, selectedContestId]);
 
+  const addSubmission = useCallback(async (form) => {
+    if (!selectedContestId || !form.teamId) {
+      throw new Error("접수할 대회와 팀을 선택해 주세요.");
+    }
+    const submission = await receiveAdminSubmission(selectedContestId, form.teamId, {
+      title: String(form.title ?? "").trim(), files: form.uploadFiles ?? []
+    });
+    try {
+      if (mutationScopeRef.current.enabled && mutationScopeRef.current.contestId === selectedContestId) {
+        await loadSelectedContest(selectedContestId);
+      }
+    } catch {
+      throw new Error("접수는 완료됐지만 목록을 갱신하지 못했습니다. 다시 접수하지 말고 목록을 새로고침해 주세요.");
+    }
+    return { ok: true, submission, message: "관리자 수동 접수를 완료했습니다." };
+  }, [loadSelectedContest, selectedContestId]);
+
+  const updateJudge = useCallback(async (form) => {
+    if (!selectedContestId || !form.id) {
+      throw new Error("수정할 대회와 심사위원을 선택해 주세요.");
+    }
+    const judge = await updateAdminJudge(selectedContestId, form.id, toJudgeRequest(form));
+    try {
+      if (mutationScopeRef.current.enabled && mutationScopeRef.current.contestId === selectedContestId) {
+        await loadSelectedContest(selectedContestId);
+      }
+    } catch {
+      throw new Error("수정은 저장됐지만 목록을 갱신하지 못했습니다. 목록을 새로고침해 주세요.");
+    }
+    return { ok: true, judge, message: judge.reviewLinkStatus === "REVOKED"
+      ? "심사위원을 수정했습니다. 기존 링크는 철회됐으므로 새 링크를 발급해 주세요."
+      : "심사위원 정보를 저장했습니다." };
+  }, [loadSelectedContest, selectedContestId]);
+
   const deleteJudge = useCallback(async (judgeId) => {
     if (!selectedContestId) {
       throw new Error("심사위원을 삭제할 대회를 선택해 주세요.");
@@ -1047,6 +1085,8 @@ export function useAdminData({ enabled = true, loadScope = true } = {}) {
     updateTeamStatus,
     finalizeTeam,
     addJudge,
+    addSubmission,
+    updateJudge,
     deleteJudge,
     updateAwardCandidate,
     confirmAwards,

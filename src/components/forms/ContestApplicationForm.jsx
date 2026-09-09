@@ -4,15 +4,18 @@ import { TeamRosterField } from "./TeamRosterField.jsx";
 import { createInitialRoster, sanitizeRoster } from "../../lib/roster.js";
 
 export function ContestApplicationForm({ contest, session, onSubmit, onClose, onSearchParticipants }) {
-  const isIndividual = contest.type === "개인전";
-  const maxMembers = isIndividual ? 1 : 5;
+  const isIndividual = contest.participationType === "INDIVIDUAL" || contest.type === "개인전";
+  const configuredMaxMembers = Number(contest.maxTeamMembers);
+  const maxMembers = isIndividual ? 1
+    : Number.isInteger(configuredMaxMembers) && configuredMaxMembers > 0 ? configuredMaxMembers : 5;
+  const maxAdditionalMembers = maxMembers - 1;
   const usesParticipantSearch = typeof onSearchParticipants === "function";
   const [form, setForm] = useState({
     contestId: contest.id,
     teamName: isIndividual ? session.name : `${session.name} 팀`,
     leaderName: session.name,
     major: session.major ?? "",
-    roster: createInitialRoster(session, { isIndividual }),
+    roster: createInitialRoster(session, { isIndividual }).slice(0, maxMembers),
     contactEmail: session.email,
     phone: usesParticipantSearch ? "" : "010-1234-5678",
     motivation: usesParticipantSearch ? "" : "대회 주제에 맞는 아이디어를 구체적인 결과물로 발전시키고 싶습니다."
@@ -62,10 +65,8 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
   }, [isIndividual, memberQuery, onSearchParticipants, selectedMembers, usesParticipantSearch]);
 
   const addMember = (member) => {
-    if (selectedMembers.length >= 4 || selectedMembers.some((item) => item.userId === member.userId)) {
-      return;
-    }
-    setSelectedMembers((current) => [...current, member]);
+    setSelectedMembers((current) => current.length >= maxAdditionalMembers
+      || current.some((item) => item.userId === member.userId) ? current : [...current, member]);
     setMemberQuery("");
     setMemberResults([]);
   };
@@ -79,6 +80,10 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
       className="form-stack"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (usesParticipantSearch && selectedMembers.length > maxAdditionalMembers) {
+          setSearchError(`대표자를 포함해 최대 ${maxMembers}명까지 신청할 수 있습니다.`);
+          return;
+        }
         const roster = sanitizeRoster(
           usesParticipantSearch
             ? [
@@ -153,9 +158,9 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
           <div className="member-picker-head">
             <div>
               <strong id="member-picker-title">팀원 선택</strong>
-              <span>이름이나 학번으로 검색해 대표자 외 최대 4명을 추가하세요.</span>
+              <span>이름이나 학번으로 검색해 대표자 외 최대 {maxAdditionalMembers}명을 추가하세요.</span>
             </div>
-            <b>{selectedMembers.length}/4명</b>
+            <b>{selectedMembers.length}/{maxAdditionalMembers}명</b>
           </div>
           <label>
             <span>팀원 검색</span>
@@ -164,7 +169,7 @@ export function ContestApplicationForm({ contest, session, onSubmit, onClose, on
               value={memberQuery}
               placeholder="이름 또는 학번 입력"
               onChange={(event) => setMemberQuery(event.target.value)}
-              disabled={selectedMembers.length >= 4}
+              disabled={selectedMembers.length >= maxAdditionalMembers}
             />
           </label>
           {isSearching && <p className="member-picker-message">검색 중...</p>}

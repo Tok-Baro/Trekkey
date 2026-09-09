@@ -1,6 +1,10 @@
-# Trekkey Competition Admin
+# Trekkey
 
-교내 대회 생성, 참가 신청, 팀 관리, 제출물 접수, 심사, 수상 확정을 다루는 대회관리 프론트엔드입니다.
+대학 공모전 운영에서 확정된 참여·작품·수상을 검증 가능한 Credential로 발급하고, 학생 활동·외부 검증·졸업요건 자가점검·외부 증빙 검수를 연결하는 React 프론트엔드입니다.
+
+## 문서 정본
+
+시스템 전체의 구현 상태, 33개 화면 경로, 108개 백엔드 API와 남은 release gate는 [`Trekkey_BackEnd/docs`](https://github.com/Tok-Baro/Trekkey_BackEnd/tree/main/docs)에서 관리합니다. 상세 설계가 있다는 이유만으로 구현 완료로 표시하지 않으며, 졸업요건은 비공식 자가점검 MVP, 외부 증빙은 L2 2인 수동검수 MVP로 구분합니다.
 
 ## 실행
 
@@ -37,20 +41,35 @@ first-party HttpOnly 쿠키로 유지하므로 새로고침 후에도 세션을 
 정의되어 있습니다. 순서를 바꾸면 `/api/auth/**`가 `index.html`로
 처리되므로 유지해야 합니다.
 
+현재 인증 rewrite 대상은 `https://trekkey-43-200-222-11.nip.io`입니다.
+이 HTTPS 원점과 API 경로를 유지하면서 백엔드를 Sui 버전으로 교체하면
+체인 변경만을 위한 프론트 원점 수정은 필요하지 않습니다. 원점을 바꾸는 경우에는
+Vercel의 `VITE_API_BASE_URL`과 `vercel.json`의 인증 rewrite를 함께 변경하고
+다시 빌드해야 합니다. 실제 Vercel 프로젝트 설정은 저장소 설정과 별도로 확인해야 합니다.
+
+## 지속적 통합
+
+`.github/workflows/ci.yml`의 `Frontend CI`는 `main`·`develop` 대상 PR과 push,
+수동 실행에서 Node.js `22.23.2`로 `npm ci` → `npm test` → `npm run build`를
+실행합니다. 잠금파일을 사용하고 저장소 읽기 권한만 요청합니다.
+이번 배포 준비 브랜치 `codex/sui-service-release-20260908`의 push도 검사합니다.
+CI의 공개 API URL은 빌드 검사용이며 Vercel 환경 변수를 설정하거나 배포하지 않습니다.
+운영 배포와 실제 API·쿠키 동작 확인은 기존 Vercel 연동의 별도 절차입니다.
+
 ## 화면
 
+- 참가자 포털: `/participant/**`에서 대회 탐색, 신청, 팀, 제출, 결과, 활동 Credential, 외부 증빙, 졸업 자가점검과 프로필 관리
+- 관리자 포털: `/`, `/contests`, `/teams`, `/submissions`, `/judging`, `/awards`, `/credentials`, `/evidence`, `/graduation-policies`
+- 최고관리자: `/root`에서 관리자 초대와 가입 승인
+- 외부 사용자: `/verify/{publicId}`, `/activity/{publicProfileId}`, `/judge/review`
 - 10분 공학경진대회 발표: `/pitch`에서 평가 배점에 맞춘 10장 PT, 10분 타이머, 발표자 노트, 140초 실사용 데모 실행
 - 5분 심사 시연: `/demo`에서 문제 정의→실제 발급 E2E→운영 검증→Proof 재계산→프라이버시→정량 결과를 단계별 발표
 - 기술 검증 실험실: `/tamper-lab`에서 정상·변조·취소·정정 상태 비교, 실제 SHA-256·Merkle Proof 재계산, 브라우저 벤치마크
 - 운영 Proof 모드: `/tamper-lab?mode=live&credential={publicId}`에서 공개 Credential의 leaf와 Merkle Root를 브라우저가 독립 재계산
 - 정량 검증 리포트: `/evidence-report`에서 1·10·100·500·1,000개 배치 실측과 CSV 원시 결과 다운로드
 - 외부 검증 리포트: `/verify/{publicId}`에서 인쇄·PDF 저장, 외부 사용 판단, Tamper Lab 재계산 연결
-- 대시보드: 운영 지표, 단계별 흐름, 처리 항목
-- 대회: 대회 목록, 상태 필터, 대회 설정 폼
-- 신청/팀: 참가 신청 카드, 승인 상태, 팀 관리 정책
-- 제출물: 제출물 접수함, 파일 조건, 해시 생성 준비 상태
-- 심사: 심사위원 배정, 점수 기준, 진행률
-- 수상 확정: 공동순위, 상격 편집, 보류, 발급 준비 체크리스트
+
+현재 게스트 `/home`과 게스트 `/contest/:contestId`는 운영 DB가 아니라 로컬 demo fixture를 사용합니다. 관리자 수동 제출 접수와 기존 심사위원 수정은 백엔드 API에 연결되어 있으며, 서버의 권한·제출 기간·잠금 조건을 따릅니다. 졸업요건은 공식 학사 판정을 대체하지 않습니다.
 
 ## 상태 체계
 

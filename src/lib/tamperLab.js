@@ -1,4 +1,5 @@
 import sha3 from "js-sha3";
+import { isHash32, isChainStatusConfirmed, normalizeBlockchainEvidence } from "./blockchainEvidence.js";
 
 const { keccak256 } = sha3;
 
@@ -248,10 +249,17 @@ export function processMerkleProof(leafHash, proof) {
 }
 
 export function verifyOperationalCredentialEvidence(credential) {
-  const evidence = credential?.evidence;
-  if (!evidence) {
-    throw new TypeError("Credential evidence is required");
-  }
+  const evidence = credential?.evidence ?? {};
+  const chain = normalizeBlockchainEvidence(evidence);
+  const result = {
+    credentialPublicId: credential?.credentialPublicId,
+    verificationStatus: credential?.verificationStatus,
+    payloadMatches: false, leafMatches: false, merkleRootMatches: false,
+    backendProofMatches: evidence.merkleProofMatches === true,
+    chainRecorded: chain.recorded && isChainStatusConfirmed(credential?.verificationStatus),
+    chain, batchPublicId: evidence.batchPublicId, proofDepth: 0, verified: false,
+    evidenceAvailable: false, issue: "공개 해시·Proof가 없어 브라우저에서 재계산할 수 없습니다."
+  };
 
   const requiredFields = [
     "issuerId",
@@ -262,10 +270,8 @@ export function verifyOperationalCredentialEvidence(credential) {
     "leafHash",
     "merkleRoot"
   ];
-  const missingFields = requiredFields.filter((field) => !evidence[field]);
-  if (missingFields.length > 0) {
-    throw new TypeError(`Operational evidence is incomplete: ${missingFields.join(", ")}`);
-  }
+  if (requiredFields.some(field => !isHash32(evidence[field]))
+    || !Array.isArray(evidence.merkleProof) || evidence.merkleProof.some(value => !isHash32(value))) return result;
 
   const calculatedLeafHash = createCredentialLeafHash({
     issuerId: evidence.issuerId,
@@ -285,21 +291,24 @@ export function verifyOperationalCredentialEvidence(credential) {
     evidence.credentialClaimsMatch,
     evidence.credentialIdMatches
   ];
-  const payloadMatches = payloadChecks.every(Boolean);
-  const chainRecorded = Boolean(
-    evidence.transactionHash
-    && evidence.contractAddress
-    && evidence.batchPublicId
-    && Number(evidence.chainId) > 0
-  );
+  const payloadMatches = payloadChecks.every(value => value === true);
+  const chainRecorded = result.chainRecorded;
 
   return {
+    ...result,
+    evidenceAvailable: true,
+    issue: !isChainStatusConfirmed(credential.verificationStatus)
+      ? "현재 서버 체인 확인이 완료되지 않았습니다."
+      : !chain.recorded ? chain.reason
+        : !payloadMatches || !leafMatches || !merkleRootMatches || evidence.merkleProofMatches !== true
+          ? "원문·leaf·Proof의 일치 여부를 확인해 주세요."
+          : credential.verificationStatus === "VALID" ? "" : "무결성과 별개로 현재 효력을 확인해 주세요.",
     credentialPublicId: credential.credentialPublicId,
     verificationStatus: credential.verificationStatus,
     payloadMatches,
     leafMatches,
     merkleRootMatches,
-    backendProofMatches: Boolean(evidence.merkleProofMatches),
+    backendProofMatches: evidence.merkleProofMatches === true,
     chainRecorded,
     calculatedLeafHash,
     expectedLeafHash: evidence.leafHash,
@@ -315,7 +324,7 @@ export function verifyOperationalCredentialEvidence(credential) {
       && payloadMatches
       && leafMatches
       && merkleRootMatches
-      && Boolean(evidence.merkleProofMatches)
+      && evidence.merkleProofMatches === true
       && chainRecorded
   };
 }

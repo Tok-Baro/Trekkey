@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { adminRoutes, participantRoutes } from "./routeConfig.js";
+import { getLegacyReviewDestination } from "./lib/reviewerAccess.js";
 
 const App = lazy(() => import("./App.jsx"));
 const lazyNamed = (loader, name) => lazy(() => loader().then((module) => ({ default: module[name] })));
@@ -40,7 +41,7 @@ function AppRouter() {
           <Route path="/pitch" element={<PitchDeckPage />} />
           <Route path="/home" element={<App />} />
           <Route path="/login" element={<App />} />
-          <Route path="/review/:contestId" element={<Navigate to="/judge/review" replace />} />
+          <Route path="/review/:contestId" element={<LegacyReviewRedirect />} />
           <Route path="/judge/review" element={<App />} />
           <Route path="/contest/:contestId" element={<App />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -48,6 +49,12 @@ function AppRouter() {
       </Suspense>
     </BrowserRouter>
   );
+}
+
+function LegacyReviewRedirect() {
+  const { contestId } = useParams();
+  const location = useLocation();
+  return <Navigate to={getLegacyReviewDestination(contestId, location)} replace />;
 }
 
 function RouteLoadingScreen() {

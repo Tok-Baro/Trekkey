@@ -45,6 +45,8 @@ export function EvidenceReportPage() {
   const run = useCallback(async () => {
     setRunning(true);
     setError("");
+    setResults([]);
+    setMeasuredAt(null);
     try {
       const nextResults = await runRuntimeBenchmark(BENCHMARK_SIZES);
       setResults(nextResults);
@@ -76,9 +78,10 @@ export function EvidenceReportPage() {
       ["측정 시각", measuredAt.toISOString()],
       ["실행 환경", runtimeLabel()],
       ["논리 프로세서", navigator.hardwareConcurrency || "미제공"],
-      ["anchorBatch gas 표본", ANCHOR_BATCH_GAS_SAMPLE],
+      ["기존 Kaia anchorBatch gas 표본", ANCHOR_BATCH_GAS_SAMPLE],
+      ["gas 모델 범위", "과거 Hardhat 표본의 배치별 분담값; 현재 실측·Sui gas·실제 네트워크 수수료 아님"],
       [],
-      ["배치 크기", "총 계산 시간(ms)", "Credential당 시간(ms)", "Proof 깊이", "Proof 검증", "Credential당 gas 모델", "분담 절감률(%)"],
+      ["배치 크기", "총 계산 시간(ms)", "Credential당 시간(ms)", "Proof 깊이", "Proof 검증", "Credential당 Kaia gas 모델", "분담 절감률(%)"],
       ...results.map((item) => [
         item.size,
         item.durationMs.toFixed(4),
@@ -131,10 +134,10 @@ export function EvidenceReportPage() {
           {error && <div className={styles.error} role="alert">{error}</div>}
 
           <div className={styles.metricGrid}>
-            <article><strong>629</strong><span>Java 서버 테스트</span><small>발급·배치·검증 전체 회귀</small></article>
-            <article><strong>12</strong><span>Solidity 테스트</span><small>Root·서명·권한·상태</small></article>
-            <article><strong>19</strong><span>프런트 테스트</span><small>fixture·운영 Proof 교차 재현</small></article>
-            <article><strong>{ANCHOR_BATCH_GAS_SAMPLE.toLocaleString("ko-KR")}</strong><span>anchorBatch gas 표본</span><small>Hardhat 실행 표본</small></article>
+            <article><strong>서버</strong><span>Java 회귀 검사</span><small>실행 결과는 릴리스별 보고서 기준</small></article>
+            <article><strong>컨트랙트</strong><span>Move · Solidity 검사</span><small>Root·서명·권한·상태</small></article>
+            <article><strong>프런트</strong><span>API·Proof 회귀 검사</span><small>아래 실측과 자동화 테스트는 별도</small></article>
+            <article><strong>{ANCHOR_BATCH_GAS_SAMPLE.toLocaleString("ko-KR")}</strong><span>Kaia anchorBatch gas 표본</span><small>기존 Hardhat 표본 · Sui 수수료 아님</small></article>
           </div>
 
           <section className={styles.chartPanel}>
@@ -159,7 +162,7 @@ export function EvidenceReportPage() {
             </div>
             <div className={styles.tableWrap}>
               <table>
-                <thead><tr><th>배치</th><th>총 시간</th><th>개당 시간</th><th>Proof 깊이</th><th>Proof</th><th>개당 gas 모델</th><th>분담 절감</th></tr></thead>
+                <thead><tr><th>배치</th><th>총 시간</th><th>개당 시간</th><th>Proof 깊이</th><th>Proof</th><th>개당 Kaia gas 모델</th><th>분담 절감</th></tr></thead>
                 <tbody>
                   {results.map((item) => (
                     <tr key={item.size}>
@@ -179,7 +182,7 @@ export function EvidenceReportPage() {
 
           <section className={styles.interpretation}>
             <article><Gauge size={22} /><div><strong>측정 범위</strong><p>SHA-256, leaf 생성, Merkle Tree 구성, 중앙 Credential Proof 생성·검증 시간을 포함합니다.</p></div></article>
-            <article><Layers3 size={22} /><div><strong>gas 모델의 의미</strong><p>한 번의 Root 앵커링 표본을 배치 크기로 나눈 분담값입니다. 실제 Kaia 수수료나 발급 단가를 보장하지 않습니다.</p></div></article>
+            <article><Layers3 size={22} /><div><strong>gas 모델의 의미</strong><p>기존 Kaia Root 앵커링 표본을 배치 크기로 나눈 분담값입니다. 현재 실측값이나 Sui gas가 아니며 실제 네트워크 수수료·발급 단가를 보장하지 않습니다.</p></div></article>
             <article><Fingerprint size={22} /><div><strong>재현 조건</strong><p>브라우저·기기 부하에 따라 시간은 달라집니다. 같은 화면에서 다시 실행하고 CSV 원시값을 비교할 수 있습니다.</p></div></article>
           </section>
 

@@ -12,6 +12,7 @@ import { AppFooter } from "../../components/common/AppFooter.jsx";
 import { EmptyState } from "../../components/common/CommonUi.jsx";
 import {
   getReviewAccessTokenFromHash,
+  assertReviewContestContext,
   getReviewUrlWithoutToken,
   REVIEW_ACCESS_SESSION_KEY
 } from "../../lib/reviewerAccess.js";
@@ -78,6 +79,7 @@ function clearSessionToken() {
 
 export function ServerReviewerPage() {
   const location = useLocation();
+  const requestedContestId = new URLSearchParams(location.search).get("contest");
   const linkToken = useMemo(
     () => getReviewAccessTokenFromHash(location.hash),
     [location.hash]
@@ -127,7 +129,9 @@ export function ServerReviewerPage() {
     const load = async () => {
       try {
         const verifiedAccess = await verifyReviewAccess(token);
+        assertReviewContestContext(requestedContestId, verifiedAccess.contestPublicId);
         const reviewSheet = await getReviewSheet(token);
+        assertReviewContestContext(requestedContestId, reviewSheet.contestPublicId);
         if (isActive) {
           setAccess(verifiedAccess);
           setSheet(reviewSheet);
@@ -151,7 +155,7 @@ export function ServerReviewerPage() {
     return () => {
       isActive = false;
     };
-  }, [token]);
+  }, [token, requestedContestId]);
 
   const updateScore = (assignmentId, criterionId, value) => {
     setScores((current) => ({

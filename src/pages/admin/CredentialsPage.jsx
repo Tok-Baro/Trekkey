@@ -32,6 +32,7 @@ import {
 } from "../../api/adminCredentialApi.js";
 import { getApiErrorMessage } from "../../api/backendApi.js";
 import { ContestScopeBar, EmptyState, PanelHeader, StatusBadge } from "../../components/common/CommonUi.jsx";
+import { inspectCredentialApproval, validateIssuerSignature } from "../../lib/credentialApproval.js";
 import styles from "./CredentialsPage.module.scss";
 
 const schemaProfiles = [
@@ -135,7 +136,7 @@ function getStatusEventProgress(event) {
   return transactionStatusLabels[event.transactionStatus] ?? "전송 대기";
 }
 
-function ApprovalCard({ title, approval, onCopy }) {
+function ApprovalCard({ title, approval, inspection, onCopy }) {
   if (!approval) {
     return (
       <div className={styles.approvalEmpty}>
@@ -146,14 +147,15 @@ function ApprovalCard({ title, approval, onCopy }) {
     );
   }
 
+  const approvalInfo = inspection ?? inspectCredentialApproval(approval);
   return (
     <div className={styles.approvalCard}>
       <div className={styles.approvalHeader}>
         <div>
-          <span>{title}</span>
+          <span>{title} · {approvalInfo.label}</span>
           <strong>{approval.aggregateType} · {approval.aggregateId}</strong>
         </div>
-        <button className="secondary-button" type="button" onClick={() => onCopy(approval.typedDataJson)}>
+        <button className="secondary-button" type="button" disabled={!approvalInfo.supported} onClick={() => onCopy(approval.typedDataJson)}>
           서명 데이터 복사
         </button>
       </div>
@@ -171,8 +173,9 @@ function ApprovalCard({ title, approval, onCopy }) {
           <dd>{formatDateTime(approval.deadline)}</dd>
         </div>
       </dl>
+      <p role={approvalInfo.supported ? undefined : "alert"}>{approvalInfo.instruction}</p>
       <details className={styles.typedData}>
-        <summary>Typed data JSON 보기</summary>
+        <summary>{approvalInfo.payloadLabel} 보기</summary>
         <pre>{approval.typedDataJson}</pre>
       </details>
     </div>
@@ -232,13 +235,21 @@ export function CredentialsPage({
     [statusEventId, statusEvents]
   );
   const batchApprovalExpired = isApprovalExpired(selectedBatch?.approvalDeadline);
+  const batchApprovalInfo = inspectCredentialApproval(batchApproval, {
+    aggregateType: "BATCH", aggregateId: batchPublicId,
+    deadline: selectedBatch?.approvalDeadline, merkleRoot: selectedBatch?.merkleRoot
+  });
+  const statusApprovalInfo = inspectCredentialApproval(statusApproval, {
+    aggregateType: "STATUS_EVENT", aggregateId: statusEventId,
+    deadline: selectedStatusEvent?.approvalDeadline
+  });
   const canRenewBatch = Boolean(
     selectedBatch
     && batchApprovalExpired
     && ["SEALED", "FAILED"].includes(selectedBatch.status)
   );
   const canReconcileBatch = selectedBatch?.status === "FAILED";
-  const canApproveBatch = selectedBatch?.status === "SEALED" && !batchApprovalExpired;
+  const canApproveBatch = selectedBatch?.status === "SEALED" && !batchApprovalExpired && batchApprovalInfo.supported;
   const statusApprovalExpired = isApprovalExpired(selectedStatusEvent?.approvalDeadline);
   const canRenewStatusEvent = Boolean(
     selectedStatusEvent
@@ -256,6 +267,7 @@ export function CredentialsPage({
     && selectedStatusEvent.credentialStatus !== selectedStatusEvent.nextStatus
     && !selectedStatusEvent.approved
     && !statusApprovalExpired
+    && statusApprovalInfo.supported
   );
   const issuanceProgress = useMemo(() => {
     const hasCredentials = contestCredentials.length > 0;
@@ -266,8 +278,8 @@ export function CredentialsPage({
       { label: "업무 확정", body: "참가·작품·수상 원천", complete: hasCredentials },
       { label: "Credential 발급", body: "불변 snapshot·해시", complete: hasCredentials },
       { label: "Merkle 배치", body: "Leaf→Root 생성", complete: hasBatch },
-      { label: "기관 승인", body: "EIP-712 서명", complete: hasApprovedBatch || hasAnchoredCredential },
-      { label: "Kaia 앵커링", body: "Root 공개 기록", complete: hasAnchoredCredential },
+      { label: "기관 승인", body: "체인별 기관 서명", complete: hasApprovedBatch || hasAnchoredCredential },
+      { label: "공개 원장 앵커링", body: "Sui · Kaia Root 기록", complete: hasAnchoredCredential },
       { label: "외부 검증", body: "QR·Proof 재계산", complete: hasAnchoredCredential }
     ];
   }, [batches, contestCredentials]);
@@ -721,8 +733,13 @@ export function CredentialsPage({
               onSubmit={(event) => {
                 event.preventDefault();
                 const signature = batchSignature.trim();
-                if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) {
-                  setError("Issuer 서명은 0x로 시작하는 65바이트 hex 값이어야 합니다.");
+                const latestApproval = inspectCredentialApproval(batchApproval, {
+                  aggregateType: "BATCH", aggregateId: batchPublicId,
+                  deadline: selectedBatch?.approvalDeadline, merkleRoot: selectedBatch?.merkleRoot
+                });
+                const signatureError = validateIssuerSignature(signature);
+                if (!canApproveBatch || !latestApproval.supported || signatureError) {
+                  setError(signatureError || latestApproval.instruction);
                   return;
                 }
                 runAction("batch-approve", () => approveBatch(batchPublicId, signature), "배치 승인을 제출했습니다.", async (result) => {
@@ -732,7 +749,7 @@ export function CredentialsPage({
               }}
             >
               <label>
-                <span>Issuer 서명</span>
+                <span>기관 secp256k1 서명</span>
                 <textarea value={batchSignature} onChange={(event) => setBatchSignature(event.target.value)} placeholder="0x로 시작하는 65바이트 서명" required />
               </label>
               <button className="primary-button" type="submit" disabled={!canApproveBatch || Boolean(pendingAction)}>
@@ -740,13 +757,13 @@ export function CredentialsPage({
               </button>
             </form>
           </div>
-          <ApprovalCard title="배치 EIP-712 승인" approval={batchApproval} onCopy={copyTypedData} />
+          <ApprovalCard title="배치 승인" approval={batchApproval} inspection={batchApprovalInfo} onCopy={copyTypedData} />
         </div>
       </section>
 
       <section className="panel wide" id="credential-status-workflow">
-        <PanelHeader title="향후 운영 범위 · Credential 폐기·대체" />
-        <div className={styles.roadmapNotice}>이번 심사 시연에서는 실제 발급·앵커링·공개 검증에 집중합니다. 취소·정정의 정식 운영 UX는 향후 구현 범위입니다.</div>
+        <PanelHeader title="4. Credential 폐기·대체" />
+        <div className={styles.roadmapNotice}>폐기·대체는 기관 서명 승인 후 공개 원장에 반영됩니다. 기존 원문은 덮어쓰지 않으며, 공개 검증에서 최종 상태를 다시 확인하세요.</div>
         <div className={styles.workflowGrid}>
           <form className={styles.operationForm} onSubmit={createStatusEvent}>
             <div className={styles.fieldRow}>
@@ -786,7 +803,7 @@ export function CredentialsPage({
               상태 변경 승인 생성
             </button>
           </form>
-          <ApprovalCard title="상태 변경 EIP-712 승인" approval={statusApproval} onCopy={copyTypedData} />
+          <ApprovalCard title="상태 변경 승인" approval={statusApproval} inspection={statusApprovalInfo} onCopy={copyTypedData} />
         </div>
 
         <div className={styles.statusOperations}>
@@ -836,7 +853,16 @@ export function CredentialsPage({
             className={styles.signatureInline}
             onSubmit={(event) => {
               event.preventDefault();
-              runAction("status-approve", () => approveStatusEvent(statusEventId, statusSignature.trim()), "상태 변경 서명을 제출했습니다.", () => Promise.all([loadCredentials(), loadBlockchainWork()]));
+              const signature = statusSignature.trim();
+              const latestApproval = inspectCredentialApproval(statusApproval, {
+                aggregateType: "STATUS_EVENT", aggregateId: statusEventId, deadline: selectedStatusEvent?.approvalDeadline
+              });
+              const signatureError = validateIssuerSignature(signature);
+              if (!canApproveStatusEvent || !latestApproval.supported || signatureError) {
+                setError(signatureError || latestApproval.instruction);
+                return;
+              }
+              runAction("status-approve", () => approveStatusEvent(statusEventId, signature), "상태 변경 서명을 제출했습니다.", () => Promise.all([loadCredentials(), loadBlockchainWork()]));
             }}
           >
             <input value={statusSignature} onChange={(event) => setStatusSignature(event.target.value)} placeholder="0x로 시작하는 상태 변경 서명" pattern="0x[0-9a-fA-F]{130}" required />

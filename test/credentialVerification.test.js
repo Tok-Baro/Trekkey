@@ -32,16 +32,22 @@ test("검증 요약은 기관·내용·외부 기록을 분리한다", () => {
     credentialClaimsMatch: true,
     credentialIdMatches: true,
     merkleProofMatches: true,
-    issuerId: "0xissuer",
-    transactionHash: "0xtx"
-  });
+    issuerId: `0x${"11".repeat(32)}`,
+    transactionHash: `0x${"22".repeat(32)}`,
+    chainId: 1001,
+    contractAddress: `0x${"33".repeat(20)}`,
+    blockNumber: 1,
+    batchPublicId: "synthetic-batch"
+  }, "VALID");
 
   assert.deepEqual(checks.map((item) => item.key), ["issuer", "content", "external"]);
   assert.equal(checks.every((item) => item.passed), true);
 });
 
 test("Kaia 네트워크별 공개 원장 링크를 만든다", () => {
-  assert.equal(buildExplorerUrl(1001, "0xabc"), "https://kairos.kaiascan.io/tx/0xabc");
-  assert.equal(buildExplorerUrl(8217, "0xabc"), "https://kaiascan.io/tx/0xabc");
-  assert.equal(buildExplorerUrl(1, "0xabc"), "");
+  const hash = `0x${"ab".repeat(32)}`;
+  assert.equal(buildExplorerUrl(1001, hash), `https://kairos.kaiascan.io/tx/${hash}`);
+  assert.equal(buildExplorerUrl(8217, hash), `https://kaiascan.io/tx/${hash}`);
+  assert.equal(buildExplorerUrl(1, hash), "");
+  assert.equal(buildExplorerUrl(1001, "0xabc"), "");
 });

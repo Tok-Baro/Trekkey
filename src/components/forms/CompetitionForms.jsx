@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Check, ChevronLeft, ChevronRight, Eye, FileArchive, ImagePlus, Plus, Type, Upload, X } from "lucide-react";
@@ -1036,13 +1036,19 @@ function RichTextEditor({ value, onChange }) {
   );
 }
 
-export function SubmissionForm({ teams, onSubmit, onClose }) {
+export function SubmissionForm({ teams, onSubmit, onClose, serverBacked = false }) {
+  const eligibleTeams = serverBacked
+    ? teams.filter((team) => !team.submitted && ["PENDING", "APPROVED", "검토중", "승인"].includes(team.status))
+    : teams;
   const [form, setForm] = useState({
-    team: teams[0]?.name ?? "미등록 팀",
+    teamId: eligibleTeams[0]?.id ?? "",
     title: "",
     submittedAt: "방금 전"
   });
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const submittingRef = useRef(false);
   const fileMetas = useMemo(
     () => selectedFiles.map((file, index) => createSubmissionFileMeta(file, index)),
     [selectedFiles]
@@ -1055,29 +1061,49 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
   return (
     <form
       className="form-stack"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        onSubmit({
-          ...form,
-          files: fileMetas.length,
-          attachments: fileMetas,
-          uploadFiles: selectedFiles
-        });
+        if (submittingRef.current) return;
+        const selectedTeam = eligibleTeams.find((team) => String(team.id) === String(form.teamId));
+        if (!selectedTeam || !form.title.trim() || selectedFiles.length === 0) {
+          setError("접수 가능한 팀, 작품명과 파일을 확인해 주세요.");
+          return;
+        }
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        setError("");
+        try {
+          await onSubmit({
+            ...form,
+            teamId: selectedTeam.id,
+            team: selectedTeam.name,
+            title: form.title.trim(),
+            files: fileMetas.length,
+            attachments: fileMetas,
+            uploadFiles: selectedFiles
+          });
+        } catch (failure) {
+          setError(failure?.message || "접수하지 못했습니다. 입력을 확인하고 다시 시도해 주세요.");
+        } finally {
+          submittingRef.current = false;
+          setIsSubmitting(false);
+        }
       }}
     >
       <label>
         <span>팀</span>
-        <select value={form.team} onChange={(event) => update("team", event.target.value)}>
-          {teams.length ? (
-            teams.map((team) => <option key={team.id}>{team.name}</option>)
+        <select value={form.teamId} disabled={isSubmitting} required onChange={(event) => update("teamId", event.target.value)}>
+          {eligibleTeams.length > 0 && <option value="">팀을 선택해 주세요</option>}
+          {eligibleTeams.length ? (
+            eligibleTeams.map((team) => <option key={team.id} value={team.id}>{team.name} · {team.leader ?? team.leaderName ?? team.id}</option>)
           ) : (
-            <option>미등록 팀</option>
+            <option value="">접수 가능한 팀 없음</option>
           )}
         </select>
       </label>
       <label>
         <span>제출물명</span>
-        <input value={form.title} onChange={(event) => update("title", event.target.value)} required />
+        <input value={form.title} disabled={isSubmitting} maxLength={150} onChange={(event) => update("title", event.target.value)} required />
       </label>
       <label className="file-upload-field">
         <span>제출 파일</span>
@@ -1089,6 +1115,7 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
             type="file"
             accept={SUBMISSION_FILE_ACCEPT}
             multiple
+            disabled={isSubmitting}
             required={selectedFiles.length === 0}
             onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
           />
@@ -1105,68 +1132,91 @@ export function SubmissionForm({ teams, onSubmit, onClose }) {
                   {formatFileSize(file.size)} · {file.type}
                 </span>
               </div>
-              <button type="button" aria-label={`${file.name} 제거`} onClick={() => removeFile(index)}>
+              <button type="button" disabled={isSubmitting} aria-label={`${file.name} 제거`} onClick={() => removeFile(index)}>
                 <X size={15} aria-hidden="true" />
               </button>
             </div>
           ))}
         </div>
       )}
-      <div className="field-row">
+      {serverBacked ? (
+        <p className="form-message">서버 현재 시각으로 신규 접수합니다. 제출 기간·팀 승인 상태·잠금 조건이 적용되며, 실제 접수 관리자가 감사 이력에 기록됩니다.</p>
+      ) : <div className="field-row">
         <label>
           <span>접수시각</span>
           <input value={form.submittedAt} onChange={(event) => update("submittedAt", event.target.value)} />
         </label>
-      </div>
+      </div>}
+      {error && <p role="alert" className="form-message">{error}</p>}
       <div className="modal-actions">
-        <button className="secondary-button" type="button" onClick={onClose}>
+        <button className="secondary-button" type="button" onClick={onClose} disabled={isSubmitting}>
           취소
         </button>
-        <button className="primary-button" type="submit" disabled={selectedFiles.length === 0}>
+        <button className="primary-button" type="submit" disabled={isSubmitting || selectedFiles.length === 0 || !eligibleTeams.length}>
           <Upload size={17} />
-          접수
+          {isSubmitting ? "접수 중…" : "접수"}
         </button>
       </div>
     </form>
   );
 }
 
-export function JudgeForm({ judge, onSubmit, onClose }) {
+export function JudgeForm({ judge, onSubmit, onClose, serverBacked = false }) {
   const isEdit = Boolean(judge);
   const [form, setForm] = useState({
     id: judge?.id,
     name: judge?.name ?? "",
     role: judge?.role ?? "외부 심사위원"
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const submittingRef = useRef(false);
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
   return (
     <form
       className="form-stack"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        onSubmit(form);
+        if (submittingRef.current) return;
+        if (!form.name.trim() || !form.role.trim()) {
+          setError("심사위원 이름과 역할을 입력해 주세요.");
+          return;
+        }
+        submittingRef.current = true;
+        setIsSubmitting(true);
+        setError("");
+        try {
+          await onSubmit({ ...form, name: form.name.trim(), role: form.role.trim() });
+        } catch (failure) {
+          setError(failure?.message || "심사위원 정보를 저장하지 못했습니다.");
+        } finally {
+          submittingRef.current = false;
+          setIsSubmitting(false);
+        }
       }}
     >
       <label>
         <span>이름</span>
-        <input value={form.name} onChange={(event) => update("name", event.target.value)} required />
+        <input value={form.name} maxLength={100} disabled={isSubmitting} onChange={(event) => update("name", event.target.value)} required />
       </label>
       <label>
         <span>역할</span>
-        <select value={form.role} onChange={(event) => update("role", event.target.value)}>
-          {["외부 심사위원", "전임교원", "창업지원단", "산학협력 멘토"].map((role) => (
+        <select value={form.role} disabled={isSubmitting} onChange={(event) => update("role", event.target.value)}>
+          {[...new Set([form.role, "외부 심사위원", "전임교원", "창업지원단", "산학협력 멘토"])].map((role) => (
             <option key={role}>{role}</option>
           ))}
         </select>
       </label>
+      {serverBacked && isEdit && <p className="form-message">배정 이력이 없는 심사위원만 수정할 수 있습니다. 정보 변경 시 기존 심사 링크는 철회되며 연결 계정은 변경되지 않습니다.</p>}
+      {error && <p role="alert" className="form-message">{error}</p>}
       <div className="modal-actions">
-        <button className="secondary-button" type="button" onClick={onClose}>
+        <button className="secondary-button" type="button" onClick={onClose} disabled={isSubmitting}>
           취소
         </button>
-        <button className="primary-button" type="submit">
+        <button className="primary-button" type="submit" disabled={isSubmitting}>
           <Plus size={17} />
-          {isEdit ? "저장" : "추가"}
+          {isSubmitting ? "저장 중…" : isEdit ? "저장" : "추가"}
         </button>
       </div>
     </form>

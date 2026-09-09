@@ -1,3 +1,5 @@
+import { isChainStatusConfirmed, normalizeBlockchainEvidence } from "./blockchainEvidence.js";
+
 const VERIFY_PATH = /\/verify\/([^/?#]+)/i;
 
 export function normalizeCredentialInput(value) {
@@ -17,7 +19,10 @@ export function normalizeCredentialInput(value) {
 }
 
 export function buildExplorerUrl(chainId, transactionHash) {
-  if (!transactionHash) {
+  if (typeof chainId === "object" && chainId !== null) {
+    return normalizeBlockchainEvidence(chainId).explorerUrl;
+  }
+  if (!/^0x[0-9a-fA-F]{64}$/.test(transactionHash ?? "")) {
     return "";
   }
   if (Number(chainId) === 1001) {
@@ -29,39 +34,66 @@ export function buildExplorerUrl(chainId, transactionHash) {
   return "";
 }
 
-export function verificationSummary(evidence = {}) {
+export function verificationSummary(evidence = {}, status) {
+  evidence = evidence ?? {};
+  const chain = normalizeBlockchainEvidence(evidence);
   const contentMatches = [
     evidence.canonicalPayloadMatches,
     evidence.contentHashMatches,
     evidence.fileManifestHashMatches,
     evidence.credentialClaimsMatch,
     evidence.credentialIdMatches
-  ].every(Boolean);
+  ].every(value => value === true);
+  const issuerMatches = /^0x[0-9a-fA-F]{64}$/.test(evidence.issuerId ?? "")
+    && isChainStatusConfirmed(status);
+  const externalMatches = evidence.merkleProofMatches === true && chain.recorded && isChainStatusConfirmed(status);
 
   return [
     {
       key: "issuer",
       label: "발급기관 확인",
-      description: "학교가 발급한 증명서인지 확인했습니다.",
-      passed: Boolean(evidence.issuerId)
+      description: issuerMatches ? "서버가 발급기관의 공개 기록을 확인했습니다." : "유효한 발급기관 확인이 아직 완료되지 않았습니다.",
+      passed: issuerMatches
     },
     {
       key: "content",
       label: "발급 내용 일치",
-      description: "발급 후 내용이 바뀌지 않았습니다.",
+      description: contentMatches ? "서버 검증에서 발급 내용이 일치합니다." : "발급 내용의 일치 여부를 확인하지 못했습니다.",
       passed: contentMatches
     },
     {
       key: "external",
       label: "외부 기록 확인",
-      description: "공개 Proof와 체인 기록 메타데이터를 확인했습니다.",
-      passed: Boolean(evidence.merkleProofMatches && evidence.transactionHash)
+      description: externalMatches ? "서버 체인 검증과 공개 기록 좌표를 확인했습니다." : "공개 기록 검증이 아직 완료되지 않았습니다.",
+      passed: externalMatches
     }
   ];
 }
 
+export function getCredentialDisplayStatus(credential) {
+  if (credential?.verificationStatus === "VALID"
+    && !verificationSummary(credential.evidence, "VALID").every(check => check.passed)) {
+    return "EVIDENCE_INCOMPLETE";
+  }
+  return credential?.verificationStatus;
+}
+
+export function getOperationalDisplayStatus(credential, result) {
+  if (credential?.verificationStatus === "VALID" && result && !result.verified) {
+    if (result.evidenceAvailable && (!result.payloadMatches || !result.leafMatches || !result.merkleRootMatches || !result.backendProofMatches)) return "TAMPERED";
+    return "EVIDENCE_INCOMPLETE";
+  }
+  return getCredentialDisplayStatus(credential);
+}
+
 export function getVerificationPresentation(status, issuerName = "발급기관") {
   const presentations = {
+    EVIDENCE_INCOMPLETE: {
+      label: "검증 증거 확인 필요",
+      headline: "증명서의 공개 검증 증거가 불완전합니다",
+      description: "유효 판정을 뒷받침하는 증거를 확인하지 못했습니다. 사용 전 발급기관에 문의해 주세요.",
+      tone: "warning"
+    },
     VALID: {
       label: "검증 완료",
       headline: `${issuerName}가 발급한 유효한 증명서입니다`,

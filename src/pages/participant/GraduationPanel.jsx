@@ -24,6 +24,8 @@ export function GraduationPanel() {
 
   const evaluate = async () => {
     setIsRunning(true);
+    setResult(null);
+    setMessage("");
     try {
       setResult(await runGraduationEvaluation());
       setMessage("");
@@ -34,7 +36,9 @@ export function GraduationPanel() {
     }
   };
 
-  const overall = result ? OVERALL[result.status] ?? OVERALL.INDETERMINATE : null;
+  const safeOverallStatus = result?.status === "ELIGIBLE" && result.coverage?.complete !== true
+    ? "INDETERMINATE" : result?.status;
+  const overall = result ? OVERALL[safeOverallStatus] ?? OVERALL.INDETERMINATE : null;
 
   return (
     <section className={styles.page}>
@@ -77,6 +81,18 @@ export function GraduationPanel() {
               <div data-tone="danger"><dt>미충족</dt><dd>{result.summary?.unsatisfied ?? 0}</dd></div>
               <div data-tone="warning"><dt>확인 필요</dt><dd>{result.summary?.unknown ?? 0}</dd></div>
             </dl>
+          </section>
+
+          <section className={styles.policies} aria-label="평가 범위">
+            <h3>평가 범위</h3>
+            <p>{result.coverage?.complete === true
+              ? "등록된 정책 범위에 대한 자가점검입니다. 공식 졸업사정은 아닙니다."
+              : "일부 정책·입력만 확인한 결과입니다. 항목별 충족 수가 전체 졸업 충족을 의미하지 않습니다."}</p>
+            <ul>
+              {(result.coverage?.gaps?.length ? result.coverage.gaps : result.coverage?.complete === true
+                ? [] : [{ code: "COVERAGE_UNAVAILABLE", message: "평가 범위 정보가 없어 전체 충족을 확인할 수 없습니다." }])
+                .map(gap => <li key={gap.code}>{gap.message}</li>)}
+            </ul>
           </section>
 
           <section className={styles.requirements}>

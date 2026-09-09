@@ -1753,9 +1753,9 @@ function PublicActivitySharingCard() {
             <div>
               <strong>내 이름으로 검증 가능한 활동을 공유합니다</strong>
               <p>
-                공개하면 이름·학교·전공과 공개 동의된 온체인 Credential
+                공개하면 이름·학교·전공과 발급 당시 PUBLIC으로 지정된 온체인 Credential
                 {settings ? ` ${settings.publicCredentialCount}건` : ""}이 링크에 표시됩니다.
-                이메일과 학번은 표시되지 않습니다.
+                이메일과 학번은 표시되지 않습니다. 각 Credential의 현재 공유 동의를 별도로 확인한 결과는 아닙니다.
               </p>
             </div>
           </div>

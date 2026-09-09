@@ -235,20 +235,12 @@ function App() {
         .catch((error) => notify(getApiErrorMessage(error, "대회 상세 정보를 불러오지 못했습니다."), "error"));
       return;
     }
-    if (isServerAdmin && type === "submission") {
-      notify("관리자 수동 제출물 접수 API는 develop에 구현되어 있지 않습니다.");
-      return;
-    }
     if (isServerAdmin && type === "reviewLink" && !payload.judge) {
       notify("심사 링크는 심사 화면의 심사위원 카드에서 개별 발급해 주세요.");
       return;
     }
     if (isServerAdmin && type === "settings") {
       notify("현재 운영 설정 화면은 로컬 데모용이라 실제 관리자 데이터에서는 사용할 수 없습니다.");
-      return;
-    }
-    if (isServerAdmin && type === "judge" && payload.judge) {
-      notify("심사위원 수정 API는 develop에 구현되어 있지 않습니다.");
       return;
     }
     setModal({ type, payload });
@@ -473,8 +465,18 @@ function App() {
     }
   };
 
-  const handleAddSubmission = () => {
-    notify("관리자 수동 제출물 접수 API는 develop에 구현되어 있지 않습니다.");
+  const handleAddSubmission = async (form) => {
+    const submittedModal = modal;
+    try {
+      const result = await (isServerAdmin ? admin.addSubmission(form) : competition.addSubmission(form));
+      notifyResult(result);
+      if (result.ok === false) return false;
+      setModal((current) => current === submittedModal ? null : current);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "제출물을 접수하지 못했습니다."), "error");
+      return false;
+    }
   };
 
   const handleGenerateHashes = () => {
@@ -482,17 +484,31 @@ function App() {
   };
 
   const handleAddJudge = async (form) => {
+    const submittedModal = modal;
     try {
-      const result = await admin.addJudge(form);
-      notify(result.message, "success");
-      closeModal();
+      const result = await (isServerAdmin ? admin.addJudge(form) : competition.addJudge(form));
+      notifyResult(result);
+      if (result.ok === false) return false;
+      setModal((current) => current === submittedModal ? null : current);
+      return true;
     } catch (error) {
       notify(getApiErrorMessage(error, "심사위원을 추가하지 못했습니다."), "error");
+      return false;
     }
   };
 
-  const handleUpdateJudge = () => {
-    notify("심사위원 수정 API는 develop에 구현되어 있지 않습니다.");
+  const handleUpdateJudge = async (form) => {
+    const submittedModal = modal;
+    try {
+      const result = await (isServerAdmin ? admin.updateJudge(form) : competition.updateJudge(form));
+      notifyResult(result);
+      if (result.ok === false) return false;
+      setModal((current) => current === submittedModal ? null : current);
+      return true;
+    } catch (error) {
+      notify(getApiErrorMessage(error, "심사위원을 수정하지 못했습니다."), "error");
+      return false;
+    }
   };
 
   const handleDeleteJudge = async (judgeId) => {

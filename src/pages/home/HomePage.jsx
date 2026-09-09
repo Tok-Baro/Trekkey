@@ -441,7 +441,7 @@ export function HomePage({ contests = [], onOpenContest }) {
               <article>
                 <span><LockKeyhole size={20} /></span>
                 <h3>최소 공개 검증</h3>
-                <p>학번·이메일·원문은 온체인에 올리지 않고 동의된 요약과 Proof만 공개합니다.</p>
+                <p>학번·이메일·원문은 온체인에 올리지 않고 발급 당시 PUBLIC 지정 요약과 Proof를 공개합니다. 이름 등이 포함될 수 있으며 현재 공유 동의를 별도로 확인한 결과는 아닙니다.</p>
               </article>
               <article>
                 <span><GitCompareArrows size={20} /></span>

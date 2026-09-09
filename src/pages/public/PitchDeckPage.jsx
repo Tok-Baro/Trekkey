@@ -67,7 +67,7 @@ const SLIDES = [
   },
   {
     id: "architecture", time: "03:40", label: "ARCHITECTURE", score: "기술적 완성도 25 · 75초",
-    note: "대회 결과 확정, Canonical snapshot, Merkle batch, EIP-712 기관 승인, Kaia 앵커링, 공개 검증까지 E2E로 연결됩니다. 개인정보 원문은 체인에 올리지 않습니다.",
+    note: "대회 결과 확정, Canonical snapshot, Merkle batch, 체인별 기관 승인, Sui·Kaia 앵커링, 공개 검증으로 연결됩니다. 기존 Kaia 증명과 Sui 증명의 좌표·승인 방식을 구분하며 개인정보 원문은 체인에 올리지 않습니다.",
     cue: "Transactional Outbox와 UNKNOWN 재조회까지 짚어 체인 응답 불명확성 처리도 구현했음을 보여줍니다."
   },
   {
@@ -87,7 +87,7 @@ const SLIDES = [
   },
   {
     id: "closing", time: "09:20", label: "CLOSING", score: "전체 회수 · 40초",
-    note: "Trekkey는 대회 운영으로 검증할 사실을 만들고, Merkle Proof와 Kaia로 그 사실의 무결성과 현재 효력을 학교 밖에서도 확인하게 합니다.",
+    note: "Trekkey는 대회 운영으로 검증할 사실을 만들고, Merkle Proof와 공개 원장으로 그 사실의 무결성과 현재 효력을 학교 밖에서도 확인하게 합니다.",
     cue: "마지막 문장을 천천히 말한 뒤 10분 전에 멈춥니다."
   }
 ];
@@ -96,8 +96,8 @@ const PIPELINE = [
   [UserCheck, "업무 확정", "참가·작품·수상"],
   [Database, "Canonical JSON", "불변 snapshot"],
   [Fingerprint, "Merkle Batch", "여러 leaf → Root"],
-  [KeyRound, "기관 승인", "EIP-712 서명"],
-  [Layers3, "Kaia Anchor", "Root·상태 기록"],
+  [KeyRound, "기관 승인", "체인별 기관 서명"],
+  [Layers3, "Sui · Kaia Anchor", "Root·상태 기록"],
   [BadgeCheck, "공개 검증", "QR·Proof 확인"]
 ];
 
@@ -290,7 +290,7 @@ export function PitchDeckPage() {
               <div><small>APPROVED CLAIMS</small><strong>canonical JSON</strong></div><ChevronRight size={19} />
               <div><small>CONTENT HASH</small><strong>SHA-256</strong></div><ChevronRight size={19} />
               <div><small>TREKKEY LEAF</small><strong>6 × bytes32</strong></div><ChevronRight size={19} />
-              <div className={styles.formulaPass}><small>MERKLE ROOT</small><strong><Check size={15} /> Kaia 기준값</strong></div>
+              <div className={styles.formulaPass}><small>MERKLE ROOT</small><strong><Check size={15} /> 공개 원장 기준값</strong></div>
             </div>
             <div className={styles.precisionNote}><CircleAlert size={18} /><p><strong>블록체인이 진실을 결정하지 않습니다.</strong> 대학이 사실성을 책임지고, Trekkey는 승인 이후의 내용 무결성과 현재 효력을 검증합니다.</p></div>
           </section>
@@ -317,7 +317,7 @@ export function PitchDeckPage() {
         {slide === 5 && (
           <section className={`${styles.slide} ${styles.architecture}`}>
             <div className={styles.eyebrow}><Workflow size={15} /> END-TO-END ARCHITECTURE</div>
-            <h2>업무 확정부터 Kaia 검증까지<br /><em>한 번도 끊기지 않습니다.</em></h2>
+            <h2>업무 확정부터 공개 검증까지<br /><em>같은 증명 기록으로 연결합니다.</em></h2>
             <div className={styles.pipeline}>
               {PIPELINE.map(([Icon, title, body], index) => (
                 <React.Fragment key={title}>{index > 0 && <ChevronRight className={styles.pipelineArrow} size={18} />}<article><span>0{index + 1}</span><Icon size={22} /><strong>{title}</strong><p>{body}</p></article></React.Fragment>
@@ -325,7 +325,7 @@ export function PitchDeckPage() {
             </div>
             <div className={styles.runtimeSplit}>
               <article><Server size={18} /><div><small>INSTITUTION SERVER</small><strong>개인정보 원문 · 업무 근거</strong></div></article>
-              <article><Fingerprint size={18} /><div><small>PUBLIC VERIFICATION</small><strong>동의된 요약 · Proof 재계산</strong></div></article>
+              <article><Fingerprint size={18} /><div><small>PUBLIC VERIFICATION</small><strong>PUBLIC 지정 요약 · Proof 재계산</strong></div></article>
               <article><Layers3 size={18} /><div><small>KAIA KAIROS</small><strong>Root · 발급자 · 현재 상태</strong></div></article>
             </div>
             <div className={styles.reliabilityStrip}><Activity size={17} /><strong>체인 장애도 업무 유실 없이</strong><span>Transactional Outbox</span><i /><span>UNKNOWN 상태</span><i /><span>동일 트랜잭션 재조회</span></div>
@@ -343,9 +343,9 @@ export function PitchDeckPage() {
               ))}
             </div>
             <div className={styles.progressEvidence}>
-              <article><small>예비보고서</small><strong>Java 322 tests</strong><span>대회·Credential 핵심</span></article>
+              <article><small>예비보고서</small><strong>대회·Credential</strong><span>초기 핵심 범위 검증</span></article>
               <ChevronRight size={18} />
-              <article><small>Credential 공개 릴리스</small><strong>629-case suite</strong><span>604 PASS · 25 MySQL-only SKIP · 0 FAIL</span></article>
+              <article><small>현재 회귀 범위</small><strong>Sui · Kaia 호환</strong><span>실행 결과는 릴리스별 보고서 기준</span></article>
               <i />
               <p><strong>구현 경계</strong> 외부 증빙 검수와 졸업 자가점검은 별도 업무 흐름입니다. 자동 Credential 발급과 공식 졸업사정은 후속 범위입니다.</p>
             </div>
@@ -374,9 +374,9 @@ export function PitchDeckPage() {
                 {benchmark.status === "error" && <><CircleAlert size={34} /><strong>측정 재시도</strong><span>브라우저 계산 오류</span></>}
                 {benchmark.status === "idle" && <><Gauge size={34} /><strong>준비 중</strong></>}
               </article>
-              <article><small>CREDENTIAL RELEASE</small><strong>629-case suite</strong><span>604 PASS · 25 MySQL-only SKIP · 0 FAIL</span></article>
-              <article><small>SMART CONTRACT</small><strong>12 PASS</strong><span>Root·서명·권한·상태 전이</span></article>
-              <article><small>FRONTEND</small><strong>19 PASS</strong><span>해시 fixture·API·Proof 재현</span></article>
+              <article><small>CREDENTIAL REGRESSION</small><strong>서버 검사</strong><span>실행 결과는 릴리스별 보고서 기준</span></article>
+              <article><small>SMART CONTRACT</small><strong>Move · Solidity</strong><span>Root·서명·권한·상태 전이 검사</span></article>
+              <article><small>FRONTEND</small><strong>Proof·사용 흐름</strong><span>자동화 회귀와 현재 브라우저 측정은 별도</span></article>
             </div>
             <div className={styles.evidenceActions}>
               <button type="button" onClick={rerunBenchmark} disabled={benchmark.status === "running"}><TimerReset size={16} /> 다시 측정</button>
@@ -392,10 +392,10 @@ export function PitchDeckPage() {
             <h2>대회 운영으로 사실을 만들고,<br /><em>학교 밖에서도 검증하게 합니다.</em></h2>
             <div className={styles.outcomes}>
               <article><GraduationCap size={23} /><small>대학</small><strong>운영과 발급을 한 흐름으로</strong><p>기존 업무의 확정 결과가 검증 가능한 기록이 됩니다.</p></article>
-              <article><UserCheck size={23} /><small>학생</small><strong>한 번 승인받고 계속 공유</strong><p>발급 시 공개에 동의한 요약만 링크와 QR로 제시합니다.</p></article>
+              <article><UserCheck size={23} /><small>학생</small><strong>공개 범위를 확인하고 공유</strong><p>발급 당시 PUBLIC 지정 요약을 링크와 QR로 제시합니다. 현재 공유 동의를 별도로 확인한 결과는 아닙니다.</p></article>
               <article><ShieldCheck size={23} /><small>외부 검증자</small><strong>로그인·지갑 없이 즉시 확인</strong><p>발급기관·내용 무결성·현재 효력을 공개 Proof로 확인합니다.</p></article>
             </div>
-            <div className={styles.roadmapStrip}><span>NOW</span><strong>대회 운영 E2E · Credential · Merkle/Kaia · 공개 검증 · Tamper Lab</strong><i /><span>EXTEND</span><p>외부 증빙 검수 · 졸업 자가점검</p><i /><span>NEXT</span><p>S3·KMS·모니터링 · 내부 베타 후 Mainnet 검토</p></div>
+            <div className={styles.roadmapStrip}><span>NOW</span><strong>대회 운영 · Credential · Merkle/Sui/Kaia · 공개 검증 · Tamper Lab</strong><i /><span>EXTEND</span><p>외부 증빙 검수 · 졸업 자가점검</p><i /><span>NEXT</span><p>S3·KMS·모니터링 · 내부 베타 후 Mainnet 검토</p></div>
             <blockquote>Trekkey는 모든 경험의 진실을 판정하지 않습니다.<br /><strong>대학이 승인한 기록이 이후 변조되지 않았고 지금도 유효한지를 누구나 검증하게 합니다.</strong></blockquote>
           </section>
         )}

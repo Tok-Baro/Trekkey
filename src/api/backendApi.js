@@ -282,12 +282,12 @@ export function getTeamSubmission(teamPublicId) {
 
 export function submitTeamSubmission(teamPublicId, { title, files }) {
   const body = new FormData();
+  body.append("title", title);
   files.forEach((file) => body.append("files", file));
 
   return request(
     `/api/teams/${encodeURIComponent(teamPublicId)}/submission`,
-    { method: "PUT", body },
-    { query: { title } }
+    { method: "PUT", body }
   );
 }
 
