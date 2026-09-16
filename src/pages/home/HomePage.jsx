@@ -8,9 +8,9 @@ import {
   ChevronRight,
   ClipboardList,
   FileCheck2,
-  Fingerprint,
   Gauge,
   GitCompareArrows,
+  ExternalLink,
   ImageOff,
   Layers3,
   LockKeyhole,
@@ -105,6 +105,7 @@ const MARQUEE_GROUP = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
 /* 심사 진행 링 — r=30 원둘레. 표시 숫자와 stroke-dashoffset을 같은 값에서 계산 */
 const RING_RADIUS = 30;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+const EXHIBITION_DEMO_URL = "https://trekkey-demo-43-200-222-11.nip.io/verify";
 
 function prefersReducedMotion() {
   return (
@@ -159,62 +160,6 @@ function useReveal() {
   return rootRef;
 }
 
-function CountUpStat({ value, label }) {
-  const ref = useRef(null);
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) {
-      return undefined;
-    }
-
-    if (prefersReducedMotion() || typeof IntersectionObserver === "undefined") {
-      setDisplay(value);
-      return undefined;
-    }
-
-    let frame = 0;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            return;
-          }
-          observer.unobserve(entry.target);
-          const duration = 800;
-          const start = performance.now();
-          const step = (now) => {
-            const progress = Math.min((now - start) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setDisplay(Math.round(eased * value));
-            if (progress < 1) {
-              frame = requestAnimationFrame(step);
-            }
-          };
-          frame = requestAnimationFrame(step);
-        });
-      },
-      { threshold: 0.4 }
-    );
-
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-      if (frame) {
-        cancelAnimationFrame(frame);
-      }
-    };
-  }, [value]);
-
-  return (
-    <div className={styles.statItem} ref={ref}>
-      <b className={styles.statNum}>{display.toLocaleString("ko-KR")}</b>
-      <span className={styles.statLabel}>{label}</span>
-    </div>
-  );
-}
-
 /* 레일 카드 — 상단 포스터 + 하단 텍스트. 포스터 로드 실패는 카드별 state로 폴백 처리 */
 function RailCard({ contest, onOpen }) {
   const [posterFailed, setPosterFailed] = useState(false);
@@ -252,7 +197,7 @@ function RailCard({ contest, onOpen }) {
   );
 }
 
-export function HomePage({ contests = [], onOpenContest }) {
+export function HomePage({ contests = [], contestSource = "example", isLoading = false, error = null, onOpenContest }) {
   const navigate = useNavigate();
   const rootRef = useReveal();
   const [navSolid, setNavSolid] = useState(false);
@@ -264,10 +209,10 @@ export function HomePage({ contests = [], onOpenContest }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const goToLogin = () => navigate(getLoginPath());
+  const goToLogin = () => navigate(`${getLoginPath()}?role=admin`);
+  const goToParticipant = () => navigate(`${getLoginPath()}?role=participant`);
   const goToVerify = () => navigate("/verify");
   const goToTamperLab = () => navigate("/tamper-lab");
-  const goToJudgeDemo = () => navigate("/demo");
   const goToTop = () => {
     window.scrollTo({ top: 0, behavior: scrollBehavior() });
   };
@@ -278,16 +223,19 @@ export function HomePage({ contests = [], onOpenContest }) {
     }
   };
 
-  const railContests = contests.filter((contest) => contest.status === "접수중").slice(0, 6);
-  const previewContest = contests[0];
+  const hasUnavailableAccountList = contestSource === "account" && (isLoading || Boolean(error));
+  const railContests = hasUnavailableAccountList
+    ? []
+    : contests.filter((contest) => contest.status === "접수중").slice(0, 6);
+  const previewContest = hasUnavailableAccountList ? undefined : contests[0];
 
   const ringProgress = Math.max(0, Math.min(100, previewContest?.progress ?? 46));
   const ringOffset = RING_CIRCUMFERENCE * (1 - ringProgress / 100);
 
   const stats = [
-    { value: 629, label: "서버 자동화 테스트" },
-    { value: 12, label: "스마트컨트랙트 테스트" },
-    { value: 19, label: "프런트 검증 테스트" }
+    { value: "서버·API", label: "자동화 회귀 검증" },
+    { value: "기록 무결성", label: "증명·변조 검증" },
+    { value: "사용 흐름", label: "프런트 동작 검증" }
   ];
 
   return (
@@ -301,12 +249,6 @@ export function HomePage({ contests = [], onOpenContest }) {
             <span className={styles.brandName}>Trekkey</span>
           </button>
           <div className={styles.navActions}>
-            <button className={styles.navLink} type="button" onClick={goToJudgeDemo}>
-              <Gauge size={16} aria-hidden="true" /> 5분 심사 시연
-            </button>
-            <button className={styles.navLink} type="button" onClick={goToTamperLab}>
-              <Fingerprint size={16} aria-hidden="true" /> Tamper Lab
-            </button>
             <button className={styles.navLink} type="button" onClick={goToVerify}>
               <BadgeCheck size={16} aria-hidden="true" /> 증명서 확인
             </button>
@@ -314,10 +256,10 @@ export function HomePage({ contests = [], onOpenContest }) {
               대회 둘러보기
             </button>
             <button className={styles.btnSecondary} type="button" onClick={goToLogin}>
-              로그인
+              관리자 로그인
             </button>
-            <button className={styles.btnPrimary} type="button" onClick={goToLogin}>
-              시작하기
+            <button className={styles.btnPrimary} type="button" onClick={goToParticipant}>
+              참가자 로그인
             </button>
           </div>
         </div>
@@ -334,30 +276,44 @@ export function HomePage({ contests = [], onOpenContest }) {
 
           <div className={styles.heroInner}>
             <div className={styles.heroCopy}>
-              <span className={`${styles.eyebrow} ${styles.heroEnter} ${styles.d0}`}>검증 가능한 대학 활동 Credential 플랫폼</span>
+              <span className={`${styles.eyebrow} ${styles.heroEnter} ${styles.d0}`}>대학 대회 운영·참가 서비스</span>
               <h1 className={styles.heroTitle}>
-                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>AI가 대신 쓴 경험이 아닌,</span>
+                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>대회 운영부터 참가까지,</span>
                 <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d2}`}>
-                  <span className={styles.accent}>대학이 승인한 사실을.</span>
+                  <span className={styles.accent}>내 역할에 맞게 시작하세요.</span>
                 </span>
               </h1>
               <p className={`${styles.lead} ${styles.heroEnter} ${styles.d3}`}>
-                대회 운영에서 생성된 활동 증거를 표준 Credential로 발급하고,
+                관리자는 대회와 심사를 운영하고, 학생은 대회를 찾아 신청할 수 있습니다.
                 <br />
-                개인정보 원문을 공개하지 않고도 변조와 현재 효력을 검증합니다.
+                발급받은 활동 증명서는 로그인 없이 확인할 수 있습니다.
               </p>
               <div className={`${styles.heroCta} ${styles.heroEnter} ${styles.d4}`}>
-                <button className={styles.btnPrimaryLg} type="button" onClick={goToJudgeDemo}>
-                  5분 심사 시연 시작
+                <button className={styles.btnPrimaryLg} type="button" onClick={goToParticipant}>
+                  학생으로 대회 찾기
                   <ArrowRight size={18} aria-hidden="true" />
                 </button>
-                <button className={styles.btnSecondaryLg} type="button" onClick={goToTamperLab}>
-                  Tamper Lab 실행
+                <button className={styles.btnSecondaryLg} type="button" onClick={goToLogin}>
+                  관리자로 로그인
                 </button>
               </div>
+              <div className={`${styles.heroUtilities} ${styles.heroEnter} ${styles.d5}`}>
+                <button type="button" onClick={goToContests}>로그인 전 대회 화면 보기</button>
+                <button type="button" onClick={goToVerify}>증명서 확인</button>
+              </div>
+              <a
+                className={`${styles.exhibitionLink} ${styles.heroEnter} ${styles.d5}`}
+                href={EXHIBITION_DEMO_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <span><b>전시 체험</b> 합성 데이터로 기능 살펴보기</span>
+                <ExternalLink size={16} aria-hidden="true" />
+              </a>
             </div>
 
             <div className={`${styles.heroPreview} ${styles.heroEnter} ${styles.d5}`} aria-hidden="true">
+              <span className={styles.previewExampleLabel}>기능 예시 화면</span>
               <div className={`${styles.floatCard} ${styles.floatContest}`}>
                 <span className={styles.miniBadge}>접수중</span>
                 <strong>{previewContest?.title ?? "전공 역량 비교과 공모전"}</strong>
@@ -420,7 +376,10 @@ export function HomePage({ contests = [], onOpenContest }) {
         <section className={styles.stats}>
           <div className={`${styles.statsInner} ${styles.reveal}`} data-reveal>
             {stats.map((stat) => (
-              <CountUpStat key={stat.label} value={stat.value} label={stat.label} />
+              <div className={styles.statItem} key={stat.label}>
+                <b className={styles.statNum}>{stat.value}</b>
+                <span className={styles.statLabel}>{stat.label}</span>
+              </div>
             ))}
           </div>
         </section>
@@ -629,24 +588,36 @@ export function HomePage({ contests = [], onOpenContest }) {
           </div>
         </section>
 
-        {railContests.length > 0 && (
+        {(railContests.length > 0 || hasUnavailableAccountList) && (
           <section className={styles.railSection} id="contests">
             <div className={styles.container}>
               <div className={`${styles.railHead} ${styles.reveal}`} data-reveal>
                 <div>
-                  <span className={styles.eyebrow}>진행 중 대회</span>
-                  <h2 className={styles.sectionTitle}>지금 접수 중인 대회</h2>
+                  <span className={styles.eyebrow}>{contestSource === "example" ? "대회 화면 예시" : "진행 중 대회"}</span>
+                  <h2 className={styles.sectionTitle}>
+                    {contestSource === "example" ? "기능 안내용 대회 · 실제 접수 공고 아님" : "지금 접수 중인 대회"}
+                  </h2>
                 </div>
-                <p className={styles.sectionLead}>관심 있는 공고를 눌러 자세히 살펴보세요.</p>
+                <p className={styles.sectionLead}>
+                  {contestSource === "example"
+                    ? "실제 참가 가능한 대회 목록은 학생 계정으로 로그인한 뒤 확인하세요."
+                    : error
+                      ? "대회 목록을 불러오지 못했습니다. 잠시 후 다시 확인해 주세요."
+                      : isLoading
+                        ? "계정의 대회 목록을 불러오는 중입니다."
+                        : "관심 있는 공고를 눌러 자세히 살펴보세요."}
+                </p>
               </div>
             </div>
-            <div className={`${styles.rail} ${styles.reveal}`} data-reveal>
-              <div className={styles.railTrack}>
-                {railContests.map((contest) => (
-                  <RailCard contest={contest} key={contest.id} onOpen={onOpenContest} />
-                ))}
+            {railContests.length > 0 && (
+              <div className={`${styles.rail} ${styles.reveal}`} data-reveal>
+                <div className={styles.railTrack}>
+                  {railContests.map((contest) => (
+                    <RailCard contest={contest} key={contest.id} onOpen={onOpenContest} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </section>
         )}
 

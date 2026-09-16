@@ -496,6 +496,7 @@
 
 .heroTitle {
   margin: 18px 0 0;
+  word-break: keep-all;
   font-size: var(--font-hero);
   font-weight: 700;
   line-height: 1.1;
@@ -529,6 +530,54 @@
   gap: 12px;
 }
 
+.heroUtilities {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  button {
+    min-height: 36px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--on-dark-faint);
+    background: transparent;
+    color: var(--on-dark-muted);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button:hover {
+    color: var(--on-dark);
+    border-bottom-color: var(--teal-bright);
+  }
+}
+
+.exhibitionLink {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--on-dark-faint);
+  border-radius: var(--radius-sm);
+  color: var(--on-dark-muted);
+  font-size: 13px;
+  text-decoration: none;
+
+  b {
+    margin-right: 7px;
+    color: var(--teal-bright);
+  }
+
+  &:hover {
+    color: var(--on-dark);
+    border-color: var(--teal-bright);
+  }
+}
+
 /* 히어로 secondary 버튼 — 다크 위 글래스 */
 .hero {
   .btnSecondaryLg {
@@ -549,6 +598,21 @@
   position: relative;
   min-height: 360px;
   min-width: 0;
+}
+
+.previewExampleLabel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 4;
+  padding: 6px 10px;
+  border: 1px solid var(--on-dark-faint);
+  border-radius: 999px;
+  background: var(--glass-dark);
+  color: var(--on-dark-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .floatCard {
@@ -764,7 +828,7 @@
   }
 }
 
-/* ---------- 통계 스트립 (숫자 카운트업) ---------- */
+/* ---------- 검증 특징 스트립 ---------- */
 .stats {
   padding: clamp(36px, 5vw, 56px) 0;
   background: var(--surface);
@@ -789,7 +853,7 @@
 }
 
 .statNum {
-  font-size: clamp(30px, 5vw, 44px);
+  font-size: clamp(20px, 3vw, 30px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
