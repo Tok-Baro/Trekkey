@@ -805,7 +805,14 @@ function App() {
   }, [awardRecords, judgeRecords, submissionRecords, teamRecords]);
 
   if (isHomeRoute) {
-    return <HomePage contests={homeContestRecords} onOpenContest={openContestDetailPage} />;
+    const homeSource = isServerParticipant ? participant : isServerAdmin ? admin : null;
+    return <HomePage
+      contests={homeContestRecords}
+      onOpenContest={openContestDetailPage}
+      contestSource={homeSource ? "account" : "example"}
+      isLoading={homeSource?.isLoading ?? false}
+      error={homeSource?.error ?? null}
+    />;
   }
 
   if (isLoginRoute) {

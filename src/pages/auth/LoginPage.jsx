@@ -1,21 +1,27 @@
 import React, { useEffect, useState } from "react";
-import { BadgeCheck, ClipboardCheck, Gavel, IdCard, Layers3, LogIn, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
-import { Link } from "react-router-dom";
+import { BadgeCheck, ClipboardCheck, ExternalLink, Gavel, IdCard, Layers3, LogIn, Mail, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import { getLoginFormDefaults } from "../../lib/auth.js";
 import styles from "./LoginPage.module.scss";
 
+const EXHIBITION_DEMO_URL = "https://trekkey-demo-43-200-222-11.nip.io/verify";
+const createEmptyLoginForm = role => ({ ...getLoginFormDefaults(role), email: "", password: "" });
+
 export function LoginPage({ preferredRole = "admin", session, onLogin, onContinue, isSubmitting = false }) {
-  const [role, setRole] = useState(preferredRole);
-  const [form, setForm] = useState(() => getLoginFormDefaults(preferredRole));
+  const [searchParams] = useSearchParams();
+  const roleParam = searchParams.get("role");
+  const requestedRole = roleParam === "admin" || roleParam === "participant" ? roleParam : preferredRole;
+  const [role, setRole] = useState(requestedRole);
+  const [form, setForm] = useState(() => createEmptyLoginForm(requestedRole));
 
   useEffect(() => {
-    setRole(preferredRole);
-    setForm(getLoginFormDefaults(preferredRole));
-  }, [preferredRole]);
+    setRole(requestedRole);
+    setForm(createEmptyLoginForm(requestedRole));
+  }, [requestedRole]);
 
   const selectRole = (nextRole) => {
     setRole(nextRole);
-    setForm(getLoginFormDefaults(nextRole));
+    setForm(createEmptyLoginForm(nextRole));
   };
   const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
@@ -112,6 +118,10 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
             <BadgeCheck size={17} aria-hidden="true" />
             로그인 없이 증명서 확인
           </Link>
+          <div className={styles.serviceLinks} aria-label="다른 시작 경로">
+            <Link to="/home">서비스 소개와 대회 둘러보기</Link>
+            <Link to="/login?role=participant">학생 참가자 로그인</Link>
+          </div>
         </form>
       </section>
 
@@ -136,6 +146,11 @@ export function LoginPage({ preferredRole = "admin", session, onLogin, onContinu
           <strong>평가위원</strong>
           <span>회원가입 없이 관리자가 전달한 1회용 로그인 링크로 평가 화면에 접속합니다.</span>
         </div>
+        <a className={styles.exhibitionEntry} href={EXHIBITION_DEMO_URL} target="_blank" rel="noreferrer">
+          <ExternalLink size={20} aria-hidden="true" />
+          <strong>전시 체험 · 합성 데이터</strong>
+          <span>실제 대회 운영과 분리된 공개 시연 화면을 새 창에서 엽니다.</span>
+        </a>
       </aside>
     </main>
   );

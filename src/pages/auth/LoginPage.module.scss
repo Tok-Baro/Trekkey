@@ -92,6 +92,52 @@
   background: var(--teal-soft);
 }
 
+.serviceLinks {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 12px;
+}
+
+.serviceLinks a {
+  color: var(--ink-500);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.serviceLinks a:hover {
+  color: var(--teal-strong);
+  text-decoration: underline;
+}
+
+.exhibitionEntry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  padding: 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.exhibitionEntry svg {
+  grid-row: 1 / 3;
+  color: var(--teal-strong);
+}
+
+.exhibitionEntry span {
+  color: var(--ink-500);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.exhibitionEntry:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
 @media (max-width: 640px) {
   .signupLinks {
     flex-wrap: wrap;
