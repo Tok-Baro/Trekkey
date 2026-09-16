@@ -278,9 +278,9 @@ export function HomePage({ contests = [], contestSource = "example", isLoading =
             <div className={styles.heroCopy}>
               <span className={`${styles.eyebrow} ${styles.heroEnter} ${styles.d0}`}>대학 대회 운영·참가 서비스</span>
               <h1 className={styles.heroTitle}>
-                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>대회를 운영하고 참가하는</span>
+                <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d1}`}>대회 운영부터 참가까지,</span>
                 <span className={`${styles.heroLine} ${styles.heroEnter} ${styles.d2}`}>
-                  <span className={styles.accent}>각자의 화면으로 바로 이동하세요.</span>
+                  <span className={styles.accent}>내 역할에 맞게 시작하세요.</span>
                 </span>
               </h1>
               <p className={`${styles.lead} ${styles.heroEnter} ${styles.d3}`}>
